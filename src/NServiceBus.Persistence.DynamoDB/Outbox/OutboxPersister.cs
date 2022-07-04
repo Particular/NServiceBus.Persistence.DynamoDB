@@ -34,26 +34,33 @@
 
         public async Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
-            var queryRequest = new QueryRequest
+            var allItems = new List<Dictionary<string, AttributeValue>>();
+            QueryResponse response;
+            do
             {
-                ConsistentRead =
-                    false, //TODO: Do we need to check the integrity of the read by counting the operations?
-                KeyConditionExpression = "Id = :incomingId",
-                ExpressionAttributeValues =
-                    new Dictionary<string, AttributeValue> { { ":incomingId", new AttributeValue { S = messageId } } },
-                TableName = tableName
-            };
-            var response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
+                var queryRequest = new QueryRequest
+                {
+                    ConsistentRead =
+                        false, //TODO: Do we need to check the integrity of the read by counting the operations?
+                    KeyConditionExpression = "Id = :incomingId",
+                    ExpressionAttributeValues =
+                        new Dictionary<string, AttributeValue> { { ":incomingId", new AttributeValue { S = messageId } } },
+                    TableName = tableName
+                };
+                response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
+                allItems.AddRange(response.Items);
 
-            if (response.Count == 0)
+            } while (response.LastEvaluatedKey != null);
+
+            if (allItems.Count == 0)
             {
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
                 return null;
             }
 
-            context.Set(OperationsCountContextProperty, response.Count);
+            context.Set(OperationsCountContextProperty, allItems.Count);
 
-            return DeserializeOutboxMessage(response.Items);
+            return DeserializeOutboxMessage(allItems);
         }
 
         static OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems)
