@@ -23,13 +23,14 @@
         }
 
         /// <summary>
-        /// Sets the database name
+        /// Sets the table name for the outbox and the saga storage
         /// </summary>
         public static PersistenceExtensions<DynamoDBPersistence> TableName(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, string tableName)
         {
             Guard.AgainstNullAndEmpty(nameof(tableName), tableName);
 
-            persistenceExtensions.GetSettings().Set(SettingsKeys.TableName, tableName);
+            persistenceExtensions.GetSettings().Set(SettingsKeys.OutboxTableName, tableName);
+            persistenceExtensions.GetSettings().Set(SettingsKeys.SagasTableName, tableName);
 
             return persistenceExtensions;
         }

@@ -5,5 +5,6 @@
     /// </summary>
     public class SagaPersistenceConfiguration
     {
+        // TODO: Add ability to set the saga table name
     }
 }

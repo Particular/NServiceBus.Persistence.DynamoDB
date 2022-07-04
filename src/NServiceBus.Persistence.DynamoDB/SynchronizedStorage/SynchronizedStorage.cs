@@ -17,8 +17,6 @@
                 context.Services.AddSingleton(context.Settings.Get<IProvideDynamoDBClient>());
             }
 
-            var databaseName = context.Settings.Get<string>(SettingsKeys.TableName);
-
             context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoDBSynchronizedStorageSession>();
             context.Services.AddScoped(sp => sp.GetRequiredService<ICompletableSynchronizedStorageSession>().CosmosPersistenceSession());
         }

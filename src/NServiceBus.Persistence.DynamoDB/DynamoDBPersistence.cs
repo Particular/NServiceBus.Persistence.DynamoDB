@@ -13,7 +13,6 @@
         {
             Defaults(s =>
             {
-                s.SetDefault(SettingsKeys.TableName, "NServiceBus");
                 s.SetDefault<IProvideDynamoDBClient>(new ThrowIfNoDynamoDBClientIsProvided());
                 s.EnableFeatureByDefault<InstallerFeature>();
                 s.EnableFeatureByDefault<Transaction>();

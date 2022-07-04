@@ -20,7 +20,7 @@
                 return;
             }
 
-            var tableName = context.Settings.Get<string>(SettingsKeys.TableName);
+            var tableName = context.Settings.Get<string>(SettingsKeys.OutboxTableName);
             settings.OutboxTableName = tableName;
         }
     }

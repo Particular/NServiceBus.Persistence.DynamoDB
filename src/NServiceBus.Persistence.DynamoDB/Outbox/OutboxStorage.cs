@@ -12,6 +12,8 @@
             Defaults(s =>
             {
                 s.SetDefault(SettingsKeys.OutboxTimeToLive, TimeSpan.FromDays(7));
+                // TODO: Let's make sure the endpoint name adheres to the naming rules
+                s.SetDefault(SettingsKeys.OutboxTableName, s.EndpointName());
                 s.EnableFeatureByDefault<SynchronizedStorage>();
             });
 

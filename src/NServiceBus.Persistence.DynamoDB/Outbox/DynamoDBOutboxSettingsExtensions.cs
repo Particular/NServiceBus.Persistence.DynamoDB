@@ -19,5 +19,7 @@ namespace NServiceBus
 
             outboxSettings.GetSettings().Set(SettingsKeys.OutboxTimeToLive, (int)timeToKeepOutboxDeduplicationData.TotalSeconds);
         }
+
+        // TODO Add ability to override the outbox table name
     }
 }
