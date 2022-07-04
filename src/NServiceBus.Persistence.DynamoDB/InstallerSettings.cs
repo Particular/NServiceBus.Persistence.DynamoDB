@@ -3,6 +3,6 @@
     class InstallerSettings
     {
         public bool Disabled { get; set; }
-        public string TableName { get; set; }
+        public string OutboxTableName { get; set; }
     }
 }
