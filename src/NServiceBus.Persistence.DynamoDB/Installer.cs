@@ -1,8 +1,11 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Amazon.DynamoDBv2;
+    using Amazon.DynamoDBv2.Model;
     using Installation;
     using Logging;
 
@@ -23,7 +26,8 @@
 
             try
             {
-                await CreateTableIfNotExists(cancellationToken).ConfigureAwait(false);
+                await CreateOutboxTableCreateTableIfNotExists(clientProvider.Client, installerSettings.OutboxTableName,
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
@@ -32,16 +36,51 @@
             }
         }
 
-        Task CreateTableIfNotExists(CancellationToken cancellationToken)
+        async Task CreateOutboxTableCreateTableIfNotExists(IAmazonDynamoDB client, string outboxTableName,
+            CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            // TODO: Maybe these should be configurable?
+            var createTableRequest = new CreateTableRequest
+            {
+                TableName = outboxTableName,
+                AttributeDefinitions = new List<AttributeDefinition>()
+                {
+                    new() { AttributeName = "PK", AttributeType = "S" },
+                    new() { AttributeName = "SK", AttributeType = "S" }
+                },
+                KeySchema = new List<KeySchemaElement>()
+                {
+                    new() { AttributeName = "PK", KeyType = "HASH" },
+                    new() { AttributeName = "SK", KeyType = "RANGE" },
+                },
+                // TODO: Fix this
+                BillingMode = BillingMode.PAY_PER_REQUEST
+            };
+            try
+            {
+                await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
+            }
+            catch (ResourceInUseException)
+            {
+                // Intentionally ignored when there are races
+            }
+
+            var request = new DescribeTableRequest { TableName = outboxTableName };
+
+            TableStatus status;
+            do
+            {
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
+
+                var describeTableResponse =
+                    await client.DescribeTableAsync(request, cancellationToken).ConfigureAwait(false);
+                status = describeTableResponse.Table.TableStatus;
+            } while (status != TableStatus.ACTIVE);
         }
 
-#pragma warning disable IDE0052
         InstallerSettings installerSettings;
         static ILog log = LogManager.GetLogger<Installer>();
 
         readonly IProvideDynamoDBClient clientProvider;
-#pragma warning restore IDE0052
     }
 }
