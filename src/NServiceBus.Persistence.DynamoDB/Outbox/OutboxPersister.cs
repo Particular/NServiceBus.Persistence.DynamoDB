@@ -18,7 +18,7 @@
     {
         const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
 
-        public OutboxPersister(AmazonDynamoDBClient dynamoDbClient, string tableName, TimeSpan expirationPeriod)
+        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, string tableName, TimeSpan expirationPeriod)
         {
             this.dynamoDbClient = dynamoDbClient;
             this.tableName = tableName;

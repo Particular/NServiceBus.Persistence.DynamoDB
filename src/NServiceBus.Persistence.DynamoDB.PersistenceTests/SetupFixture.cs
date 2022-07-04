@@ -40,7 +40,7 @@
             DynamoDBClient.Dispose();
         }
 
-        public static AmazonDynamoDBClient DynamoDBClient;
+        public static IAmazonDynamoDB DynamoDBClient;
         public static string TableName;
     }
 }

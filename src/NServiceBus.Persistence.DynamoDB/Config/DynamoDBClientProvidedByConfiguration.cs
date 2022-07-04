@@ -4,6 +4,6 @@
 
     class DynamoDBClientProvidedByConfiguration : IProvideDynamoDBClient
     {
-        public AmazonDynamoDBClient Client { get; set; }
+        public IAmazonDynamoDB Client { get; set; }
     }
 }

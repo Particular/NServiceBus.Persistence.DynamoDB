@@ -13,6 +13,6 @@
         /// <summary>
         /// The CosmosClient to use.
         /// </summary>
-        AmazonDynamoDBClient Client { get; }
+        IAmazonDynamoDB Client { get; }
     }
 }

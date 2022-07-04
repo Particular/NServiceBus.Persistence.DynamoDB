@@ -50,7 +50,7 @@
 
         public IOutboxStorage OutboxStorage { get; private set; }
 
-        public AmazonDynamoDBClient Client { get; } = SetupFixture.DynamoDBClient;
+        public IAmazonDynamoDB Client { get; } = SetupFixture.DynamoDBClient;
 
         public Func<ICompletableSynchronizedStorageSession> CreateStorageSession { get; private set; }
 
