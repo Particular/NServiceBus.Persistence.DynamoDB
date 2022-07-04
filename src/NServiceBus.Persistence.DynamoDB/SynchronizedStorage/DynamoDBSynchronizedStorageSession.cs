@@ -2,6 +2,7 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Amazon.DynamoDBv2;
     using Extensibility;
     using Outbox;
     using Transport;
@@ -11,6 +12,12 @@
         StorageSession storageSession;
         bool commitOnComplete;
         bool disposed;
+        readonly IAmazonDynamoDB client;
+
+        public DynamoDBSynchronizedStorageSession(IProvideDynamoDBClient dynamoDbClientProvider)
+        {
+            client = dynamoDbClientProvider.Client;
+        }
 
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = new CancellationToken())
@@ -37,7 +44,7 @@
         {
             // Creating the storage session already sets the correct context bag so there is no need to assign
             // CurrentContextBag here
-            storageSession = new StorageSession(contextBag);
+            storageSession = new StorageSession(client, contextBag);
             commitOnComplete = true;
             return Task.CompletedTask;
         }

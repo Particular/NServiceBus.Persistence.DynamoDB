@@ -2,6 +2,7 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Amazon.DynamoDBv2;
     using Extensibility;
     using Outbox;
 
@@ -9,9 +10,9 @@
     {
         public StorageSession StorageSession { get; }
 
-        public DynamoDBOutboxTransaction(ContextBag context)
+        public DynamoDBOutboxTransaction(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
-            StorageSession = new StorageSession(context);
+            StorageSession = new StorageSession(dynamoDbClient, context);
         }
 
         public Task Commit(CancellationToken cancellationToken = default) => StorageSession.Commit(cancellationToken);

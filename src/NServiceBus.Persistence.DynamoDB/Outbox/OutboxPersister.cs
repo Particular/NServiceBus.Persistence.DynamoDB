@@ -27,7 +27,7 @@
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
         {
-            var transaction = new DynamoDBOutboxTransaction(context);
+            var transaction = new DynamoDBOutboxTransaction(dynamoDbClient, context);
 
             return Task.FromResult((IOutboxTransaction)transaction);
         }
@@ -69,7 +69,7 @@
             var headerItem = responseItems.First();
             var incomingId = headerItem["PK"].S;
 
-            var operations = responseItems.Where(x => x["Index"].N != "0")
+            var operations = responseItems.Skip(1)
                 .Select(DeserializeOperation).ToArray();
 
             return new OutboxMessage(incomingId, operations);
@@ -80,9 +80,10 @@
             var messageId = attributeValues["MessageId"].S;
             var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues["Properties"]));
             var headers = DeserializeStringDictionary(attributeValues["Headers"]);
+
             if (!attributeValues["Body"].B.TryGetBuffer(out var segment))
             {
-                throw new Exception("Cannot get buffer from the body stream.");
+                //throw new Exception("Cannot get buffer from the body stream.");
             }
 
             return new TransportOperation(messageId, properties, segment, headers);
@@ -100,7 +101,7 @@
                     Item = new Dictionary<string, AttributeValue>
                     {
                         {"PK", new AttributeValue{ S = $"OUTBOX#{outboxMessage.MessageId}"}},
-                        {"SK", new AttributeValue{ N = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
+                        {"SK", new AttributeValue{ S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {"Dispatched", new AttributeValue{ BOOL = false}},
                         {"DispatchedAt", new AttributeValue { NULL = true}},
                         {"ExpireAt", new AttributeValue { NULL = true}} //TTL
@@ -119,13 +120,21 @@
                         Item = new Dictionary<string, AttributeValue>
                         {
                             {"PK", new AttributeValue{ S = $"OUTBOX#{outboxMessage.MessageId}"}},
-                            {"SK", new AttributeValue{ N = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
+                            {"SK", new AttributeValue{ S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
                             {"Dispatched", new AttributeValue{ BOOL = false}},
                             {"DispatchedAt", new AttributeValue { NULL = true}},
                             {"MessageId", new AttributeValue{ S = operation.MessageId}},
                             // TODO: Make this better in terms of allocations?
-                            {"Properties", new AttributeValue{ M = SerializeStringDictionary(operation.Options ?? new DispatchProperties())}},
-                            {"Headers", new AttributeValue{ M = SerializeStringDictionary(operation.Headers ?? new Dictionary<string, string>())}},
+                            {"Properties", new AttributeValue
+                            {
+                                M = SerializeStringDictionary(operation.Options ?? new DispatchProperties()),
+                                IsMSet = true
+                            }},
+                            {"Headers", new AttributeValue
+                            {
+                                M = SerializeStringDictionary(operation.Headers ?? new Dictionary<string, string>()),
+                                IsMSet = true
+                            }},
                             {"Body", new AttributeValue{ B = bodyStream}},
                             {"ExpireAt", new AttributeValue { NULL = true}} //TTL
                         },
@@ -144,6 +153,8 @@
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context, CancellationToken cancellationToken = default)
         {
             var outboxTransaction = (DynamoDBOutboxTransaction)transaction;
+
+            context.Set(OperationsCountContextProperty, message.TransportOperations.Length);
 
             outboxTransaction.StorageSession.AddRange(Serialize(message));
 
@@ -169,7 +180,7 @@
                             Item = new Dictionary<string, AttributeValue>
                             {
                                 {"PK", new AttributeValue{ S = $"OUTBOX#{messageId}"}},
-                                {"SK", new AttributeValue{ N = $"OUTBOX#{messageId}#{x}"}}, //Sort key
+                                {"SK", new AttributeValue{ S = $"OUTBOX#{messageId}#{x}"}}, //Sort key
                                 {"Dispatched", new AttributeValue{ BOOL = true}},
                                 {"DispatchedAt", new AttributeValue { S = now.ToString("s")}},
                                 {"ExpireAt", new AttributeValue { N = epochSeconds.ToString()}}

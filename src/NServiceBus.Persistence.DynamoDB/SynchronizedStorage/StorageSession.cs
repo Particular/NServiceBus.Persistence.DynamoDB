@@ -4,12 +4,17 @@
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
 
     class StorageSession
     {
-        public StorageSession(ContextBag context) => CurrentContextBag = context;
+        public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
+        {
+            this.dynamoDbClient = dynamoDbClient;
+            CurrentContextBag = context;
+        }
 
         public void Add(TransactWriteItem writeItem)
         {
@@ -32,7 +37,18 @@
             }
         }
 
-        public Task Commit(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public async Task Commit(CancellationToken cancellationToken = default)
+        {
+            if (batch.Count == 0)
+            {
+                return;
+            }
+
+            var transactItemsRequest = new TransactWriteItemsRequest { TransactItems = batch };
+            var _ = await dynamoDbClient.TransactWriteItemsAsync(transactItemsRequest, cancellationToken).ConfigureAwait(false);
+            batch.Clear();
+            // TODO: Check response
+        }
 
         public void Dispose()
         {
@@ -41,5 +57,6 @@
         public ContextBag CurrentContextBag { get; set; }
 
         List<TransactWriteItem> batch = new List<TransactWriteItem>();
+        readonly IAmazonDynamoDB dynamoDbClient;
     }
 }

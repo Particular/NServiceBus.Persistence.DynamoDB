@@ -77,13 +77,14 @@
                 return contextBag;
             };
 
-            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession();
+            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(new DynamoDBClientProvidedByConfiguration { Client = SetupFixture.DynamoDBClient });
 
             return Task.CompletedTask;
         }
 
         public Task Cleanup(CancellationToken cancellationToken = default)
         {
+            // Cleanup is done by the setup fixture
             return Task.CompletedTask;
         }
 
