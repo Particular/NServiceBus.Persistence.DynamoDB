@@ -35,22 +35,23 @@
         public async Task<OutboxMessage> Get(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
             var allItems = new List<Dictionary<string, AttributeValue>>();
-            QueryResponse response;
+            QueryResponse response = null;
             do
             {
                 var queryRequest = new QueryRequest
                 {
                     ConsistentRead =
                         false, //TODO: Do we need to check the integrity of the read by counting the operations?
-                    KeyConditionExpression = "Id = :incomingId",
+                    KeyConditionExpression = "PK = :incomingId",
+                    ExclusiveStartKey = response?.LastEvaluatedKey,
                     ExpressionAttributeValues =
-                        new Dictionary<string, AttributeValue> { { ":incomingId", new AttributeValue { S = messageId } } },
+                        new Dictionary<string, AttributeValue> { { ":incomingId", new AttributeValue { S = $"OUTBOX#{messageId}" } } },
                     TableName = tableName
                 };
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
                 allItems.AddRange(response.Items);
 
-            } while (response.LastEvaluatedKey != null);
+            } while (response.LastEvaluatedKey.Count > 0);
 
             if (allItems.Count == 0)
             {
@@ -65,8 +66,8 @@
 
         static OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems)
         {
-            var headerItem = responseItems.First(x => x["Index"].N == "0");
-            var incomingId = headerItem["Id"].S;
+            var headerItem = responseItems.First();
+            var incomingId = headerItem["PK"].S;
 
             var operations = responseItems.Where(x => x["Index"].N != "0")
                 .Select(DeserializeOperation).ToArray();
@@ -98,8 +99,8 @@
                 {
                     Item = new Dictionary<string, AttributeValue>
                     {
-                        {"Id", new AttributeValue{ S = outboxMessage.MessageId}},
-                        {"Index", new AttributeValue{ N = "0"}}, //Sort key
+                        {"PK", new AttributeValue{ S = $"OUTBOX#{outboxMessage.MessageId}"}},
+                        {"SK", new AttributeValue{ N = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {"Dispatched", new AttributeValue{ BOOL = false}},
                         {"DispatchedAt", new AttributeValue { NULL = true}},
                         {"ExpireAt", new AttributeValue { NULL = true}} //TTL
@@ -117,13 +118,14 @@
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {"Id", new AttributeValue{ S = outboxMessage.MessageId}},
-                            {"Index", new AttributeValue{ N = n.ToString()}}, //Sort key
+                            {"PK", new AttributeValue{ S = $"OUTBOX#{outboxMessage.MessageId}"}},
+                            {"SK", new AttributeValue{ N = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
                             {"Dispatched", new AttributeValue{ BOOL = false}},
                             {"DispatchedAt", new AttributeValue { NULL = true}},
                             {"MessageId", new AttributeValue{ S = operation.MessageId}},
-                            {"Properties", new AttributeValue{ M = SerializeStringDictionary(operation.Options)}},
-                            {"Headers", new AttributeValue{ M = SerializeStringDictionary(operation.Headers)}},
+                            // TODO: Make this better in terms of allocations?
+                            {"Properties", new AttributeValue{ M = SerializeStringDictionary(operation.Options ?? new DispatchProperties())}},
+                            {"Headers", new AttributeValue{ M = SerializeStringDictionary(operation.Headers ?? new Dictionary<string, string>())}},
                             {"Body", new AttributeValue{ B = bodyStream}},
                             {"ExpireAt", new AttributeValue { NULL = true}} //TTL
                         },
@@ -145,7 +147,7 @@
 
             outboxTransaction.StorageSession.AddRange(Serialize(message));
 
-            return outboxTransaction.Commit(cancellationToken);
+            return Task.CompletedTask;
         }
 
         public Task SetAsDispatched(string messageId, ContextBag context, CancellationToken cancellationToken = default)
@@ -166,8 +168,8 @@
                         {
                             Item = new Dictionary<string, AttributeValue>
                             {
-                                {"Id", new AttributeValue{ S = messageId}},
-                                {"Index", new AttributeValue{ N = x.ToString()}}, //Sort key
+                                {"PK", new AttributeValue{ S = $"OUTBOX#{messageId}"}},
+                                {"SK", new AttributeValue{ N = $"OUTBOX#{messageId}#{x}"}}, //Sort key
                                 {"Dispatched", new AttributeValue{ BOOL = true}},
                                 {"DispatchedAt", new AttributeValue { S = now.ToString("s")}},
                                 {"ExpireAt", new AttributeValue { N = epochSeconds.ToString()}}
@@ -178,11 +180,9 @@
             }, cancellationToken);
         }
 
-#pragma warning disable IDE0052
-        readonly AmazonDynamoDBClient dynamoDbClient;
+        readonly IAmazonDynamoDB dynamoDbClient;
         readonly string tableName;
         readonly TimeSpan expirationPeriod;
-#pragma warning restore IDE0052
 
         internal static readonly string SchemaVersion = "1.0.0";
     }
