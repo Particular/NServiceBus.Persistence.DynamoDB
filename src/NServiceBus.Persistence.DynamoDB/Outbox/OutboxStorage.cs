@@ -11,7 +11,7 @@
         {
             Defaults(s =>
             {
-                s.SetDefault(SettingsKeys.OutboxTimeToLiveInSeconds, (int)TimeSpan.FromDays(7).TotalSeconds);
+                s.SetDefault(SettingsKeys.OutboxTimeToLive, TimeSpan.FromDays(7));
                 s.EnableFeatureByDefault<SynchronizedStorage>();
             });
 
@@ -23,9 +23,9 @@
         {
             NonNativePubSubCheck.ThrowIfMessageDrivenPubSubInUse(context);
 
-            var ttlInSeconds = context.Settings.Get<int>(SettingsKeys.OutboxTimeToLiveInSeconds);
+            var expirationPeriod = context.Settings.Get<TimeSpan>(SettingsKeys.OutboxTimeToLive);
 
-            context.Services.AddSingleton<IOutboxStorage>(builder => new OutboxPersister(ttlInSeconds));
+            context.Services.AddSingleton<IOutboxStorage>(builder => new OutboxPersister(null, "MyTable", expirationPeriod));
         }
     }
 }

@@ -2,11 +2,13 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
+    using Amazon.Util;
     using Extensibility;
     using Outbox;
     using Transport;
@@ -14,11 +16,13 @@
 
     class OutboxPersister : IOutboxStorage
     {
-        public OutboxPersister(AmazonDynamoDBClient dynamoDbClient, string tableName, int ttlInSeconds)
+        const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
+
+        public OutboxPersister(AmazonDynamoDBClient dynamoDbClient, string tableName, TimeSpan expirationPeriod)
         {
             this.dynamoDbClient = dynamoDbClient;
             this.tableName = tableName;
-            this.ttlInSeconds = ttlInSeconds;
+            this.expirationPeriod = expirationPeriod;
         }
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context, CancellationToken cancellationToken = default)
@@ -47,15 +51,17 @@
                 return null;
             }
 
+            context.Set(OperationsCountContextProperty, response.Count);
+
             return DeserializeOutboxMessage(response.Items);
         }
 
         static OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems)
         {
-            var headerItem = responseItems.First(x => x.ContainsKey("Dispatched"));
+            var headerItem = responseItems.First(x => x["Index"].N == "0");
             var incomingId = headerItem["Id"].S;
 
-            var operations = responseItems.Where(x => !x.ContainsKey("Dispatched"))
+            var operations = responseItems.Where(x => x["Index"].N != "0")
                 .Select(DeserializeOperation).ToArray();
 
             return new OutboxMessage(incomingId, operations);
@@ -97,6 +103,7 @@
             var n = 1;
             foreach (var operation in outboxMessage.TransportOperations)
             {
+                var bodyStream = new MemoryStream(operation.Body.ToArray());
                 yield return new TransactWriteItem
                 {
                     Put = new Put
@@ -105,10 +112,12 @@
                         {
                             {"Id", new AttributeValue{ S = outboxMessage.MessageId}},
                             {"Index", new AttributeValue{ N = n.ToString()}}, //Sort key
+                            {"Dispatched", new AttributeValue{ BOOL = false}},
+                            {"DispatchedAt", new AttributeValue { NULL = true}},
                             {"MessageId", new AttributeValue{ S = operation.MessageId}},
                             {"Properties", new AttributeValue{ M = SerializeStringDictionary(operation.Options)}},
                             {"Headers", new AttributeValue{ M = SerializeStringDictionary(operation.Headers)}},
-                            {"Body", new AttributeValue{ B = operation}}, //TODO: Need a memory stream over read-only memory
+                            {"Body", new AttributeValue{ B = bodyStream}},
                             {"ExpireAt", new AttributeValue { NULL = true}} //TTL
                         },
                         TableName = tableName
@@ -127,24 +136,45 @@
         {
             var outboxTransaction = (DynamoDBOutboxTransaction)transaction;
 
-
-            outboxTransaction.StorageSession.Add(new TransactWriteItem
-            {
-                Put = 
-            });
+            outboxTransaction.StorageSession.AddRange(Serialize(message));
 
             return outboxTransaction.Commit(cancellationToken);
         }
 
         public Task SetAsDispatched(string messageId, ContextBag context, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            var opsCount = context.Get<int>(OperationsCountContextProperty);
+
+            var now = DateTime.UtcNow;
+            var expirationTime = now.Add(expirationPeriod);
+            int epochSeconds = AWSSDKUtils.ConvertToUnixEpochSeconds(expirationTime);
+
+            return dynamoDbClient.BatchWriteItemAsync(new BatchWriteItemRequest
+            {
+                RequestItems = new Dictionary<string, List<WriteRequest>>
+                {
+                    {tableName, Enumerable.Range(0, opsCount).Select(x => new WriteRequest
+                    {
+                        PutRequest = new PutRequest
+                        {
+                            Item = new Dictionary<string, AttributeValue>
+                            {
+                                {"Id", new AttributeValue{ S = messageId}},
+                                {"Index", new AttributeValue{ N = x.ToString()}}, //Sort key
+                                {"Dispatched", new AttributeValue{ BOOL = true}},
+                                {"DispatchedAt", new AttributeValue { S = now.ToString("s")}},
+                                {"ExpireAt", new AttributeValue { N = epochSeconds.ToString()}}
+                            },
+                        }
+                    }).ToList()}
+                },
+            }, cancellationToken);
         }
 
 #pragma warning disable IDE0052
         readonly AmazonDynamoDBClient dynamoDbClient;
         readonly string tableName;
-        readonly int ttlInSeconds;
+        readonly TimeSpan expirationPeriod;
 #pragma warning restore IDE0052
 
         internal static readonly string SchemaVersion = "1.0.0";

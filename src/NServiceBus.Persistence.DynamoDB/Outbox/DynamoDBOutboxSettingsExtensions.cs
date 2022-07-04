@@ -17,7 +17,7 @@ namespace NServiceBus
         {
             Guard.AgainstNegativeAndZero(nameof(timeToKeepOutboxDeduplicationData), timeToKeepOutboxDeduplicationData);
 
-            outboxSettings.GetSettings().Set(SettingsKeys.OutboxTimeToLiveInSeconds, (int)timeToKeepOutboxDeduplicationData.TotalSeconds);
+            outboxSettings.GetSettings().Set(SettingsKeys.OutboxTimeToLive, (int)timeToKeepOutboxDeduplicationData.TotalSeconds);
         }
     }
 }
