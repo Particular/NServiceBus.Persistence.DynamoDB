@@ -72,7 +72,7 @@
             var headerItem = responseItems.First();
             var incomingId = headerItem["PK"].S;
             // TODO: In case we delete stuff we can probably even remove this property
-            int numberOfTransportOperations = Convert.ToInt32(headerItem["TranportOperations"].N);
+            int numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
             contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
 
             var operations = Array.Empty<TransportOperation>();
@@ -114,14 +114,14 @@
                         {"PK", new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
                         {"SK", new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
-                            "TranportOperations",
+                            "TransportOperations",
                             new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
                         {"DispatchedAt", new AttributeValue {NULL = true}},
                         {"ExpireAt", new AttributeValue {NULL = true}} //TTL
                     },
-                    ConditionExpression = "attribute_not_exists(SK)",
+                    ConditionExpression = "attribute_not_exists(SK)", //Fail if already exists
                     TableName = tableName,
                 }
             };
@@ -161,7 +161,7 @@
                             {"Body", new AttributeValue {B = bodyStream}},
                             {"ExpireAt", new AttributeValue {NULL = true}} //TTL
                         },
-                        ConditionExpression = "attribute_not_exists(SK)",
+                        ConditionExpression = "attribute_not_exists(SK)", //Fail is already exists
                         TableName = tableName
                     }
                 };
@@ -203,7 +203,7 @@
                         {
                             {"PK", new AttributeValue {S = $"OUTBOX#{messageId}"}},
                             {"SK", new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
-                            {"TranportOperations", new AttributeValue {N = "0"}},
+                            {"TransportOperations", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
                             {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
                             {"ExpireAt", new AttributeValue {N = epochSeconds.ToString()}}
@@ -240,7 +240,5 @@
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly string tableName;
         readonly TimeSpan expirationPeriod;
-
-        internal static readonly string SchemaVersion = "1.0.0";
     }
 }
