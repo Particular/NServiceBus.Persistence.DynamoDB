@@ -1,15 +1,13 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
-    using System;
-
     /// <summary>
     /// The saga persistence configuration options.
     /// </summary>
     public class SagaPersistenceConfiguration
     {
         /// <summary>
-        /// Function used to determine the table name for storing sagas of a given type.
+        /// Table name for all sagas
         /// </summary>
-        public Func<Type, string> TableNameCallback { get; set; }
+        public string TableName { get; set; }
     }
 }

@@ -26,8 +26,9 @@
             NonNativePubSubCheck.ThrowIfMessageDrivenPubSubInUse(context);
 
             var expirationPeriod = context.Settings.Get<TimeSpan>(SettingsKeys.OutboxTimeToLive);
+            string tableName = context.Settings.Get<string>(SettingsKeys.OutboxTableName);
 
-            context.Services.AddSingleton<IOutboxStorage>(builder => new OutboxPersister(null, "MyTable", expirationPeriod));
+            context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IProvideDynamoDBClient>().Client, tableName, expirationPeriod));
         }
     }
 }

@@ -12,7 +12,10 @@
             {
                 s.SetDefault<ISagaIdGenerator>(new SagaIdGenerator());
                 // TODO: Let's make sure the endpoint name adheres to the naming rules
-                s.SetDefault(SettingsKeys.SagasTableName, s.EndpointName());
+                s.SetDefault(new SagaPersistenceConfiguration
+                {
+                    TableName = s.EndpointName()
+                });
                 s.EnableFeatureByDefault<SynchronizedStorage>();
             });
 
@@ -25,11 +28,10 @@
             NonNativePubSubCheck.ThrowIfMessageDrivenPubSubInUse(context);
 
             //Use endpoint name the saga table name for all sagas by default
-            var sagaConfiguration = context.Settings.GetOrDefault<SagaPersistenceConfiguration>() ??
-                                    new SagaPersistenceConfiguration();
+            var sagaConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
 
             //TODO: Table name callback can be null
-            context.Services.AddSingleton<ISagaPersister>(builder => new SagaPersister(sagaConfiguration, null /*TODO*/));
+            context.Services.AddSingleton<ISagaPersister>(provider => new SagaPersister(sagaConfiguration, provider.GetRequiredService<IProvideDynamoDBClient>().Client));
         }
     }
 }

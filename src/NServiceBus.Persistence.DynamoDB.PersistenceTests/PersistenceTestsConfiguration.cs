@@ -60,7 +60,10 @@
         {
             // with this we have a partition key per run which makes things naturally isolated
             partitionKey = Guid.NewGuid().ToString();
-            SagaStorage = null;
+            SagaStorage = new SagaPersister(new SagaPersistenceConfiguration
+            {
+                TableName = SetupFixture.TableName
+            }, Client);
             OutboxStorage = new OutboxPersister(Client, SetupFixture.TableName, TimeSpan.FromMinutes(5));
 
             GetContextBagForSagaStorage = () =>

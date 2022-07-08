@@ -30,7 +30,7 @@
             Guard.AgainstNullAndEmpty(nameof(tableName), tableName);
 
             persistenceExtensions.GetSettings().Set(SettingsKeys.OutboxTableName, tableName);
-            persistenceExtensions.GetSettings().Set(SettingsKeys.SagasTableName, tableName);
+            persistenceExtensions.Sagas().TableName = tableName;
 
             return persistenceExtensions;
         }

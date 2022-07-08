@@ -13,8 +13,6 @@
 
     class SagaPersister : ISagaPersister
     {
-        const string SagaVersionContextPropertyPrefix = "NServiceBus.Persistence.DynamoDB.SagaVersion_";
-
         readonly SagaPersistenceConfiguration options;
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly JsonSerializerSettings serializerSettings;
@@ -32,37 +30,31 @@
 
         public async Task<TSagaData> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
         {
-            var queryRequest = new QueryRequest
+            var getItemRequest = new GetItemRequest
             {
                 ConsistentRead =
                     false, //TODO: Do we need to check the integrity of the read by counting the operations?
-                KeyConditionExpression = "PK = :sagaId and SK = :sagaId", //TODO: Allow users to override PK
-                ExpressionAttributeValues =
-                    new Dictionary<string, AttributeValue>
+                Key = new Dictionary<string, AttributeValue>
                     {
-                            {":sagaId", new AttributeValue {S = $"SAGA#{sagaId}"}}
+                        { "PK", new AttributeValue { S = $"SAGA#{sagaId}" } },
+                        { "SK", new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
                     },
-                TableName = options.TableNameCallback(typeof(TSagaData))
+                TableName = options.TableName
             };
-            var response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
-            if (response.Count == 0)
-            {
-                return default;
-            }
 
-            var (sagaData, version) = Deserialize<TSagaData>(response.Items[0]); //TODO: Should we check if we get more than one item?
-            context.Set(SagaVersionContextPropertyPrefix + typeof(TSagaData).FullName, version); //To allow for multiple sagas handling the same message
-            return sagaData;
+            var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
+            return !response.IsItemSet ? default : Deserialize<TSagaData>(response.Item, context);
         }
 
-        (TSagaData, int) Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues) where TSagaData : class, IContainSagaData
+        TSagaData Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
         {
             var document = Document.FromAttributeMap(attributeValues);
             var sagaDataAsJson = document.ToJson();
             // All this is super allocation heavy. But for a first version that is OK
             var sagaData = JsonConvert.DeserializeObject<TSagaData>(sagaDataAsJson, serializerSettings);
-            var version = int.Parse(attributeValues["Version"].N);
-            return (sagaData, version);
+            var currentVersion = int.Parse(attributeValues["___VERSION___"].N);
+            context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
+            return sagaData;
         }
 
         public Task Save(IContainSagaData sagaData, SagaCorrelationProperty correlationProperty, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
@@ -73,7 +65,7 @@
                 {
                     Item = Serialize(sagaData, 0),
                     ConditionExpression = "attribute_not_exists(SK)", //Fail if already exists.
-                    TableName = options.TableNameCallback(sagaData.GetType()),
+                    TableName = options.TableName,
                 }
             });
             return Task.CompletedTask;
@@ -81,15 +73,24 @@
 
         public Task Update(IContainSagaData sagaData, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
         {
-            var version = context.Get<int>(SagaVersionContextPropertyPrefix + sagaData.GetType().FullName);
+            var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
+            var nextVersion = currentVersion + 1;
 
             session.DynamoDBPersistenceSession().Add(new TransactWriteItem
             {
                 Put = new Put
                 {
-                    Item = Serialize(sagaData, version),
-                    ConditionExpression = "TODO: Add optimistic concurrency check", //Fail if already exists.
-                    TableName = options.TableNameCallback(sagaData.GetType()),
+                    Item = Serialize(sagaData, nextVersion),
+                    ConditionExpression = "#v = :cv", // fail if modified in the meantime
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        { "#v", "___VERSION___" }
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        { ":cv", new AttributeValue { N = currentVersion.ToString() } }
+                    },
+                    TableName = options.TableName,
                 }
             });
             return Task.CompletedTask;
@@ -104,14 +105,14 @@
             map.Add("PK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });
             map.Add("SK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             // Version should probably be properly moved into metadata to not clash with existing things
-            map.Add("Version", new AttributeValue { N = version.ToString() });
+            map.Add("___VERSION___", new AttributeValue { N = version.ToString() });
             // According to the best practices we should also add Type information probably here
             return map;
         }
 
         public Task Complete(IContainSagaData sagaData, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
         {
-            var version = context.Get<int>(SagaVersionContextPropertyPrefix + sagaData.GetType().FullName);
+            var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
 
             session.DynamoDBPersistenceSession().Add(new TransactWriteItem
             {
@@ -122,8 +123,16 @@
                         {"PK", new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
                         {"SK", new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
                     },
-                    ConditionExpression = "TODO: Add optimistic concurrency check", //Fail if already exists.
-                    TableName = options.TableNameCallback(sagaData.GetType()),
+                    ConditionExpression = "#v = :cv", // fail if modified in the meantime
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        { "#v", "___VERSION___" }
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        { ":cv", new AttributeValue { N = currentVersion.ToString() } }
+                    },
+                    TableName = options.TableName,
                 }
             });
             return Task.CompletedTask;
