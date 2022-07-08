@@ -24,9 +24,12 @@
         {
             NonNativePubSubCheck.ThrowIfMessageDrivenPubSubInUse(context);
 
-            var sagaConfiguration = context.Settings.GetOrDefault<SagaPersistenceConfiguration>() ?? new SagaPersistenceConfiguration();
+            //Use endpoint name the saga table name for all sagas by default
+            var sagaConfiguration = context.Settings.GetOrDefault<SagaPersistenceConfiguration>() ??
+                                    new SagaPersistenceConfiguration();
 
-            context.Services.AddSingleton<ISagaPersister>(builder => new SagaPersister(sagaConfiguration));
+            //TODO: Table name callback can be null
+            context.Services.AddSingleton<ISagaPersister>(builder => new SagaPersister(sagaConfiguration, null /*TODO*/));
         }
     }
 }

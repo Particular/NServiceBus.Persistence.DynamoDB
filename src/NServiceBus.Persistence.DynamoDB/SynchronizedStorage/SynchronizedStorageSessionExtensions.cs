@@ -12,11 +12,15 @@
         /// <summary>
         /// Retrieves the shared <see cref="IDynamoDBStorageSession"/> from the <see cref="ISynchronizedStorageSession"/>.
         /// </summary>
-        public static IDynamoDBStorageSession CosmosPersistenceSession(this ISynchronizedStorageSession session)
+        public static IDynamoDBStorageSession DynamoDBPersistenceSession(this ISynchronizedStorageSession session)
         {
             Guard.AgainstNull(nameof(session), session);
 
-            throw new Exception($"Cannot access the synchronized storage session. Ensure that 'EndpointConfiguration.UsePersistence<{nameof(DynamoDBPersistence)}>()' has been called.");
+            if (session is not IDynamoDBStorageSession dynamoSession)
+            {
+                throw new Exception($"Cannot access the synchronized storage session. Ensure that 'EndpointConfiguration.UsePersistence<{nameof(DynamoDBPersistence)}>()' has been called.");
+            }
+            return dynamoSession;
         }
     }
 }

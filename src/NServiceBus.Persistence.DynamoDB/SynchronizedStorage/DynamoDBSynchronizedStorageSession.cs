@@ -1,13 +1,15 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
+    using Amazon.DynamoDBv2.Model;
     using Extensibility;
     using Outbox;
     using Transport;
 
-    class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession
+    class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSession
     {
         StorageSession storageSession;
         bool commitOnComplete;
@@ -68,5 +70,9 @@
             get => storageSession.CurrentContextBag;
             set => storageSession.CurrentContextBag = value;
         }
+
+        public void Add(TransactWriteItem writeItem) => storageSession.Add(writeItem);
+
+        public void AddRange(IEnumerable<TransactWriteItem> writeItems) => storageSession.AddRange(writeItems);
     }
 }
