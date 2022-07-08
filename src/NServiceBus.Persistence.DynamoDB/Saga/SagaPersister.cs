@@ -5,8 +5,10 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
+    using Amazon.DynamoDBv2.DocumentModel;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
+    using Newtonsoft.Json;
     using Sagas;
 
     class SagaPersister : ISagaPersister
@@ -15,10 +17,17 @@
 
         readonly SagaPersistenceConfiguration options;
         readonly IAmazonDynamoDB dynamoDbClient;
+        readonly JsonSerializerSettings serializerSettings;
+
         public SagaPersister(SagaPersistenceConfiguration options, IAmazonDynamoDB dynamoDbClient)
         {
             this.options = options;
             this.dynamoDbClient = dynamoDbClient;
+            // TODO we might want to make this configurable
+            serializerSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.None
+            };
         }
 
         public async Task<TSagaData> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
@@ -46,15 +55,12 @@
             return sagaData;
         }
 
-        static (TSagaData, int) Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues) where TSagaData : class, IContainSagaData
+        (TSagaData, int) Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues) where TSagaData : class, IContainSagaData
         {
-            var sagaData = Activator.CreateInstance<TSagaData>();
-
-            sagaData.Id = Guid.Parse(attributeValues["Id"].S);
-            sagaData.OriginalMessageId = attributeValues["OriginalMessageId"].S;
-            sagaData.Originator = attributeValues["Originator"].S;
-            //TODO: Deserialize other properties
-
+            var document = Document.FromAttributeMap(attributeValues);
+            var sagaDataAsJson = document.ToJson();
+            // All this is super allocation heavy. But for a first version that is OK
+            var sagaData = JsonConvert.DeserializeObject<TSagaData>(sagaDataAsJson, serializerSettings);
             var version = int.Parse(attributeValues["Version"].N);
             return (sagaData, version);
         }
@@ -89,18 +95,18 @@
             return Task.CompletedTask;
         }
 
-        static Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
+        Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
         {
-            return new()
-            {
-                { "PK", new AttributeValue { S = $"SAGA#{sagaData.Id}" } },
-                { "SK", new AttributeValue { S = $"SAGA#{sagaData.Id}" } }, //Sort key
-                { "Id", new AttributeValue { S = sagaData.Id.ToString() } },
-                { "Originator", new AttributeValue { S = sagaData.Originator } },
-                { "OriginalMessageId", new AttributeValue { S = sagaData.OriginalMessageId } },
-                { "Version", new AttributeValue { N = version.ToString() } },
-                //TODO: Add saga properties. For a walking skeleton it is probably enough to just Json-serialize the saga data
-            };
+            // All this is super allocation heavy. But for a first version that is OK
+            var sagaDataJson = JsonConvert.SerializeObject(sagaData, serializerSettings);
+            var doc = Document.FromJson(sagaDataJson);
+            var map = doc.ToAttributeMap();
+            map.Add("PK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });
+            map.Add("SK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
+            // Version should probably be properly moved into metadata to not clash with existing things
+            map.Add("Version", new AttributeValue { N = version.ToString() });
+            // According to the best practices we should also add Type information probably here
+            return map;
         }
 
         public Task Complete(IContainSagaData sagaData, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
