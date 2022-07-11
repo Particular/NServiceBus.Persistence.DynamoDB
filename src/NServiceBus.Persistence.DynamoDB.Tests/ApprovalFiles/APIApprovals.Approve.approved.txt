@@ -16,10 +16,14 @@ namespace NServiceBus
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> TableName(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, string tableName) { }
         public static NServiceBus.Persistence.DynamoDB.TransactionInformationConfiguration TransactionInformation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
     }
-    public interface IDynamoDBStorageSession { }
+    public interface IDynamoDBStorageSession
+    {
+        void Add(Amazon.DynamoDBv2.Model.TransactWriteItem writeItem);
+        void AddRange(System.Collections.Generic.IEnumerable<Amazon.DynamoDBv2.Model.TransactWriteItem> writeItems);
+    }
     public static class SynchronizedStorageSessionExtensions
     {
-        public static NServiceBus.IDynamoDBStorageSession CosmosPersistenceSession(this NServiceBus.Persistence.ISynchronizedStorageSession session) { }
+        public static NServiceBus.IDynamoDBStorageSession DynamoDBPersistenceSession(this NServiceBus.Persistence.ISynchronizedStorageSession session) { }
     }
 }
 namespace NServiceBus.Persistence.DynamoDB
@@ -30,7 +34,7 @@ namespace NServiceBus.Persistence.DynamoDB
     }
     public interface IProvideDynamoDBClient
     {
-        Amazon.DynamoDBv2.AmazonDynamoDBClient Client { get; }
+        Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
     }
     public readonly struct PartitionKey
     {
@@ -39,6 +43,7 @@ namespace NServiceBus.Persistence.DynamoDB
     public class SagaPersistenceConfiguration
     {
         public SagaPersistenceConfiguration() { }
+        public string TableName { get; set; }
     }
     public class TransactionInformationConfiguration
     {
@@ -55,8 +60,8 @@ namespace NServiceBus.Persistence.DynamoDB
 }
 namespace NServiceBus.Testing
 {
-    public class TestableCosmosSynchronizedStorageSession : NServiceBus.Persistence.ISynchronizedStorageSession
+    public class TestableDynamoDBSynchronizedStorageSession : NServiceBus.Persistence.ISynchronizedStorageSession
     {
-        public TestableCosmosSynchronizedStorageSession(NServiceBus.Persistence.DynamoDB.PartitionKey partitionKey) { }
+        public TestableDynamoDBSynchronizedStorageSession(NServiceBus.Persistence.DynamoDB.PartitionKey partitionKey) { }
     }
 }

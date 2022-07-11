@@ -15,7 +15,10 @@ namespace NServiceBus.Persistence.DynamoDB.Tests.Saga
         [Test]
         public async Task Save_should_add_to_session()
         {
-            var persister = new SagaPersister(null, null);
+            var persister = new SagaPersister(new SagaPersistenceConfiguration
+            {
+                TableName = "FakeTableName"
+            }, null);
             var storageSession = new FakeStorageSession();
 
             var complexState = new ComplexStateSagaData
