@@ -89,13 +89,9 @@
             var messageId = attributeValues["MessageId"].S;
             var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues["Properties"]));
             var headers = DeserializeStringDictionary(attributeValues["Headers"]);
-
-            if (!attributeValues["Body"].B.TryGetBuffer(out var segment))
-            {
-                //throw new Exception("Cannot get buffer from the body stream.");
-            }
-
-            return new TransportOperation(messageId, properties, segment, headers);
+            // this is all very wasteful but good enough for the prototype
+            byte[] body = attributeValues["Body"].B.ToArray();
+            return new TransportOperation(messageId, properties, body, headers);
         }
 
         static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue) =>

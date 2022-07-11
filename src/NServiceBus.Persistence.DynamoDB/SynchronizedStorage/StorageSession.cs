@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
@@ -45,9 +46,13 @@
             }
 
             var transactItemsRequest = new TransactWriteItemsRequest { TransactItems = batch };
-            var _ = await dynamoDbClient.TransactWriteItemsAsync(transactItemsRequest, cancellationToken).ConfigureAwait(false);
+            var response = await dynamoDbClient.TransactWriteItemsAsync(transactItemsRequest, cancellationToken).ConfigureAwait(false);
             batch.Clear();
             // TODO: Check response
+            if (response.HttpStatusCode != HttpStatusCode.OK)
+            {
+                throw new InvalidOperationException("Unable to complete transaction. Retrying");
+            }
         }
 
         public void Dispose()
