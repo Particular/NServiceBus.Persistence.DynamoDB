@@ -18,7 +18,7 @@
 
             if (session is not IDynamoDBStorageSession dynamoSession)
             {
-                throw new Exception($"Cannot access the synchronized storage session. Ensure that 'EndpointConfiguration.UsePersistence<{nameof(DynamoDBPersistence)}>()' has been called.");
+                throw new Exception($"Cannot access the synchronized storage session. Either this endpoint has not been configured to use the DynamoDB persistence or a different persistence type is used for sagas. Ensure that 'EndpointConfiguration.UsePersistence<{nameof(DynamoDBPersistence)}>()' is used both for Sagas and Outbox.");
             }
             return dynamoSession;
         }
