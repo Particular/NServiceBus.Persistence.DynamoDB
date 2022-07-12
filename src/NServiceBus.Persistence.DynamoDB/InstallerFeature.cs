@@ -22,6 +22,9 @@
 
             var tableName = context.Settings.Get<string>(SettingsKeys.OutboxTableName);
             settings.OutboxTableName = tableName;
+
+            var sagaPersistenceConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
+            settings.SagaTableName = sagaPersistenceConfiguration.TableName;
         }
     }
 }

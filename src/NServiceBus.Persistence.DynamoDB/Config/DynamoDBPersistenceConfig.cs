@@ -5,7 +5,7 @@
     using Persistence.DynamoDB;
 
     /// <summary>
-    /// Configuration extensions for Cosmos DB Core API Persistence
+    /// Configuration extensions for DynamoDB Core API Persistence
     /// </summary>
     public static class DynamoDBPersistenceConfig
     {
@@ -36,9 +36,9 @@
         }
 
         /// <summary>
-        /// Disables the container creation.
+        /// Disables the tables creation.
         /// </summary>
-        public static void DisableTableCreation(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
+        public static void DisableTablesCreation(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
         {
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
 
@@ -61,5 +61,7 @@
 
             return persistenceExtensions.GetSettings().GetOrCreate<TransactionInformationConfiguration>();
         }
+
+        // TODO Add ability to customize PK and SK names
     }
 }

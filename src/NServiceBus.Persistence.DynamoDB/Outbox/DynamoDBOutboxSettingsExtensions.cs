@@ -21,5 +21,6 @@ namespace NServiceBus
         }
 
         // TODO Add ability to override the outbox table name
+        // TODO Add ability to customize PK and SK names
     }
 }

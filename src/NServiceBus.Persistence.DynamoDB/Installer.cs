@@ -26,17 +26,28 @@
 
             try
             {
-                await CreateOutboxTableCreateTableIfNotExists(clientProvider.Client, installerSettings.OutboxTableName,
+                await CreateOutboxTableIfNotExists(clientProvider.Client, installerSettings.OutboxTableName,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
-                log.Error("Could not complete the installation. ", e);
+                log.Error($"Could not complete the installation. An error occurred while creating the outbox table: {installerSettings.OutboxTableName}", e);
+                throw;
+            }
+
+            try
+            {
+                await CreateSagaTableIfNotExists(clientProvider.Client, installerSettings.SagaTableName,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
+            {
+                log.Error($"Could not complete the installation. An error occurred while creating the outbox table: {installerSettings.SagaTableName}", e);
                 throw;
             }
         }
 
-        async Task CreateOutboxTableCreateTableIfNotExists(IAmazonDynamoDB client, string outboxTableName,
+        async Task CreateOutboxTableIfNotExists(IAmazonDynamoDB client, string outboxTableName,
             CancellationToken cancellationToken)
         {
             // TODO: Maybe these should be configurable?
@@ -53,9 +64,40 @@
                     new() { AttributeName = "PK", KeyType = "HASH" },
                     new() { AttributeName = "SK", KeyType = "RANGE" },
                 },
-                // TODO: Fix this
+                // TODO: Fix this, allow this to be configurable
                 BillingMode = BillingMode.PAY_PER_REQUEST
             };
+
+            await CreateTable(client, createTableRequest, cancellationToken).ConfigureAwait(false);
+            await WaitForTableToBeActive(client, outboxTableName, cancellationToken).ConfigureAwait(false);
+        }
+
+        async Task CreateSagaTableIfNotExists(IAmazonDynamoDB client, string sagaTableName, CancellationToken cancellationToken)
+        {
+            // TODO: Maybe these should be configurable?
+            var createTableRequest = new CreateTableRequest
+            {
+                TableName = sagaTableName,
+                AttributeDefinitions = new List<AttributeDefinition>()
+                {
+                    new() { AttributeName = "PK", AttributeType = "S" },
+                    new() { AttributeName = "SK", AttributeType = "S" }
+                },
+                KeySchema = new List<KeySchemaElement>()
+                {
+                    new() { AttributeName = "PK", KeyType = "HASH" },
+                    new() { AttributeName = "SK", KeyType = "RANGE" },
+                },
+                // TODO: Fix this, allow this to be configurable
+                BillingMode = BillingMode.PAY_PER_REQUEST
+            };
+
+            await CreateTable(client, createTableRequest, cancellationToken).ConfigureAwait(false);
+            await WaitForTableToBeActive(client, sagaTableName, cancellationToken).ConfigureAwait(false);
+        }
+
+        static async Task CreateTable(IAmazonDynamoDB client, CreateTableRequest createTableRequest, CancellationToken cancellationToken)
+        {
             try
             {
                 await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
@@ -64,8 +106,12 @@
             {
                 // Intentionally ignored when there are races
             }
+        }
 
-            var request = new DescribeTableRequest { TableName = outboxTableName };
+        static async Task WaitForTableToBeActive(IAmazonDynamoDB client, string tableName,
+            CancellationToken cancellationToken)
+        {
+            var request = new DescribeTableRequest { TableName = tableName };
 
             TableStatus status;
             do

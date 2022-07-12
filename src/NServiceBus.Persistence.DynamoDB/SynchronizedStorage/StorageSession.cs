@@ -31,6 +31,7 @@
 
         void CheckCapacity()
         {
+            // TODO: 25 should be a constant probably in the settings
             if (batch.Count > 25)
             {
                 throw new Exception(
@@ -49,6 +50,8 @@
             var response = await dynamoDbClient.TransactWriteItemsAsync(transactItemsRequest, cancellationToken).ConfigureAwait(false);
             batch.Clear();
             // TODO: Check response
+            // TODO: Add retries
+            // TODO: Do we need to verify streams are disposed or is the SDK doing this?
             if (response.HttpStatusCode != HttpStatusCode.OK)
             {
                 throw new InvalidOperationException("Unable to complete transaction. Retrying");

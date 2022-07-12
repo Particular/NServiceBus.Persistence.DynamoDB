@@ -28,6 +28,7 @@
             }, new InstallerSettings
             {
                 OutboxTableName = TableName,
+                SagaTableName = TableName
             });
 
             await installer.Install("", CancellationToken.None).ConfigureAwait(false);

@@ -22,11 +22,11 @@
         }
 
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
-            CancellationToken cancellationToken = new CancellationToken())
+            CancellationToken cancellationToken = default)
         {
-            if (transaction is DynamoDBOutboxTransaction cosmosOutboxTransaction)
+            if (transaction is DynamoDBOutboxTransaction dynamoOutboxTransaction)
             {
-                storageSession = cosmosOutboxTransaction.StorageSession;
+                storageSession = dynamoOutboxTransaction.StorageSession;
                 // because the synchronized storage session acts as decorator that forwards operations to the storage session
                 // and we require access to the current context bag we need to make sure to assign the current context bag
                 // to the storage session that was created as part of the outbox seam.
@@ -39,10 +39,10 @@
         }
 
         public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
-            CancellationToken cancellationToken = new CancellationToken()) =>
+            CancellationToken cancellationToken = default) =>
             new ValueTask<bool>(false);
 
-        public Task Open(ContextBag contextBag, CancellationToken cancellationToken = new CancellationToken())
+        public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
         {
             // Creating the storage session already sets the correct context bag so there is no need to assign
             // CurrentContextBag here

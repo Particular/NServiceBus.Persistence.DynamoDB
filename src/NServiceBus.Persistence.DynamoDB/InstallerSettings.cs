@@ -4,5 +4,6 @@
     {
         public bool Disabled { get; set; }
         public string OutboxTableName { get; set; }
+        public string SagaTableName { get; set; }
     }
 }

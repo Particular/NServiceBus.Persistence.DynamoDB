@@ -14,7 +14,7 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
         }
 
         var persistence = configuration.UsePersistence<DynamoDBPersistence>();
-        persistence.DisableTableCreation();
+        persistence.DisableTablesCreation();
         persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
         persistence.TableName(SetupFixture.TableName);
 

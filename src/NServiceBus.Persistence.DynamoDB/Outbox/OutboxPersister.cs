@@ -157,7 +157,7 @@
                             {"Body", new AttributeValue {B = bodyStream}},
                             {"ExpireAt", new AttributeValue {NULL = true}} //TTL
                         },
-                        ConditionExpression = "attribute_not_exists(SK)", //Fail is already exists
+                        ConditionExpression = "attribute_not_exists(SK)", // Fail if already exists
                         TableName = tableName
                     }
                 };

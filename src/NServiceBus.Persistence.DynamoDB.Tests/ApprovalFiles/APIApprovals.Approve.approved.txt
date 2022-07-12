@@ -10,7 +10,7 @@ namespace NServiceBus
     public class DynamoDBPersistence : NServiceBus.Persistence.PersistenceDefinition { }
     public static class DynamoDBPersistenceConfig
     {
-        public static void DisableTableCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
+        public static void DisableTablesCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> DynamoDBClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, Amazon.DynamoDBv2.AmazonDynamoDBClient dynamoDBClient) { }
         public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> TableName(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, string tableName) { }
@@ -60,8 +60,9 @@ namespace NServiceBus.Persistence.DynamoDB
 }
 namespace NServiceBus.Testing
 {
-    public class TestableDynamoDBSynchronizedStorageSession : NServiceBus.Persistence.ISynchronizedStorageSession
+    public class TestableDynamoDBSynchronizedStorageSession : NServiceBus.IDynamoDBStorageSession, NServiceBus.Persistence.ISynchronizedStorageSession
     {
         public TestableDynamoDBSynchronizedStorageSession(NServiceBus.Persistence.DynamoDB.PartitionKey partitionKey) { }
+        public System.Collections.Generic.IReadOnlyCollection<Amazon.DynamoDBv2.Model.TransactWriteItem> TransactWriteItems { get; }
     }
 }

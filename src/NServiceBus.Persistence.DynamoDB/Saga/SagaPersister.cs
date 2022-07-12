@@ -34,6 +34,7 @@
             {
                 ConsistentRead =
                     false, //TODO: Do we need to check the integrity of the read by counting the operations?
+                // TODO make this configurable
                 Key = new Dictionary<string, AttributeValue>
                     {
                         { "PK", new AttributeValue { S = $"SAGA#{sagaId}" } },

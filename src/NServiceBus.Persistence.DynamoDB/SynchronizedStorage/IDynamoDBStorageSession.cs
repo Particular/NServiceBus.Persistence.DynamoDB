@@ -8,7 +8,7 @@
     public interface IDynamoDBStorageSession
     {
         /// <summary>
-        /// Adds operation to the list of operations to be executed in a transaction
+        /// Adds an operation to the list of operations to be executed in a transaction
         /// </summary>
         void Add(TransactWriteItem writeItem);
         /// <summary>

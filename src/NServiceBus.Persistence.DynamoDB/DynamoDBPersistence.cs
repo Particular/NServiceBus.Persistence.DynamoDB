@@ -5,7 +5,7 @@
     using Persistence.DynamoDB;
 
     /// <summary>
-    /// Used to configure NServiceBus to use Dynamo DB persistence.
+    /// Used to configure NServiceBus to use DynamoDB persistence.
     /// </summary>
     public class DynamoDBPersistence : PersistenceDefinition
     {
