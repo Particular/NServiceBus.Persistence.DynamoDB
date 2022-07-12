@@ -42,7 +42,7 @@
             }
             catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
-                log.Error($"Could not complete the installation. An error occurred while creating the outbox table: {installerSettings.SagaTableName}", e);
+                log.Error($"Could not complete the installation. An error occurred while creating the sagas table: {installerSettings.SagaTableName}", e);
                 throw;
             }
         }
