@@ -101,6 +101,10 @@
         {
             contextBag.Set(OperationsCountContextProperty, outboxMessage.TransportOperations.Length);
 
+            // DynamoDB has a limit of 400 KB per item. Transport Operations are likely to be larger
+            // and could easily hit the 400 KB limit of an item when all operations would be serialized into
+            // the same item. This is why multiple items are written for a single outbox record. With the transact
+            // write items this can be done atomically.
             yield return new TransactWriteItem()
             {
                 Put = new Put
@@ -223,6 +227,10 @@
                 });
             }
 
+            // The idea here is to use batch write requests instead of transact write item requests because
+            // transactions come with a cost. They cost double the amount of write units compared to batch writes.
+            // Setting the outbox record as dispatch is an idempotent operation that doesn't require transactionality
+            // so using the cheaper API in terms of write operations is a sane choice.
             var batchWriteItemRequest = new BatchWriteItemRequest
             {
                 RequestItems = new Dictionary<string, List<WriteRequest>>
