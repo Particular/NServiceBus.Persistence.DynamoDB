@@ -25,8 +25,6 @@
 
         protected override void Setup(FeatureConfigurationContext context)
         {
-            NonNativePubSubCheck.ThrowIfMessageDrivenPubSubInUse(context);
-
             // By default, use the endpoint name for the saga table name to store all sagas
             var sagaConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
 

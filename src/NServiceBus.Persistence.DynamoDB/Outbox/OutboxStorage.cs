@@ -23,8 +23,6 @@
 
         protected override void Setup(FeatureConfigurationContext context)
         {
-            NonNativePubSubCheck.ThrowIfMessageDrivenPubSubInUse(context);
-
             var expirationPeriod = context.Settings.Get<TimeSpan>(SettingsKeys.OutboxTimeToLive);
             string tableName = context.Settings.Get<string>(SettingsKeys.OutboxTableName);
 
