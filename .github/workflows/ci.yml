@@ -12,17 +12,15 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 jobs:
   build:
-    name: ${{ matrix.os.name }}-${{ matrix.framework }}
-    runs-on: ${{ matrix.os.platform }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - { platform: windows-2019, name: Windows }
-          - { platform: ubuntu-20.04, name: Linux }
-        framework: [ net472, net6.0 ]
-        exclude:
-          - os: { name: Linux }
-            framework: net472
+        include:
+          - os: windows-2019
+            name: Windows
+          - os: ubuntu-20.04
+            name: Linux
       fail-fast: false
     steps:
       - name: Check for secrets
@@ -41,13 +39,11 @@ jobs:
       - name: Build
         run: dotnet build src --configuration Release
       - name: Upload packages
-        if: matrix.name == 'Windows' && matrix.framework == 'net6.0'
+        if: matrix.name == 'Windows'
         uses: actions/upload-artifact@v3.0.0
         with:
           name: NuGet packages
           path: nugets/
           retention-days: 7
       - name: Run tests
-        uses: Particular/run-tests-action@v1.2.0
-        with:
-          framework: ${{ matrix.framework }}
+        uses: Particular/run-tests-action@v1.3.0

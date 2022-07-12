@@ -28,6 +28,7 @@
             }, new InstallerSettings
             {
                 OutboxTableName = TableName,
+                SagaTableName = TableName,
                 Disabled = false,
             });
 
