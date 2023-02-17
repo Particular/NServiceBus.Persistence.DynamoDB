@@ -6,6 +6,8 @@ using Extensibility;
 using NUnit.Framework;
 using Sagas;
 
+//TODO add test for supported data types?
+
 [TestFixture]
 public class SagaIdGeneratorTests
 {
