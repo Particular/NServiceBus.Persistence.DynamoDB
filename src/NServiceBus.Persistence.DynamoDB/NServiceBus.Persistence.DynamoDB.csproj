@@ -16,4 +16,10 @@
     <PackageReference Include="Newtonsoft.Json" Version="[13.0.1, 14.0.0)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NServiceBus.Persistence.DynamoDB.Tests" Key="$(NServiceBusTestsKey)" />
+    <InternalsVisibleTo Include="NServiceBus.Persistence.DynamoDB.PersistenceTests" Key="$(NServiceBusTestsKey)" />
+    <InternalsVisibleTo Include="NServiceBus.Persistence.DynamoDB.AcceptanceTests" Key="$(NServiceBusTestsKey)" />
+  </ItemGroup>
+
 </Project>
