@@ -24,27 +24,34 @@
                 return;
             }
 
-            try
+            if (installerSettings.CreateOutboxTable)
             {
-                await CreateOutboxTableIfNotExists(clientProvider.Client, installerSettings.OutboxTableName,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
-            {
-                log.Error($"Could not complete the installation. An error occurred while creating the outbox table: {installerSettings.OutboxTableName}", e);
-                throw;
+                try
+                {
+                    await CreateOutboxTableIfNotExists(clientProvider.Client, installerSettings.OutboxTableName,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
+                {
+                    log.Error($"Could not complete the installation. An error occurred while creating the outbox table: {installerSettings.OutboxTableName}", e);
+                    throw;
+                }
             }
 
-            try
+            if (installerSettings.CreateSagaTable)
             {
-                await CreateSagaTableIfNotExists(clientProvider.Client, installerSettings.SagaTableName,
-                    cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await CreateSagaTableIfNotExists(clientProvider.Client, installerSettings.SagaTableName,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
+                {
+                    log.Error($"Could not complete the installation. An error occurred while creating the sagas table: {installerSettings.SagaTableName}", e);
+                    throw;
+                }
             }
-            catch (Exception e) when (!(e is OperationCanceledException && cancellationToken.IsCancellationRequested))
-            {
-                log.Error($"Could not complete the installation. An error occurred while creating the sagas table: {installerSettings.SagaTableName}", e);
-                throw;
-            }
+
         }
 
         async Task CreateOutboxTableIfNotExists(IAmazonDynamoDB client, string outboxTableName,
@@ -56,16 +63,16 @@
                 TableName = outboxTableName,
                 AttributeDefinitions = new List<AttributeDefinition>()
                 {
-                    new() { AttributeName = "PK", AttributeType = "S" },
-                    new() { AttributeName = "SK", AttributeType = "S" }
+                    new() { AttributeName = installerSettings.OutboxPartitionKeyName, AttributeType = "S" },
+                    new() { AttributeName = installerSettings.OutboxSortKeyName, AttributeType = "S" }
                 },
                 KeySchema = new List<KeySchemaElement>()
                 {
-                    new() { AttributeName = "PK", KeyType = "HASH" },
-                    new() { AttributeName = "SK", KeyType = "RANGE" },
+                    new() { AttributeName = installerSettings.OutboxPartitionKeyName, KeyType = "HASH" },
+                    new() { AttributeName = installerSettings.OutboxSortKeyName, KeyType = "RANGE" },
                 },
-                // TODO: Fix this, allow this to be configurable
-                BillingMode = BillingMode.PAY_PER_REQUEST
+                BillingMode = installerSettings.BillingMode,
+                ProvisionedThroughput = installerSettings.ProvisionedThroughput
             };
 
             await CreateTable(client, createTableRequest, cancellationToken).ConfigureAwait(false);
@@ -100,7 +107,7 @@
         {
             try
             {
-                await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
+                var r = await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
             }
             catch (ResourceInUseException)
             {

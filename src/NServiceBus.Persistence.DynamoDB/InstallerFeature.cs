@@ -7,7 +7,12 @@
     {
         public InstallerFeature()
         {
-            Defaults(s => s.SetDefault(new InstallerSettings()));
+            //TODO: only create when needed
+            Defaults(s => s.SetDefault(new InstallerSettings()
+            {
+                CreateOutboxTable = true,
+                CreateSagaTable = true
+            }));
             DependsOn<SynchronizedStorage>();
         }
 
