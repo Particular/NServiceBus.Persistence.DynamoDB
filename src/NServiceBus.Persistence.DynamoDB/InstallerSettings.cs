@@ -5,13 +5,11 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     class InstallerSettings
     {
+        //TODO remove?
         public bool Disabled { get; set; }
-        public bool CreateOutboxTable { get; set; }
-        public string OutboxTableName { get; set; }
-        public string OutboxPartitionKeyName { get; set; } = "PK";
-        public string OutboxSortKeyName { get; set; } = "SK";
+        public bool CreateOutboxTable { get; set; } = true;
 
-        public bool CreateSagaTable { get; set; }
+        public bool CreateSagaTable { get; set; } = true;
         public string SagaTableName { get; set; }
 
         //TODO should we allow different configurations for each table?

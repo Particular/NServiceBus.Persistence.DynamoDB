@@ -18,11 +18,10 @@
     {
         const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
 
-        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, string tableName, TimeSpan expirationPeriod)
+        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration)
         {
             this.dynamoDbClient = dynamoDbClient;
-            this.tableName = tableName;
-            this.expirationPeriod = expirationPeriod;
+            this.configuration = configuration;
         }
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context,
@@ -51,7 +50,7 @@
                         {
                             {":incomingId", new AttributeValue {S = $"OUTBOX#{messageId}"}}
                         },
-                    TableName = tableName
+                    TableName = configuration.TableName
                 };
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
                 allItems.AddRange(response.Items);
@@ -122,7 +121,7 @@
                         {"ExpireAt", new AttributeValue {NULL = true}} //TTL
                     },
                     ConditionExpression = "attribute_not_exists(SK)", //Fail if already exists
-                    TableName = tableName,
+                    TableName = configuration.TableName,
                 }
             };
             var n = 1;
@@ -162,7 +161,7 @@
                             {"ExpireAt", new AttributeValue {NULL = true}} //TTL
                         },
                         ConditionExpression = "attribute_not_exists(SK)", // Fail if already exists
-                        TableName = tableName
+                        TableName = configuration.TableName
                     }
                 };
                 n++;
@@ -190,7 +189,7 @@
             var opsCount = context.Get<int>(OperationsCountContextProperty);
 
             var now = DateTime.UtcNow;
-            var expirationTime = now.Add(expirationPeriod);
+            var expirationTime = now.Add(configuration.TimeToLive);
             int epochSeconds = AWSSDKUtils.ConvertToUnixEpochSeconds(expirationTime);
 
             var writeRequests = new List<WriteRequest>(opsCount + 1)
@@ -235,14 +234,13 @@
             {
                 RequestItems = new Dictionary<string, List<WriteRequest>>
                 {
-                    { tableName, writeRequests }
+                    { configuration.TableName, writeRequests }
                 },
             };
             await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
         }
 
         readonly IAmazonDynamoDB dynamoDbClient;
-        readonly string tableName;
-        readonly TimeSpan expirationPeriod;
+        readonly OutboxPersistenceConfiguration configuration;
     }
 }

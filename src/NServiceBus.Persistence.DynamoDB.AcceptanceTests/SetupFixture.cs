@@ -27,12 +27,16 @@
                 Client = DynamoDBClient
             }, new InstallerSettings
             {
-                OutboxTableName = TableName,
                 SagaTableName = TableName,
                 Disabled = false,
+                CreateOutboxTable = true,
+                CreateSagaTable = true
+            }, new OutboxPersistenceConfiguration
+            {
+                TableName = TableName
             });
 
-            await installer.Install("");
+            await installer.Install();
         }
 
         [OneTimeTearDown]

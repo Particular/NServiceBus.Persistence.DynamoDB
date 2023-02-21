@@ -9,6 +9,11 @@
     /// </summary>
     public static class DynamoDBPersistenceConfig
     {
+        //TODO any reason to not use a static table across all endpoints?
+        internal const string SharedTableName = "NServiceBus.Storage";
+        internal const string DefaultPartitionKeyName = "PK";
+        internal const string DefaultSortKeyName = "SK";
+
         /// <summary>
         /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient
         /// </summary>
@@ -29,7 +34,7 @@
         {
             Guard.AgainstNullAndEmpty(nameof(tableName), tableName);
 
-            persistenceExtensions.GetSettings().Set(SettingsKeys.OutboxTableName, tableName);
+            persistenceExtensions.Outbox().TableName = tableName;
             persistenceExtensions.Sagas().TableName = tableName;
 
             return persistenceExtensions;
@@ -45,6 +50,14 @@
             var installerSettings = persistenceExtensions.GetSettings().GetOrCreate<InstallerSettings>();
             installerSettings.Disabled = true;
         }
+
+        /// <summary>
+        /// Obtains the outbox persistence configuration options.
+        /// </summary>
+        /// <param name="persistenceExtensions"></param>
+        /// <returns></returns>
+        public static OutboxPersistenceConfiguration Outbox(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions) =>
+            persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>();
 
         /// <summary>
         /// Obtains the saga persistence configuration options.

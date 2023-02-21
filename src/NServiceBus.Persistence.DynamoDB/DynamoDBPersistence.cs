@@ -13,6 +13,7 @@
         {
             Defaults(s =>
             {
+                s.SetDefault(new OutboxPersistenceConfiguration());
                 s.SetDefault<IProvideDynamoDBClient>(new ThrowIfNoDynamoDBClientIsProvided());
                 s.EnableFeatureByDefault<InstallerFeature>();
                 s.EnableFeatureByDefault<Transaction>();

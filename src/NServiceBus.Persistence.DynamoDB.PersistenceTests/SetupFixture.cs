@@ -6,6 +6,7 @@
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.Runtime;
+    using NServiceBus.Outbox;
     using NUnit.Framework;
     using Persistence.DynamoDB;
 
@@ -27,11 +28,15 @@
                 Client = DynamoDBClient
             }, new InstallerSettings
             {
-                OutboxTableName = TableName,
-                SagaTableName = TableName
+                SagaTableName = TableName,
+                CreateOutboxTable = true,
+                CreateSagaTable = true
+            }, new OutboxPersistenceConfiguration()
+            {
+                TableName = TableName,
             });
 
-            await installer.Install("", CancellationToken.None).ConfigureAwait(false);
+            await installer.Install(CancellationToken.None).ConfigureAwait(false);
         }
 
         [OneTimeTearDown]
