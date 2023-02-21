@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB
 {
+    using System;
+
     /// <summary>
     /// The Outbox persistence configuration options.
     /// </summary>
@@ -16,7 +16,7 @@ namespace NServiceBus.Persistence.DynamoDB
         /// The name of the partition key
         /// </summary>
         public string PartitionKeyName { get; set; } = DynamoDBPersistenceConfig.DefaultPartitionKeyName;
-    
+
         /// <summary>
         /// The name of the sort key
         /// </summary>

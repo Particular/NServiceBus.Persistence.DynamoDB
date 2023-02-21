@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
-    using Installation;
     using Logging;
 
     class Installer
@@ -83,13 +82,13 @@
 
             await CreateTable(client, createTableRequest, cancellationToken).ConfigureAwait(false);
             await WaitForTableToBeActive(client, outboxTableName, cancellationToken).ConfigureAwait(false);
-            await ConfigureTimeToLive(client, outboxTableName, cancellationToken);
+            await ConfigureTimeToLive(client, outboxTableName, cancellationToken).ConfigureAwait(false);
 
         }
 
         async Task ConfigureTimeToLive(IAmazonDynamoDB client, string outboxTableName, CancellationToken cancellationToken)
         {
-            var ttlDescription = await client.DescribeTimeToLiveAsync(outboxTableName, cancellationToken);
+            var ttlDescription = await client.DescribeTimeToLiveAsync(outboxTableName, cancellationToken).ConfigureAwait(false);
 
             if (ttlDescription.TimeToLiveDescription.AttributeName != null)
             {
@@ -111,7 +110,7 @@
                     AttributeName = outboxConfiguration.TimeToLiveAttributeName,
                     Enabled = true
                 }
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         async Task CreateSagaTableIfNotExists(IAmazonDynamoDB client, string sagaTableName,

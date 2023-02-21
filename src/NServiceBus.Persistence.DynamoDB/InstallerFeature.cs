@@ -1,6 +1,4 @@
-﻿using NServiceBus.Installation;
-
-namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using Features;
     using Microsoft.Extensions.DependencyInjection;

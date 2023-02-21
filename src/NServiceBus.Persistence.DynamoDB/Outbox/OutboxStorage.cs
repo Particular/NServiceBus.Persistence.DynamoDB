@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
-    using System;
     using Features;
     using Microsoft.Extensions.DependencyInjection;
     using Outbox;
