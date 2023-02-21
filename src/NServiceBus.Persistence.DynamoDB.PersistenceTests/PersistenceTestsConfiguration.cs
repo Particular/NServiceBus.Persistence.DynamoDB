@@ -66,11 +66,7 @@
             }, Client);
             OutboxStorage = new OutboxPersister(
                 Client,
-                new OutboxPersistenceConfiguration
-                {
-                    TableName = SetupFixture.TableName,
-                    TimeToLive = TimeSpan.FromMinutes(5)
-                });
+                SetupFixture.OutboxConfiguration);
 
             GetContextBagForSagaStorage = () =>
             {

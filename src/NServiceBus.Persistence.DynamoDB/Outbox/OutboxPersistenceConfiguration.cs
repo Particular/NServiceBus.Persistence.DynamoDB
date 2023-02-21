@@ -30,6 +30,6 @@ namespace NServiceBus.Persistence.DynamoDB
         /// <summary>
         /// The attribute name for the Time to Live setting.
         /// </summary>
-        public string TimeToLiveAttributeName { get; set; } = "ttl";
+        public string TimeToLiveAttributeName { get; set; } = "ExpireAt";
     }
 }
