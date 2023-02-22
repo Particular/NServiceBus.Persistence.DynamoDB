@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.Runtime;
-    using NServiceBus.Outbox;
     using NUnit.Framework;
     using Persistence.DynamoDB;
 

@@ -17,12 +17,10 @@
         [SetUp]
         public void Setup()
         {
-            dynamoClient = new AmazonDynamoDBClient(new AmazonDynamoDBConfig()
-            {
-                ServiceURL = "http://localhost:8000"
-            });
+            dynamoClient = new AmazonDynamoDBClient();
             installerSettings = new InstallerSettings
             {
+                CreateSagaTable = false,
                 CreateOutboxTable = true,
             };
             outboxSettings = new OutboxPersistenceConfiguration()
