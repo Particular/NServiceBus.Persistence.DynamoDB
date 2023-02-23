@@ -3,6 +3,7 @@
     using System.Threading.Tasks;
     using System;
     using System.Collections.Generic;
+    using Amazon.DynamoDBv2;
     using Extensibility;
     using NServiceBus.Outbox;
     using NUnit.Framework;
@@ -106,7 +107,6 @@
                 await configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag);
 
                 //TODO what exception should we assert?
-                //TODO currently fails at 25 but shouldn't it be 100? https://aws.amazon.com/about-aws/whats-new/2022/09/amazon-dynamodb-supports-100-actions-per-transaction/
                 Assert.ThrowsAsync<Exception>(() => transaction.Commit());
             }
         }

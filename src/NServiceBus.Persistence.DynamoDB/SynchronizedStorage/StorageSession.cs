@@ -31,12 +31,13 @@
 
         void CheckCapacity()
         {
-            // TODO: 25 should be a constant probably in the settings
-            if (batch.Count > 25)
-            {
-                throw new Exception(
-                    "Transactional writes are limited to 25 items. Each saga counts as one item. Outbox, if enabled, counts as one item plus one additional item for each outgoing message.");
-            }
+            // TODO: Should we really capture this on the client side? Allows for better exception messages though.
+            // TODO: 100 should be a constant probably in the settings
+            //if (batch.Count > 100)
+            //{
+            //    throw new Exception(
+            //        "Transactional writes are limited to 100 items. Each saga counts as one item. Outbox, if enabled, counts as one item plus one additional item for each outgoing message.");
+            //}
         }
 
         public async Task Commit(CancellationToken cancellationToken = default)
