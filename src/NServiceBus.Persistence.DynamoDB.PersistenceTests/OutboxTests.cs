@@ -40,7 +40,7 @@
             ContextBag contextBag = configuration.GetContextBagForOutbox();
 
             var r = new Random();
-            byte[] payload = new byte[500_000]; // 4 KB is the item size limit
+            byte[] payload = new byte[500_000]; // 400 KB is the item size limit
             r.NextBytes(payload);
 
             var transportOperations = new TransportOperation[]
@@ -66,7 +66,7 @@
             ContextBag contextBag = configuration.GetContextBagForOutbox();
 
             var r = new Random();
-            byte[] payload = new byte[300_000]; // 4 KB is the item size limit
+            byte[] payload = new byte[300_000]; // 400 KB is the item size limit
             r.NextBytes(payload);
 
             // Generate total transaction payload > 4MB
@@ -118,7 +118,7 @@
             ContextBag contextBag = configuration.GetContextBagForOutbox();
 
             var r = new Random();
-            byte[] payload = new byte[100_000]; // 4 KB is the item size limit
+            byte[] payload = new byte[100_000]; // 400 KB is the item size limit
             r.NextBytes(payload);
 
             // Query size limit is 1MB
