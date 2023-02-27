@@ -11,10 +11,11 @@
     class Installer
     {
         public Installer(IProvideDynamoDBClient clientProvider, InstallerSettings settings,
-            OutboxPersistenceConfiguration outboxConfiguration)
+            OutboxPersistenceConfiguration outboxConfiguration, SagaPersistenceConfiguration sagaConfiguration)
         {
             installerSettings = settings;
             this.outboxConfiguration = outboxConfiguration;
+            this.sagaConfiguration = sagaConfiguration;
             this.clientProvider = clientProvider;
         }
 
@@ -29,7 +30,7 @@
             {
                 try
                 {
-                    await CreateOutboxTableIfNotExists(clientProvider.Client, outboxConfiguration.TableName,
+                    await CreateOutboxTableIfNotExists(clientProvider.Client,
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception e) when (!(e is OperationCanceledException &&
@@ -46,26 +47,25 @@
             {
                 try
                 {
-                    await CreateSagaTableIfNotExists(clientProvider.Client, installerSettings.SagaTableName,
+                    await CreateSagaTableIfNotExists(clientProvider.Client,
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception e) when (!(e is OperationCanceledException &&
                                             cancellationToken.IsCancellationRequested))
                 {
                     log.Error(
-                        $"Could not complete the installation. An error occurred while creating the sagas table: {installerSettings.SagaTableName}",
+                        $"Could not complete the installation. An error occurred while creating the sagas table: {sagaConfiguration.TableName}",
                         e);
                     throw;
                 }
             }
         }
 
-        async Task CreateOutboxTableIfNotExists(IAmazonDynamoDB client, string outboxTableName,
-            CancellationToken cancellationToken)
+        async Task CreateOutboxTableIfNotExists(IAmazonDynamoDB client, CancellationToken cancellationToken)
         {
             var createTableRequest = new CreateTableRequest
             {
-                TableName = outboxTableName,
+                TableName = outboxConfiguration.TableName,
                 AttributeDefinitions = new List<AttributeDefinition>
                 {
                     new() { AttributeName = outboxConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
@@ -76,13 +76,13 @@
                     new() { AttributeName = outboxConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
                     new() { AttributeName = outboxConfiguration.SortKeyName, KeyType = KeyType.RANGE },
                 },
-                BillingMode = installerSettings.BillingMode,
-                ProvisionedThroughput = installerSettings.ProvisionedThroughput,
+                BillingMode = outboxConfiguration.BillingMode,
+                ProvisionedThroughput = outboxConfiguration.ProvisionedThroughput,
             };
 
             await CreateTable(client, createTableRequest, cancellationToken).ConfigureAwait(false);
-            await WaitForTableToBeActive(client, outboxTableName, cancellationToken).ConfigureAwait(false);
-            await ConfigureTimeToLive(client, outboxTableName, cancellationToken).ConfigureAwait(false);
+            await WaitForTableToBeActive(client, outboxConfiguration.TableName, cancellationToken).ConfigureAwait(false);
+            await ConfigureTimeToLive(client, outboxConfiguration.TableName, cancellationToken).ConfigureAwait(false);
 
         }
 
@@ -113,29 +113,27 @@
             }, cancellationToken).ConfigureAwait(false);
         }
 
-        async Task CreateSagaTableIfNotExists(IAmazonDynamoDB client, string sagaTableName,
-            CancellationToken cancellationToken)
+        async Task CreateSagaTableIfNotExists(IAmazonDynamoDB client, CancellationToken cancellationToken)
         {
-            // TODO: Maybe these should be configurable?
             var createTableRequest = new CreateTableRequest
             {
-                TableName = sagaTableName,
-                AttributeDefinitions = new List<AttributeDefinition>()
+                TableName = sagaConfiguration.TableName,
+                AttributeDefinitions = new List<AttributeDefinition>
                 {
-                    new() { AttributeName = "PK", AttributeType = "S" },
-                    new() { AttributeName = "SK", AttributeType = "S" }
+                    new() { AttributeName = sagaConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
+                    new() { AttributeName = sagaConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S }
                 },
-                KeySchema = new List<KeySchemaElement>()
+                KeySchema = new List<KeySchemaElement>
                 {
-                    new() { AttributeName = "PK", KeyType = "HASH" },
-                    new() { AttributeName = "SK", KeyType = "RANGE" },
+                    new() { AttributeName = sagaConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
+                    new() { AttributeName = sagaConfiguration.SortKeyName, KeyType = KeyType.RANGE },
                 },
-                // TODO: Fix this, allow this to be configurable
-                BillingMode = BillingMode.PAY_PER_REQUEST
+                BillingMode = sagaConfiguration.BillingMode,
+                ProvisionedThroughput = sagaConfiguration.ProvisionedThroughput,
             };
 
             await CreateTable(client, createTableRequest, cancellationToken).ConfigureAwait(false);
-            await WaitForTableToBeActive(client, sagaTableName, cancellationToken).ConfigureAwait(false);
+            await WaitForTableToBeActive(client, sagaConfiguration.TableName, cancellationToken).ConfigureAwait(false);
         }
 
         static async Task CreateTable(IAmazonDynamoDB client, CreateTableRequest createTableRequest,
@@ -143,7 +141,7 @@
         {
             try
             {
-                var r = await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
+                await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
             }
             catch (ResourceInUseException)
             {
@@ -167,8 +165,9 @@
             } while (status != TableStatus.ACTIVE);
         }
 
-        InstallerSettings installerSettings;
+        readonly InstallerSettings installerSettings;
         readonly OutboxPersistenceConfiguration outboxConfiguration;
+        readonly SagaPersistenceConfiguration sagaConfiguration;
         static ILog log = LogManager.GetLogger<Installer>();
 
         readonly IProvideDynamoDBClient clientProvider;

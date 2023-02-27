@@ -8,13 +8,16 @@
     using NUnit.Framework;
     using Amazon.Runtime;
 
+    //TODO test when both saga+outbox are enabled
+    //TODO would be nice to be able to tag the tables as tests for easier identification in AWS
     [TestFixture]
-    public class InstallerTests
+    public abstract class InstallerTests
     {
         AmazonDynamoDBClient dynamoClient;
         InstallerSettings installerSettings;
         Installer installer;
         OutboxPersistenceConfiguration outboxSettings;
+        SagaPersistenceConfiguration sagaSettings;
 
         [SetUp]
         public void Setup()
@@ -23,11 +26,17 @@
             installerSettings = new InstallerSettings
             {
                 CreateSagaTable = false,
-                CreateOutboxTable = true,
+                CreateOutboxTable = false,
             };
             outboxSettings = new OutboxPersistenceConfiguration()
             {
-                TableName = Guid.NewGuid().ToString("N"),
+                TableName = Guid.NewGuid().ToString("N") + "_installer_tests_outbox",
+                PartitionKeyName = Guid.NewGuid().ToString("N"),
+                SortKeyName = Guid.NewGuid().ToString("N")
+            };
+            sagaSettings = new SagaPersistenceConfiguration()
+            {
+                TableName = Guid.NewGuid().ToString("N") + "_installer_tests_saga",
                 PartitionKeyName = Guid.NewGuid().ToString("N"),
                 SortKeyName = Guid.NewGuid().ToString("N")
             };
@@ -36,7 +45,7 @@
                     new DynamoDBClientProvidedByConfiguration
                     {
                         Client = dynamoClient
-                    }, installerSettings, outboxSettings);
+                    }, installerSettings, outboxSettings, sagaSettings);
         }
 
         [TearDown]
@@ -44,7 +53,15 @@
         {
             try
             {
-                await dynamoClient.DeleteTableAsync(outboxSettings.TableName);
+                if (installerSettings.CreateOutboxTable)
+                {
+                    await dynamoClient.DeleteTableAsync(outboxSettings.TableName);
+                }
+
+                if (installerSettings.CreateSagaTable)
+                {
+                    await dynamoClient.DeleteTableAsync(sagaSettings.TableName);
+                }
             }
             catch (Exception e)
             {
@@ -52,105 +69,200 @@
             }
         }
 
-        [Test]
-        public async Task Should_create_outbox_with_configured_attribute_names()
+        class SagaInstallationTests : InstallerTests
         {
-            outboxSettings.PartitionKeyName = Guid.NewGuid().ToString("N");
-            outboxSettings.SortKeyName = Guid.NewGuid().ToString("N");
+            [SetUp]
+            public void EnableSagaCreation()
+            {
+                installerSettings.CreateSagaTable = true;
+            }
 
-            await installer.Install();
+            [Test]
+            public async Task Should_create_table_with_configured_attribute_names()
+            {
+                sagaSettings.PartitionKeyName = Guid.NewGuid().ToString("N");
+                sagaSettings.SortKeyName = Guid.NewGuid().ToString("N");
 
-            var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
+                await installer.Install();
 
-            Assert.AreEqual(outboxSettings.TableName, table.Table.TableName);
-            Assert.AreEqual(outboxSettings.PartitionKeyName, table.Table.KeySchema[0].AttributeName);
-            Assert.AreEqual(KeyType.HASH, table.Table.KeySchema[0].KeyType);
+                var table = await dynamoClient.DescribeTableAsync(sagaSettings.TableName);
+
+                Assert.AreEqual(sagaSettings.TableName, table.Table.TableName);
+                Assert.AreEqual(sagaSettings.PartitionKeyName, table.Table.KeySchema[0].AttributeName);
+                Assert.AreEqual(KeyType.HASH, table.Table.KeySchema[0].KeyType);
+                Assert.AreEqual(sagaSettings.SortKeyName, table.Table.KeySchema[1].AttributeName);
+                Assert.AreEqual(KeyType.RANGE, table.Table.KeySchema[1].KeyType);
+                //TODO do we also need to test the attribute type to be "S"?
+                Assert.AreEqual(TableStatus.ACTIVE, table.Table.TableStatus);
+            }
+
+            [Test]
+            public async Task Should_create_table_with_pay_as_you_go_billing_mode()
+            {
+                installerSettings.BillingMode = BillingMode.PAY_PER_REQUEST;
+
+                await installer.Install();
+
+                var table = await dynamoClient.DescribeTableAsync(sagaSettings.TableName);
+
+                Assert.AreEqual(BillingMode.PAY_PER_REQUEST, table.Table.BillingModeSummary.BillingMode);
+                Assert.AreEqual(0, table.Table.ProvisionedThroughput.ReadCapacityUnits);
+                Assert.AreEqual(0, table.Table.ProvisionedThroughput.WriteCapacityUnits);
+            }
+
+            [Ignore("need to figure out the cost impact of this test first")]
+            [Test]
+            public async Task Should_create_table_with_provisioned_billing_mode()
+            {
+                installerSettings.ProvisionedThroughput = new ProvisionedThroughput(1, 1);
+                installerSettings.BillingMode = BillingMode.PROVISIONED;
+
+                await installer.Install();
+
+                var table = await dynamoClient.DescribeTableAsync(sagaSettings.TableName);
+
+                Assert.IsNull(table.Table.BillingModeSummary.BillingMode); // value is null when using provisioned mode
+                Assert.AreEqual(installerSettings.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
+                Assert.AreEqual(installerSettings.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
+            }
+
+            [Test]
+            public async Task Should_not_throw_when_same_table_already_exists()
+            {
+                sagaSettings.PartitionKeyName = "PK1";
+                await installer.Install();
+
+                var table1 = await dynamoClient.DescribeTableAsync(sagaSettings.TableName);
+
+                sagaSettings.PartitionKeyName = "PK2";
+                await installer.Install();
+                var table2 = await dynamoClient.DescribeTableAsync(sagaSettings.TableName);
+
+                Assert.AreEqual(table1.Table.CreationDateTime, table2.Table.CreationDateTime);
+                Assert.AreEqual("PK1", table1.Table.KeySchema[0].AttributeName);
+                Assert.AreEqual("PK1", table2.Table.KeySchema[0].AttributeName);
+            }
+
+            [Test]
+            public async Task Should_not_create_table_when_outbox_creation_disabled()
+            {
+                installerSettings.CreateSagaTable = false;
+
+                await installer.Install();
+
+                Assert.ThrowsAsync<ResourceNotFoundException>(() => dynamoClient.DescribeTableAsync(sagaSettings.TableName));
+            }
+        }
+
+        class OutboxInstallationTests : InstallerTests
+        {
+            [SetUp]
+            public void EnableOutboxCreation()
+            {
+                installerSettings.CreateOutboxTable = true;
+            }
+
+            [Test]
+            public async Task Should_create_table_with_configured_attribute_names()
+            {
+                outboxSettings.PartitionKeyName = Guid.NewGuid().ToString("N");
+                outboxSettings.SortKeyName = Guid.NewGuid().ToString("N");
+
+                await installer.Install();
+
+                var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
+
+                Assert.AreEqual(outboxSettings.TableName, table.Table.TableName);
+                Assert.AreEqual(outboxSettings.PartitionKeyName, table.Table.KeySchema[0].AttributeName);
+                Assert.AreEqual(KeyType.HASH, table.Table.KeySchema[0].KeyType);
             Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == outboxSettings.PartitionKeyName).AttributeType);
-            Assert.AreEqual(outboxSettings.SortKeyName, table.Table.KeySchema[1].AttributeName);
-            Assert.AreEqual(KeyType.RANGE, table.Table.KeySchema[1].KeyType);
+                Assert.AreEqual(outboxSettings.SortKeyName, table.Table.KeySchema[1].AttributeName);
+                Assert.AreEqual(KeyType.RANGE, table.Table.KeySchema[1].KeyType);
             Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == outboxSettings.SortKeyName).AttributeType);
-            Assert.AreEqual(TableStatus.ACTIVE, table.Table.TableStatus);
-        }
+                Assert.AreEqual(TableStatus.ACTIVE, table.Table.TableStatus);
+            }
 
-        [Test]
-        public async Task Should_create_outbox_with_pay_as_you_go_billing_mode()
-        {
-            installerSettings.BillingMode = BillingMode.PAY_PER_REQUEST;
+            [Test]
+            public async Task Should_create_table_with_pay_as_you_go_billing_mode()
+            {
+                installerSettings.BillingMode = BillingMode.PAY_PER_REQUEST;
 
-            await installer.Install();
+                await installer.Install();
 
-            var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
+                var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
 
-            Assert.AreEqual(BillingMode.PAY_PER_REQUEST, table.Table.BillingModeSummary.BillingMode);
-            Assert.AreEqual(0, table.Table.ProvisionedThroughput.ReadCapacityUnits);
-            Assert.AreEqual(0, table.Table.ProvisionedThroughput.WriteCapacityUnits);
-        }
+                Assert.AreEqual(BillingMode.PAY_PER_REQUEST, table.Table.BillingModeSummary.BillingMode);
+                Assert.AreEqual(0, table.Table.ProvisionedThroughput.ReadCapacityUnits);
+                Assert.AreEqual(0, table.Table.ProvisionedThroughput.WriteCapacityUnits);
+            }
 
-        [Test]
-        public async Task Should_create_outbox_with_provisioned_billing_mode()
-        {
-            installerSettings.ProvisionedThroughput = new ProvisionedThroughput(1, 1);
-            installerSettings.BillingMode = BillingMode.PROVISIONED;
+            [Ignore("need to figure out the cost impact of this test first")]
+            [Test]
+            public async Task Should_create_table_with_provisioned_billing_mode()
+            {
+                installerSettings.ProvisionedThroughput = new ProvisionedThroughput(1, 1);
+                installerSettings.BillingMode = BillingMode.PROVISIONED;
 
-            await installer.Install();
+                await installer.Install();
 
-            var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
+                var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
 
-            // Don't assert on BillingModeSummary as it may be not set when using provisioned mode.
-            Assert.AreEqual(installerSettings.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
-            Assert.AreEqual(installerSettings.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
-        }
+                Assert.IsNull(table.Table.BillingModeSummary.BillingMode); // value is null when using provisioned mode
+                Assert.AreEqual(installerSettings.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
+                Assert.AreEqual(installerSettings.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
+            }
 
-        [Test]
-        public async Task Should_not_throw_when_same_table_already_exists()
-        {
-            outboxSettings.PartitionKeyName = "PK1";
-            await installer.Install();
+            [Test]
+            public async Task Should_not_throw_when_same_table_already_exists()
+            {
+                outboxSettings.PartitionKeyName = "PK1";
+                await installer.Install();
 
-            var table1 = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
+                var table1 = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
 
-            outboxSettings.PartitionKeyName = "PK2";
-            await installer.Install();
-            var table2 = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
+                outboxSettings.PartitionKeyName = "PK2";
+                await installer.Install();
+                var table2 = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
 
-            Assert.AreEqual(table1.Table.CreationDateTime, table2.Table.CreationDateTime);
-            Assert.AreEqual("PK1", table1.Table.KeySchema[0].AttributeName);
-            Assert.AreEqual("PK1", table2.Table.KeySchema[0].AttributeName);
-        }
+                Assert.AreEqual(table1.Table.CreationDateTime, table2.Table.CreationDateTime);
+                Assert.AreEqual("PK1", table1.Table.KeySchema[0].AttributeName);
+                Assert.AreEqual("PK1", table2.Table.KeySchema[0].AttributeName);
+            }
 
-        [Test]
-        public async Task Should_not_create_table_when_outbox_creation_disabled()
-        {
-            installerSettings.CreateOutboxTable = false;
+            [Test]
+            public async Task Should_not_create_table_when_outbox_creation_disabled()
+            {
+                installerSettings.CreateOutboxTable = false;
 
-            await installer.Install();
+                await installer.Install();
 
-            Assert.ThrowsAsync<ResourceNotFoundException>(() => dynamoClient.DescribeTableAsync(outboxSettings.TableName));
-        }
+                Assert.ThrowsAsync<ResourceNotFoundException>(() => dynamoClient.DescribeTableAsync(outboxSettings.TableName));
+            }
 
-        [Test]
-        public async Task Should_configure_time_to_live_when_set()
-        {
-            outboxSettings.TimeToLiveAttributeName = Guid.NewGuid().ToString("N");
+            [Test]
+            public async Task Should_configure_time_to_live_when_set()
+            {
+                outboxSettings.TimeToLiveAttributeName = Guid.NewGuid().ToString("N");
 
-            await installer.Install();
+                await installer.Install();
 
-            var ttlSettings = await dynamoClient.DescribeTimeToLiveAsync(outboxSettings.TableName);
-            Assert.AreEqual(TimeToLiveStatus.ENABLED, ttlSettings.TimeToLiveDescription.TimeToLiveStatus);
-            Assert.AreEqual(outboxSettings.TimeToLiveAttributeName, ttlSettings.TimeToLiveDescription.AttributeName);
-        }
+                var ttlSettings = await dynamoClient.DescribeTimeToLiveAsync(outboxSettings.TableName);
+                Assert.AreEqual(TimeToLiveStatus.ENABLED, ttlSettings.TimeToLiveDescription.TimeToLiveStatus);
+                Assert.AreEqual(outboxSettings.TimeToLiveAttributeName, ttlSettings.TimeToLiveDescription.AttributeName);
+            }
 
-        [Test]
-        public async Task Should_throw_when_ttl_already_configured_for_different_attribute()
-        {
-            var existingTtlAttribute = Guid.NewGuid().ToString("N");
-            outboxSettings.TimeToLiveAttributeName = existingTtlAttribute;
-            await installer.Install();
+            [Test]
+            public async Task Should_throw_when_ttl_already_configured_for_different_attribute()
+            {
+                var existingTtlAttribute = Guid.NewGuid().ToString("N");
+                outboxSettings.TimeToLiveAttributeName = existingTtlAttribute;
+                await installer.Install();
 
-            outboxSettings.TimeToLiveAttributeName = Guid.NewGuid().ToString("N");
-            var exception = Assert.ThrowsAsync<Exception>(() => installer.Install());
+                outboxSettings.TimeToLiveAttributeName = Guid.NewGuid().ToString("N");
+                var exception = Assert.ThrowsAsync<Exception>(() => installer.Install());
 
-            StringAssert.Contains($"The table {outboxSettings.TableName} has attribute {existingTtlAttribute} configured for the time to live.", exception.Message);
+                StringAssert.Contains($"The table {outboxSettings.TableName} has attribute {existingTtlAttribute} configured for the time to live.", exception.Message);
+            }
         }
     }
 }

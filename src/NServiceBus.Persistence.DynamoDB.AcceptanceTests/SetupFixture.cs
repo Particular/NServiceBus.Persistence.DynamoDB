@@ -27,11 +27,13 @@
                 Client = DynamoDBClient
             }, new InstallerSettings
             {
-                SagaTableName = TableName,
                 Disabled = false,
                 CreateOutboxTable = true,
                 CreateSagaTable = true
             }, new OutboxPersistenceConfiguration
+            {
+                TableName = TableName
+            }, new SagaPersistenceConfiguration
             {
                 TableName = TableName
             });

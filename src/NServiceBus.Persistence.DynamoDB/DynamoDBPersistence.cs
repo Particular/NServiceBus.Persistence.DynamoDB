@@ -14,6 +14,7 @@
             Defaults(s =>
             {
                 s.SetDefault(new OutboxPersistenceConfiguration());
+                s.SetDefault(new SagaPersistenceConfiguration());
                 s.SetDefault<IProvideDynamoDBClient>(new ThrowIfNoDynamoDBClientIsProvided());
                 s.EnableFeatureByDefault<InstallerFeature>();
                 s.EnableFeatureByDefault<Transaction>();

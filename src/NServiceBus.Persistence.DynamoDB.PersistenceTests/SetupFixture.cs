@@ -15,8 +15,6 @@
         [OneTimeSetUp]
         public async Task OneTimeSetUp()
         {
-            TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}";
-
             var credentials = new EnvironmentVariablesAWSCredentials();
             var amazonDynamoDbConfig = new AmazonDynamoDBConfig();
             var client = new AmazonDynamoDBClient(credentials, amazonDynamoDbConfig);
@@ -30,16 +28,19 @@
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK"
             };
+            SagaConfiguration = new SagaPersistenceConfiguration()
+            {
+                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}"
+            };
 
             var installer = new Installer(new DynamoDBClientProvidedByConfiguration
             {
                 Client = DynamoDBClient
             }, new InstallerSettings
             {
-                SagaTableName = TableName,
                 CreateOutboxTable = true,
                 CreateSagaTable = true
-            }, OutboxConfiguration);
+            }, OutboxConfiguration, SagaConfiguration);
 
             await installer.Install(CancellationToken.None).ConfigureAwait(false);
         }
@@ -47,13 +48,13 @@
         [OneTimeTearDown]
         public async Task OneTimeTearDown()
         {
-            await DynamoDBClient.DeleteTableAsync(TableName).ConfigureAwait(false);
+            await DynamoDBClient.DeleteTableAsync(SagaConfiguration.TableName).ConfigureAwait(false);
             await DynamoDBClient.DeleteTableAsync(OutboxConfiguration.TableName).ConfigureAwait(false);
             DynamoDBClient.Dispose();
         }
 
         public static IAmazonDynamoDB DynamoDBClient;
-        public static string TableName;
         public static OutboxPersistenceConfiguration OutboxConfiguration;
+        SagaPersistenceConfiguration SagaConfiguration;
     }
 }

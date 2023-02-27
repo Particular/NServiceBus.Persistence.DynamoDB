@@ -1,6 +1,8 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
+    using Amazon.DynamoDBv2.Model;
+    using Amazon.DynamoDBv2;
 
     /// <summary>
     /// The Outbox persistence configuration options.
@@ -31,5 +33,15 @@
         /// The attribute name for the Time to Live setting.
         /// </summary>
         public string TimeToLiveAttributeName { get; set; } = "ExpireAt";
+
+        /// <summary>
+        /// The billing mode for this table
+        /// </summary>
+        public BillingMode BillingMode { get; set; } = BillingMode.PAY_PER_REQUEST;
+
+        /// <summary>
+        /// The provisioned throughput for this table if using <code>BillingMode.PROVISIONED</code>.
+        /// </summary>
+        public ProvisionedThroughput ProvisionedThroughput { get; set; }
     }
 }

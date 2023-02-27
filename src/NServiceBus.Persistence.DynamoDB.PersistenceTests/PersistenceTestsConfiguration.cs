@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.PersistenceTesting
 {
     using System;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
@@ -62,7 +63,7 @@
             partitionKey = Guid.NewGuid().ToString();
             SagaStorage = new SagaPersister(new SagaPersistenceConfiguration
             {
-                TableName = SetupFixture.TableName
+                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}"
             }, Client);
             OutboxStorage = new OutboxPersister(
                 Client,
