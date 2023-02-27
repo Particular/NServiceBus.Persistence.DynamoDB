@@ -55,8 +55,7 @@
                 var outboxMessage = new OutboxMessage(Guid.NewGuid().ToString(), transportOperations);
                 await configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag);
 
-                //TODO what exception should we assert?
-                Assert.ThrowsAsync<Exception>(() => transaction.Commit());
+                Assert.ThrowsAsync<AmazonDynamoDBException>(() => transaction.Commit());
             }
         }
 
@@ -83,8 +82,7 @@
                 var outboxMessage = new OutboxMessage(Guid.NewGuid().ToString(), transportOperations);
                 await configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag);
 
-                //TODO what exception should we assert?
-                Assert.ThrowsAsync<Exception>(() => transaction.Commit());
+                Assert.ThrowsAsync<AmazonDynamoDBException>(() => transaction.Commit());
             }
         }
 
@@ -103,10 +101,10 @@
             {
 
                 var outboxMessage = new OutboxMessage(Guid.NewGuid().ToString(), transportOperations);
-                await configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag);
 
-                //TODO what exception should we assert?
-                Assert.ThrowsAsync<Exception>(() => transaction.Commit());
+                Assert.ThrowsAsync<AmazonDynamoDBException>(() => configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag));
+
+                // already throws at store, no need to commit
             }
         }
 
