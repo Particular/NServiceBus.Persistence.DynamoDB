@@ -16,9 +16,6 @@
             this.installer = installer;
         }
 
-        public Task Install(string identity, CancellationToken cancellationToken = new CancellationToken())
-        {
-            return installer.Install(cancellationToken);
-        }
+        public Task Install(string identity, CancellationToken cancellationToken = default) => installer.Install(cancellationToken);
     }
 }

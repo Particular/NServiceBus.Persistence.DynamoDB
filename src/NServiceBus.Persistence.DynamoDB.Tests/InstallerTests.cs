@@ -6,6 +6,7 @@
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using NUnit.Framework;
+    using Amazon.Runtime;
 
     [TestFixture]
     public class InstallerTests
@@ -18,7 +19,7 @@
         [SetUp]
         public void Setup()
         {
-            dynamoClient = new AmazonDynamoDBClient();
+            dynamoClient = new AmazonDynamoDBClient(new EnvironmentVariablesAWSCredentials(), new AmazonDynamoDBConfig());
             installerSettings = new InstallerSettings
             {
                 CreateSagaTable = false,
@@ -86,8 +87,6 @@
         }
 
         [Test]
-        //TODO this doesn't work with the local DB because BillingModeSummary will be null
-        //TODO what's the cost impact on this test?
         public async Task Should_create_outbox_with_provisioned_billing_mode()
         {
             installerSettings.ProvisionedThroughput = new ProvisionedThroughput(1, 1);
@@ -97,7 +96,7 @@
 
             var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
 
-            Assert.AreEqual(BillingMode.PROVISIONED, table.Table.BillingModeSummary.BillingMode);
+            // Don't assert on BillingModeSummary as it may be not set when using provisioned mode.
             Assert.AreEqual(installerSettings.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
             Assert.AreEqual(installerSettings.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
         }
