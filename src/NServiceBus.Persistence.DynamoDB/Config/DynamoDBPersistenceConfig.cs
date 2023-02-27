@@ -9,7 +9,6 @@
     /// </summary>
     public static class DynamoDBPersistenceConfig
     {
-        //TODO any reason to not use a static table across all endpoints?
         internal const string SharedTableName = "NServiceBus.Storage";
         internal const string DefaultPartitionKeyName = "PK";
         internal const string DefaultSortKeyName = "SK";

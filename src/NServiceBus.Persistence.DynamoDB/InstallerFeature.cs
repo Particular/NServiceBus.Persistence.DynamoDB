@@ -7,7 +7,6 @@
     {
         public InstallerFeature()
         {
-            //TODO: only create when needed
             Defaults(s => s.SetDefault(new InstallerSettings()));
             DependsOn<SynchronizedStorage>();
         }
