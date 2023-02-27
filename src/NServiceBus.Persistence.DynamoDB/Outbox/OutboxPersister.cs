@@ -168,10 +168,10 @@
                             {configuration.TimeToLiveAttributeName, new AttributeValue {NULL = true}} //TTL
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
-                        ExpressionAttributeNames = new Dictionary<string, string>
-                    {
-                        {"#SK", configuration.SortKeyName}
-                    },
+                        ExpressionAttributeNames = new Dictionary<string, string>()
+                        {
+                            {"#SK", configuration.SortKeyName}
+                        },
                         TableName = configuration.TableName
                     }
                 };
