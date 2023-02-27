@@ -96,8 +96,7 @@
             var transportOperations = new TransportOperation[100]; // 100 items is the transaction limit, we generate n+1 items in the persister
             for (int i = 0; i < transportOperations.Length; i++)
             {
-                transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
-                    new ReadOnlyMemory<byte>(), new Dictionary<string, string>());
+                transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
             }
 
             using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
