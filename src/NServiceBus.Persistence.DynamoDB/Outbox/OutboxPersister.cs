@@ -18,11 +18,10 @@
     {
         const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
 
-        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, string tableName, TimeSpan expirationPeriod)
+        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration)
         {
             this.dynamoDbClient = dynamoDbClient;
-            this.tableName = tableName;
-            this.expirationPeriod = expirationPeriod;
+            this.configuration = configuration;
         }
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context,
@@ -44,14 +43,17 @@
                 {
                     ConsistentRead =
                         false, //TODO: Do we need to check the integrity of the read by counting the operations?
-                    KeyConditionExpression = "PK = :incomingId",
+                    KeyConditionExpression = "#PK = :incomingId",
                     ExclusiveStartKey = response?.LastEvaluatedKey,
-                    ExpressionAttributeValues =
-                        new Dictionary<string, AttributeValue>
-                        {
-                            {":incomingId", new AttributeValue {S = $"OUTBOX#{messageId}"}}
-                        },
-                    TableName = tableName
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        { "#PK", configuration.PartitionKeyName }
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        { ":incomingId", new AttributeValue { S = $"OUTBOX#{messageId}" } }
+                    },
+                    TableName = configuration.TableName
                 };
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
                 allItems.AddRange(response.Items);
@@ -66,11 +68,11 @@
             return DeserializeOutboxMessage(allItems, context);
         }
 
-        static OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems,
+        OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems,
             ContextBag contextBag)
         {
             var headerItem = responseItems.First();
-            var incomingId = headerItem["PK"].S;
+            var incomingId = headerItem[configuration.PartitionKeyName].S;
             // TODO: In case we delete stuff we can probably even remove this property
             int numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
             contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
@@ -111,18 +113,22 @@
                 {
                     Item = new Dictionary<string, AttributeValue>
                     {
-                        {"PK", new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
-                        {"SK", new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
+                        {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
+                        {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
                             "TransportOperations",
                             new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
                         {"DispatchedAt", new AttributeValue {NULL = true}},
-                        {"ExpireAt", new AttributeValue {NULL = true}} //TTL
+                        {configuration.TimeToLiveAttributeName, new AttributeValue {NULL = true}} //TTL
                     },
-                    ConditionExpression = "attribute_not_exists(SK)", //Fail if already exists
-                    TableName = tableName,
+                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        {"#SK", configuration.SortKeyName}
+                    },
+                    TableName = configuration.TableName,
                 }
             };
             var n = 1;
@@ -135,8 +141,8 @@
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {"PK", new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
-                            {"SK", new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
+                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
+                            {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
@@ -159,10 +165,14 @@
                                 }
                             },
                             {"Body", new AttributeValue {B = bodyStream}},
-                            {"ExpireAt", new AttributeValue {NULL = true}} //TTL
+                            {configuration.TimeToLiveAttributeName, new AttributeValue {NULL = true}} //TTL
                         },
-                        ConditionExpression = "attribute_not_exists(SK)", // Fail if already exists
-                        TableName = tableName
+                        ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
+                        ExpressionAttributeNames = new Dictionary<string, string>()
+                        {
+                            {"#SK", configuration.SortKeyName}
+                        },
+                        TableName = configuration.TableName
                     }
                 };
                 n++;
@@ -190,7 +200,7 @@
             var opsCount = context.Get<int>(OperationsCountContextProperty);
 
             var now = DateTime.UtcNow;
-            var expirationTime = now.Add(expirationPeriod);
+            var expirationTime = now.Add(configuration.TimeToLive);
             int epochSeconds = AWSSDKUtils.ConvertToUnixEpochSeconds(expirationTime);
 
             var writeRequests = new List<WriteRequest>(opsCount + 1)
@@ -201,12 +211,12 @@
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {"PK", new AttributeValue {S = $"OUTBOX#{messageId}"}},
-                            {"SK", new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
+                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{messageId}"}},
+                            {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
                             {"TransportOperations", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
                             {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
-                            {"ExpireAt", new AttributeValue {N = epochSeconds.ToString()}}
+                            {configuration.TimeToLiveAttributeName, new AttributeValue {N = epochSeconds.ToString()}}
                         },
                     }
                 }
@@ -220,8 +230,8 @@
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            {"PK", new AttributeValue {S = $"OUTBOX#{messageId}"}},
-                            {"SK", new AttributeValue {S = $"OUTBOX#{messageId}#{i}"}}, //Sort key
+                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{messageId}"}},
+                            {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#{i}"}}, //Sort key
                         }
                     }
                 });
@@ -235,14 +245,13 @@
             {
                 RequestItems = new Dictionary<string, List<WriteRequest>>
                 {
-                    { tableName, writeRequests }
+                    { configuration.TableName, writeRequests }
                 },
             };
             await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
         }
 
         readonly IAmazonDynamoDB dynamoDbClient;
-        readonly string tableName;
-        readonly TimeSpan expirationPeriod;
+        readonly OutboxPersistenceConfiguration configuration;
     }
 }

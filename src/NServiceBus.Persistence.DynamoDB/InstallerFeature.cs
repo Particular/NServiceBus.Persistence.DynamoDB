@@ -14,17 +14,13 @@
         protected override void Setup(FeatureConfigurationContext context)
         {
             var settings = context.Settings.Get<InstallerSettings>();
-            context.Services.AddSingleton(settings);
-            if (settings.Disabled)
-            {
-                return;
-            }
-
-            var tableName = context.Settings.Get<string>(SettingsKeys.OutboxTableName);
-            settings.OutboxTableName = tableName;
 
             var sagaPersistenceConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
             settings.SagaTableName = sagaPersistenceConfiguration.TableName;
+
+            var installer = new Installer(context.Settings.Get<IProvideDynamoDBClient>(),
+                context.Settings.Get<InstallerSettings>(), context.Settings.Get<OutboxPersistenceConfiguration>());
+            context.Services.AddSingleton(installer);
         }
     }
 }

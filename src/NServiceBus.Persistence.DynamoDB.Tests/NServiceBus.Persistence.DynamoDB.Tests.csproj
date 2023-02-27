@@ -28,9 +28,4 @@
     <ProjectReference Include="..\NServiceBus.Persistence.DynamoDB\NServiceBus.Persistence.DynamoDB.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Outbox" />
-    <Folder Include="SynchronizedStorage" />
-  </ItemGroup>
-
 </Project>
