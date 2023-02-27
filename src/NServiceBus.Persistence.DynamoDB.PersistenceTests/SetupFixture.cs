@@ -48,6 +48,7 @@
         public async Task OneTimeTearDown()
         {
             await DynamoDBClient.DeleteTableAsync(TableName).ConfigureAwait(false);
+            await DynamoDBClient.DeleteTableAsync(OutboxConfiguration.TableName).ConfigureAwait(false);
             DynamoDBClient.Dispose();
         }
 
