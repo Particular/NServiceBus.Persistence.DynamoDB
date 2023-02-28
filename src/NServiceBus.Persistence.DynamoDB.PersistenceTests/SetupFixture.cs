@@ -22,7 +22,6 @@
 
             OutboxConfiguration = new OutboxPersistenceConfiguration()
             {
-                //TODO we need a dedicated outbox table while saga config doesn't support customizing PK/SK names
                 TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
                 TimeToLiveAttributeName = Guid.NewGuid().ToString("N") + "TTL",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
