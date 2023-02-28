@@ -87,7 +87,6 @@
                 Assert.AreEqual(0, table.Table.ProvisionedThroughput.WriteCapacityUnits);
             }
 
-            [Ignore("need to figure out the cost impact of this test first")]
             [Test]
             public async Task Should_create_table_with_provisioned_billing_mode()
             {
@@ -98,7 +97,7 @@
 
                 var table = await dynamoClient.DescribeTableAsync(sagaSettings.TableName);
 
-                Assert.IsNull(table.Table.BillingModeSummary.BillingMode); // value is null when using provisioned mode
+                // Don't assert on BillingModeSummary as it may be not set when using provisioned mode.
                 Assert.AreEqual(sagaSettings.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
                 Assert.AreEqual(sagaSettings.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
             }
@@ -170,7 +169,6 @@
                 Assert.AreEqual(0, table.Table.ProvisionedThroughput.WriteCapacityUnits);
             }
 
-            [Ignore("need to figure out the cost impact of this test first")]
             [Test]
             public async Task Should_create_table_with_provisioned_billing_mode()
             {
@@ -181,7 +179,7 @@
 
                 var table = await dynamoClient.DescribeTableAsync(outboxSettings.TableName);
 
-                Assert.IsNull(table.Table.BillingModeSummary.BillingMode); // value is null when using provisioned mode
+                // Don't assert on BillingModeSummary as it may be not set when using provisioned mode.
                 Assert.AreEqual(outboxSettings.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
                 Assert.AreEqual(outboxSettings.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
             }
