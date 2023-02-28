@@ -2,30 +2,24 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.DocumentModel;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
-    using Newtonsoft.Json;
     using Sagas;
 
     class SagaPersister : ISagaPersister
     {
         readonly SagaPersistenceConfiguration options;
         readonly IAmazonDynamoDB dynamoDbClient;
-        readonly JsonSerializerSettings serializerSettings;
 
         public SagaPersister(SagaPersistenceConfiguration options, IAmazonDynamoDB dynamoDbClient)
         {
             this.options = options;
             this.dynamoDbClient = dynamoDbClient;
-            // TODO we might want to make this configurable
-            serializerSettings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.None
-            };
         }
 
         public async Task<TSagaData> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
@@ -52,7 +46,7 @@
             var document = Document.FromAttributeMap(attributeValues);
             var sagaDataAsJson = document.ToJson();
             // All this is super allocation heavy. But for a first version that is OK
-            var sagaData = JsonConvert.DeserializeObject<TSagaData>(sagaDataAsJson, serializerSettings);
+            var sagaData = JsonSerializer.Deserialize<TSagaData>(sagaDataAsJson);
             var currentVersion = int.Parse(attributeValues["___VERSION___"].N);
             context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
             return sagaData;
@@ -100,7 +94,7 @@
         Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
         {
             // All this is super allocation heavy. But for a first version that is OK
-            var sagaDataJson = JsonConvert.SerializeObject(sagaData, serializerSettings);
+            var sagaDataJson = JsonSerializer.Serialize(sagaData, sagaData.GetType());
             var doc = Document.FromJson(sagaDataJson);
             var map = doc.ToAttributeMap();
             map.Add("PK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });
