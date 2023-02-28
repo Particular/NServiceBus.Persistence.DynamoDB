@@ -2,7 +2,6 @@
 {
     using Amazon.DynamoDBv2;
     using Configuration.AdvancedExtensibility;
-    using Features;
     using Persistence.DynamoDB;
     using Settings;
 
