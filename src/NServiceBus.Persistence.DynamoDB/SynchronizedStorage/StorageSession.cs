@@ -31,11 +31,11 @@
 
         void CheckCapacity()
         {
-            // TODO: 25 should be a constant probably in the settings
-            if (batch.Count > 25)
+            // The error on exceeded transaction items raised by the service is extremely convoluted and hard to understand. Until this is improved, we prevent an invalid request on the client side and throw a more meaningful exception to help users understand the limitations.
+            if (batch.Count > 100)
             {
-                throw new Exception(
-                    "Transactional writes are limited to 25 items. Each saga counts as one item. Outbox, if enabled, counts as one item plus one additional item for each outgoing message.");
+                throw new AmazonDynamoDBException(
+                    "Transactional writes are limited to 100 items. Each saga counts as one item. Outbox, if enabled, counts as one item plus one additional item for each outgoing message.");
             }
         }
 

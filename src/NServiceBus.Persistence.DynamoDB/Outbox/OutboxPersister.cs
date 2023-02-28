@@ -41,8 +41,7 @@
             {
                 var queryRequest = new QueryRequest
                 {
-                    ConsistentRead =
-                        false, //TODO: Do we need to check the integrity of the read by counting the operations?
+                    ConsistentRead = true,
                     KeyConditionExpression = "#PK = :incomingId",
                     ExclusiveStartKey = response?.LastEvaluatedKey,
                     ExpressionAttributeNames = new Dictionary<string, string>
