@@ -30,19 +30,13 @@
             };
             SagaConfiguration = new SagaPersistenceConfiguration()
             {
-                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}"
+                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga"
             };
 
-            var installer = new Installer(new DynamoDBClientProvidedByConfiguration
-            {
-                Client = DynamoDBClient
-            }, new InstallerSettings
-            {
-                CreateOutboxTable = true,
-                CreateSagaTable = true
-            }, OutboxConfiguration, SagaConfiguration);
+            var installer = new Installer(DynamoDBClient);
 
-            await installer.Install(CancellationToken.None).ConfigureAwait(false);
+            await installer.CreateOutboxTableIfNotExists(OutboxConfiguration, CancellationToken.None).ConfigureAwait(false);
+            await installer.CreateSagaTableIfNotExists(SagaConfiguration, CancellationToken.None).ConfigureAwait(false);
         }
 
         [OneTimeTearDown]
@@ -55,6 +49,6 @@
 
         public static IAmazonDynamoDB DynamoDBClient;
         public static OutboxPersistenceConfiguration OutboxConfiguration;
-        SagaPersistenceConfiguration SagaConfiguration;
+        public static SagaPersistenceConfiguration SagaConfiguration;
     }
 }

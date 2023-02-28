@@ -2,7 +2,9 @@
 {
     using Amazon.DynamoDBv2;
     using Configuration.AdvancedExtensibility;
+    using Features;
     using Persistence.DynamoDB;
+    using Settings;
 
     /// <summary>
     /// Configuration extensions for DynamoDB Core API Persistence
@@ -39,16 +41,18 @@
             return persistenceExtensions;
         }
 
+        const string DisableTableCreationConfigKey = "NServiceBus.DynamoDB.CreateTables";
+        //TODO acceptance test
         /// <summary>
         /// Disables the tables creation.
         /// </summary>
         public static void DisableTablesCreation(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
         {
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
-
-            var installerSettings = persistenceExtensions.GetSettings().GetOrCreate<InstallerSettings>();
-            installerSettings.Disabled = true;
+            persistenceExtensions.GetSettings().Set(DisableTableCreationConfigKey, true);
         }
+
+        internal static bool ShouldCreateTables(this IReadOnlySettings settings) => settings.GetOrDefault<bool>(DisableTableCreationConfigKey);
 
         /// <summary>
         /// Obtains the outbox persistence configuration options.
