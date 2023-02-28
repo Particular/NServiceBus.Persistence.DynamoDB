@@ -31,6 +31,7 @@
 
         void CheckCapacity()
         {
+            // The error on exceeded transaction items raised by the service is extremely convoluted and hard to understand. Until this is improved, we prevent an invalid request on the client side and throw a more meaningful exception to help users understand the limitations.
             if (batch.Count > 100)
             {
                 throw new AmazonDynamoDBException(
