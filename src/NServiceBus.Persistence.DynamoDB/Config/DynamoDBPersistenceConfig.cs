@@ -13,6 +13,7 @@
         internal const string SharedTableName = "NServiceBus.Storage";
         internal const string DefaultPartitionKeyName = "PK";
         internal const string DefaultSortKeyName = "SK";
+        internal static readonly BillingMode DefaultBillingMode = BillingMode.PAY_PER_REQUEST;
 
         /// <summary>
         /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient

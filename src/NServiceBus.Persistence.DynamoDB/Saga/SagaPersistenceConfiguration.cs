@@ -26,7 +26,7 @@
         /// <summary>
         /// The billing mode for this table
         /// </summary>
-        public BillingMode BillingMode { get; set; } = BillingMode.PAY_PER_REQUEST;
+        public BillingMode BillingMode { get; set; } = DynamoDBPersistenceConfig.DefaultBillingMode;
 
         /// <summary>
         /// The provisioned throughput for this table if using <code>BillingMode.PROVISIONED</code>.
