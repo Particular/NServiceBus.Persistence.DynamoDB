@@ -66,10 +66,10 @@
                 Assert.AreEqual(sagaSettings.TableName, table.Table.TableName);
                 Assert.AreEqual(sagaSettings.PartitionKeyName, table.Table.KeySchema[0].AttributeName);
                 Assert.AreEqual(KeyType.HASH, table.Table.KeySchema[0].KeyType);
-                Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == outboxSettings.PartitionKeyName).AttributeType);
+                Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == sagaSettings.PartitionKeyName).AttributeType);
                 Assert.AreEqual(sagaSettings.SortKeyName, table.Table.KeySchema[1].AttributeName);
                 Assert.AreEqual(KeyType.RANGE, table.Table.KeySchema[1].KeyType);
-                Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == outboxSettings.SortKeyName).AttributeType);
+                Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == sagaSettings.SortKeyName).AttributeType);
                 Assert.AreEqual(TableStatus.ACTIVE, table.Table.TableStatus);
             }
 
