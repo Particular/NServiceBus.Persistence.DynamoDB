@@ -32,8 +32,7 @@
         {
             var getItemRequest = new GetItemRequest
             {
-                ConsistentRead =
-                    false, //TODO: Do we need to check the integrity of the read by counting the operations?
+                ConsistentRead = true,
                 Key = new Dictionary<string, AttributeValue>
                     {
                         { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
