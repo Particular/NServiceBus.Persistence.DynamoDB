@@ -54,8 +54,6 @@
 
         public Func<ICompletableSynchronizedStorageSession> CreateStorageSession { get; private set; }
 
-        public int OutboxTimeToLiveInSeconds { get; set; } = 100;
-
         public Task Configure(CancellationToken cancellationToken = default)
         {
             // with this we have a partition key per run which makes things naturally isolated
