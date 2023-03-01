@@ -63,7 +63,7 @@
                 Put = new Put
                 {
                     Item = Serialize(sagaData, 0),
-                    ConditionExpression = $"attribute_not_exists(#SK)", //Fail if already exists.
+                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists.
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
                         {"#SK", configuration.SortKeyName}
