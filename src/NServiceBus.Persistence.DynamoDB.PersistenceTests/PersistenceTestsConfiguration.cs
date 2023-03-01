@@ -66,7 +66,8 @@
             }, Client);
             OutboxStorage = new OutboxPersister(
                 Client,
-                SetupFixture.OutboxConfiguration);
+                SetupFixture.OutboxConfiguration,
+                "PersistenceTest");
 
             GetContextBagForSagaStorage = () =>
             {

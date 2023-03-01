@@ -21,7 +21,7 @@
         {
             OutboxPersistenceConfiguration outboxConfiguration = context.Settings.Get<OutboxPersistenceConfiguration>();
 
-            context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IProvideDynamoDBClient>().Client, outboxConfiguration));
+            context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IProvideDynamoDBClient>().Client, outboxConfiguration, context.Settings.EndpointName()));
         }
     }
 }
