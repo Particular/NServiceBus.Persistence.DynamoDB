@@ -22,7 +22,7 @@
         {
             this.dynamoDbClient = dynamoDbClient;
             this.configuration = configuration;
-            this.endpointIdentifier = endpointIdentifier;
+            this.endpointIdentifier = endpointIdentifier.ToUpperInvariant();
         }
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context,
