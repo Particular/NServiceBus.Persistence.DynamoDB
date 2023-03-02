@@ -15,8 +15,6 @@
         [OneTimeSetUp]
         public async Task OneTimeSetUp()
         {
-            TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}";
-
             var credentials = new EnvironmentVariablesAWSCredentials();
             var amazonDynamoDbConfig = new AmazonDynamoDBConfig();
             var client = new AmazonDynamoDBClient(credentials, amazonDynamoDbConfig);
@@ -24,37 +22,35 @@
 
             OutboxConfiguration = new OutboxPersistenceConfiguration()
             {
-                //TODO we need a dedicated outbox table while saga config doesn't support customizing PK/SK names
                 TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
                 TimeToLiveAttributeName = Guid.NewGuid().ToString("N") + "TTL",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK",
                 TimeToLive = TimeSpan.FromSeconds(100)
             };
-
-            var installer = new Installer(new DynamoDBClientProvidedByConfiguration
+            SagaConfiguration = new SagaPersistenceConfiguration()
             {
-                Client = DynamoDBClient
-            }, new InstallerSettings
-            {
-                SagaTableName = TableName,
-                CreateOutboxTable = true,
-                CreateSagaTable = true
-            }, OutboxConfiguration);
+                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga",
+                PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
+                SortKeyName = Guid.NewGuid().ToString("N") + "SK"
+            };
 
-            await installer.Install(CancellationToken.None).ConfigureAwait(false);
+            var installer = new Installer(DynamoDBClient);
+
+            await installer.CreateOutboxTableIfNotExists(OutboxConfiguration, CancellationToken.None).ConfigureAwait(false);
+            await installer.CreateSagaTableIfNotExists(SagaConfiguration, CancellationToken.None).ConfigureAwait(false);
         }
 
         [OneTimeTearDown]
         public async Task OneTimeTearDown()
         {
-            await DynamoDBClient.DeleteTableAsync(TableName).ConfigureAwait(false);
+            await DynamoDBClient.DeleteTableAsync(SagaConfiguration.TableName).ConfigureAwait(false);
             await DynamoDBClient.DeleteTableAsync(OutboxConfiguration.TableName).ConfigureAwait(false);
             DynamoDBClient.Dispose();
         }
 
         public static IAmazonDynamoDB DynamoDBClient;
-        public static string TableName;
         public static OutboxPersistenceConfiguration OutboxConfiguration;
+        public static SagaPersistenceConfiguration SagaConfiguration;
     }
 }

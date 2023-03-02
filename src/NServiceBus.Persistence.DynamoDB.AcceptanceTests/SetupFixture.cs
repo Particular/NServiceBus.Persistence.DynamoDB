@@ -22,21 +22,10 @@
 
             DynamoDBClient = client;
 
-            var installer = new Installer(new DynamoDBClientProvidedByConfiguration
-            {
-                Client = DynamoDBClient
-            }, new InstallerSettings
-            {
-                SagaTableName = TableName,
-                Disabled = false,
-                CreateOutboxTable = true,
-                CreateSagaTable = true
-            }, new OutboxPersistenceConfiguration
-            {
-                TableName = TableName
-            });
+            var installer = new Installer(DynamoDBClient);
 
-            await installer.Install();
+            await installer.CreateOutboxTableIfNotExists(new OutboxPersistenceConfiguration { TableName = TableName });
+            await installer.CreateSagaTableIfNotExists(new SagaPersistenceConfiguration { TableName = TableName });
         }
 
         [OneTimeTearDown]

@@ -36,7 +36,9 @@ namespace NServiceBus.Persistence.DynamoDB
     public class OutboxPersistenceConfiguration
     {
         public OutboxPersistenceConfiguration() { }
+        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
         public string PartitionKeyName { get; set; }
+        public Amazon.DynamoDBv2.Model.ProvisionedThroughput ProvisionedThroughput { get; set; }
         public string SortKeyName { get; set; }
         public string TableName { get; set; }
         public System.TimeSpan TimeToLive { get; set; }
@@ -49,6 +51,10 @@ namespace NServiceBus.Persistence.DynamoDB
     public class SagaPersistenceConfiguration
     {
         public SagaPersistenceConfiguration() { }
+        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
+        public string PartitionKeyName { get; set; }
+        public Amazon.DynamoDBv2.Model.ProvisionedThroughput ProvisionedThroughput { get; set; }
+        public string SortKeyName { get; set; }
         public string TableName { get; set; }
     }
     public class TransactionInformationConfiguration

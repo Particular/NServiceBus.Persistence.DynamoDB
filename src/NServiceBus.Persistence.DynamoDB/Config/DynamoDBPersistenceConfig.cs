@@ -12,6 +12,7 @@
         internal const string SharedTableName = "NServiceBus.Storage";
         internal const string DefaultPartitionKeyName = "PK";
         internal const string DefaultSortKeyName = "SK";
+        internal static readonly BillingMode DefaultBillingMode = BillingMode.PAY_PER_REQUEST;
 
         /// <summary>
         /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient
@@ -45,9 +46,8 @@
         public static void DisableTablesCreation(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
         {
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
-
-            var installerSettings = persistenceExtensions.GetSettings().GetOrCreate<InstallerSettings>();
-            installerSettings.Disabled = true;
+            persistenceExtensions.Sagas().CreateTable = false;
+            persistenceExtensions.Outbox().CreateTable = false;
         }
 
         /// <summary>

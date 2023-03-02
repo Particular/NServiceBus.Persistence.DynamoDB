@@ -13,12 +13,12 @@
 
     class SagaPersister : ISagaPersister
     {
-        readonly SagaPersistenceConfiguration options;
+        readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
 
-        public SagaPersister(SagaPersistenceConfiguration options, IAmazonDynamoDB dynamoDbClient)
+        public SagaPersister(SagaPersistenceConfiguration configuration, IAmazonDynamoDB dynamoDbClient)
         {
-            this.options = options;
+            this.configuration = configuration;
             this.dynamoDbClient = dynamoDbClient;
         }
 
@@ -26,15 +26,13 @@
         {
             var getItemRequest = new GetItemRequest
             {
-                ConsistentRead =
-                    false, //TODO: Do we need to check the integrity of the read by counting the operations?
-                // TODO make this configurable
+                ConsistentRead = true,
                 Key = new Dictionary<string, AttributeValue>
                     {
-                        { "PK", new AttributeValue { S = $"SAGA#{sagaId}" } },
-                        { "SK", new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
+                        { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                        { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
                     },
-                TableName = options.TableName
+                TableName = configuration.TableName
             };
 
             var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
@@ -59,8 +57,12 @@
                 Put = new Put
                 {
                     Item = Serialize(sagaData, 0),
-                    ConditionExpression = "attribute_not_exists(SK)", //Fail if already exists.
-                    TableName = options.TableName,
+                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists.
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        {"#SK", configuration.SortKeyName}
+                    },
+                    TableName = configuration.TableName,
                 }
             });
             return Task.CompletedTask;
@@ -85,7 +87,7 @@
                     {
                         { ":cv", new AttributeValue { N = currentVersion.ToString() } }
                     },
-                    TableName = options.TableName,
+                    TableName = configuration.TableName,
                 }
             });
             return Task.CompletedTask;
@@ -97,8 +99,8 @@
             var sagaDataJson = JsonSerializer.Serialize(sagaData, sagaData.GetType());
             var doc = Document.FromJson(sagaDataJson);
             var map = doc.ToAttributeMap();
-            map.Add("PK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });
-            map.Add("SK", new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
+            map.Add(configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
+            map.Add(configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             // Version should probably be properly moved into metadata to not clash with existing things
             map.Add("___VERSION___", new AttributeValue { N = version.ToString() });
             // According to the best practices we should also add Type information probably here
@@ -115,8 +117,8 @@
                 {
                     Key = new Dictionary<string, AttributeValue>
                     {
-                        {"PK", new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
-                        {"SK", new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
+                        {configuration.PartitionKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
+                        {configuration.SortKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
                     },
                     ConditionExpression = "#v = :cv", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
@@ -127,7 +129,7 @@
                     {
                         { ":cv", new AttributeValue { N = currentVersion.ToString() } }
                     },
-                    TableName = options.TableName,
+                    TableName = configuration.TableName,
                 }
             });
             return Task.CompletedTask;
