@@ -3,7 +3,6 @@
     using Amazon.DynamoDBv2;
     using Configuration.AdvancedExtensibility;
     using Persistence.DynamoDB;
-    using Settings;
 
     /// <summary>
     /// Configuration extensions for DynamoDB Core API Persistence
@@ -41,7 +40,6 @@
             return persistenceExtensions;
         }
 
-        //TODO acceptance test
         /// <summary>
         /// Disables the tables creation.
         /// </summary>

@@ -13,8 +13,10 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
             return Task.FromResult(0);
         }
 
+        // disable installers which are enabled by default in the standard endpoint templates
+        configuration.GetSettings().Set("Installers.Enable", false);
+
         var persistence = configuration.UsePersistence<DynamoDBPersistence>();
-        persistence.DisableTablesCreation();
         persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
         persistence.TableName(SetupFixture.TableName);
 

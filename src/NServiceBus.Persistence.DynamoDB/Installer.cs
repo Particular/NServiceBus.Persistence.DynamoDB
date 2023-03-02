@@ -9,12 +9,9 @@
 
     class Installer
     {
-        public Installer(IAmazonDynamoDB client)
-        {
-            this.client = client;
-        }
+        public Installer(IAmazonDynamoDB client) => this.client = client;
 
-        public async Task CreateOutboxTableIfNotExists(OutboxPersistenceConfiguration outboxConfiguration, CancellationToken cancellationToken = default)
+        public virtual async Task CreateOutboxTableIfNotExists(OutboxPersistenceConfiguration outboxConfiguration, CancellationToken cancellationToken = default)
         {
             var createTableRequest = new CreateTableRequest
             {
@@ -66,7 +63,7 @@
             }, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task CreateSagaTableIfNotExists(SagaPersistenceConfiguration sagaConfiguration, CancellationToken cancellationToken = default)
+        public virtual async Task CreateSagaTableIfNotExists(SagaPersistenceConfiguration sagaConfiguration, CancellationToken cancellationToken = default)
         {
             var createTableRequest = new CreateTableRequest
             {
