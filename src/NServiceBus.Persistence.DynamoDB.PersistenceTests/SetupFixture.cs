@@ -28,7 +28,8 @@
                 TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
                 TimeToLiveAttributeName = Guid.NewGuid().ToString("N") + "TTL",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
-                SortKeyName = Guid.NewGuid().ToString("N") + "SK"
+                SortKeyName = Guid.NewGuid().ToString("N") + "SK",
+                TimeToLive = TimeSpan.FromSeconds(100)
             };
 
             var installer = new Installer(new DynamoDBClientProvidedByConfiguration

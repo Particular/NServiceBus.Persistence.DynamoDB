@@ -18,10 +18,11 @@
     {
         const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
 
-        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration)
+        public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration, string endpointIdentifier)
         {
             this.dynamoDbClient = dynamoDbClient;
             this.configuration = configuration;
+            this.endpointIdentifier = endpointIdentifier.ToUpperInvariant();
         }
 
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context,
@@ -42,15 +43,13 @@
                 var queryRequest = new QueryRequest
                 {
                     ConsistentRead = true,
-                    KeyConditionExpression = "#PK = :incomingId",
+                    KeyConditionExpression = $"#PK = :outboxId",
                     ExclusiveStartKey = response?.LastEvaluatedKey,
-                    ExpressionAttributeNames = new Dictionary<string, string>
-                    {
-                        { "#PK", configuration.PartitionKeyName }
-                    },
+                    ExpressionAttributeNames =
+                        new Dictionary<string, string> { { "#PK", configuration.PartitionKeyName } },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
-                        { ":incomingId", new AttributeValue { S = $"OUTBOX#{messageId}" } }
+                        { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
                     },
                     TableName = configuration.TableName
                 };
@@ -112,7 +111,7 @@
                 {
                     Item = new Dictionary<string, AttributeValue>
                     {
-                        {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
+                        {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                         {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
                             "TransportOperations",
@@ -140,7 +139,7 @@
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}"}},
+                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                             {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
@@ -210,7 +209,7 @@
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{messageId}"}},
+                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                             {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
                             {"TransportOperations", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
@@ -229,7 +228,7 @@
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{messageId}"}},
+                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                             {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#{i}"}}, //Sort key
                         }
                     }
@@ -252,5 +251,6 @@
 
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly OutboxPersistenceConfiguration configuration;
+        readonly string endpointIdentifier;
     }
 }
