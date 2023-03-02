@@ -2,6 +2,7 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Features;
     using Installation;
     using Settings;
 
@@ -21,15 +22,21 @@
 
         public async Task Install(string identity, CancellationToken cancellationToken = default)
         {
-            if (!settings.ShouldCreateTables())
+            if (settings.IsFeatureEnabled(typeof(OutboxStorage))
+               && settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
+               && outboxConfig.CreateTable)
             {
-                return;
+                await installer.CreateOutboxTableIfNotExists(settings.Get<OutboxPersistenceConfiguration>(),
+                    cancellationToken).ConfigureAwait(false);
             }
 
-            await installer.CreateOutboxTableIfNotExists(settings.Get<OutboxPersistenceConfiguration>(),
-                cancellationToken).ConfigureAwait(false);
-            await installer.CreateSagaTableIfNotExists(settings.Get<SagaPersistenceConfiguration>(), cancellationToken)
-                .ConfigureAwait(false);
+            if (settings.IsFeatureEnabled(typeof(SagaStorage))
+                && settings.TryGet(out SagaPersistenceConfiguration sagaConfig)
+                && sagaConfig.CreateTable)
+            {
+                await installer.CreateSagaTableIfNotExists(settings.Get<SagaPersistenceConfiguration>(), cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
     }
 }

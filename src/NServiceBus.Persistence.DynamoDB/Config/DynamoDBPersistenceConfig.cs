@@ -41,7 +41,6 @@
             return persistenceExtensions;
         }
 
-        const string DisableTableCreationConfigKey = "NServiceBus.DynamoDB.CreateTables";
         //TODO acceptance test
         /// <summary>
         /// Disables the tables creation.
@@ -49,10 +48,9 @@
         public static void DisableTablesCreation(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
         {
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
-            persistenceExtensions.GetSettings().Set(DisableTableCreationConfigKey, true);
+            persistenceExtensions.Sagas().CreateTable = false;
+            persistenceExtensions.Outbox().CreateTable = false;
         }
-
-        internal static bool ShouldCreateTables(this IReadOnlySettings settings) => settings.GetOrDefault<bool>(DisableTableCreationConfigKey);
 
         /// <summary>
         /// Obtains the outbox persistence configuration options.

@@ -32,5 +32,10 @@
         /// The provisioned throughput for this table if using <code>BillingMode.PROVISIONED</code>.
         /// </summary>
         public ProvisionedThroughput ProvisionedThroughput { get; set; }
+
+        /// <summary>
+        /// Determines whether the NServiceBus installer should create the Outbox table when enabled.
+        /// </summary>
+        public bool CreateTable { get; set; } = true;
     }
 }
