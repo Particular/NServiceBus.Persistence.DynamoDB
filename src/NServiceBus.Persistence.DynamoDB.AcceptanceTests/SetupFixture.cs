@@ -1,9 +1,11 @@
 ﻿namespace NServiceBus.AcceptanceTests
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
+    using Amazon.DynamoDBv2.Model;
     using Amazon.Runtime;
     using NUnit.Framework;
     using Persistence.DynamoDB;
@@ -22,7 +24,7 @@
 
             DynamoDBClient = client;
 
-            var installer = new Installer(DynamoDBClient);
+            var installer = new Installer(DynamoDBClient, new List<Tag> { new Tag { Key = "Tests", Value = "Acceptance tests" } });
 
             await installer.CreateOutboxTableIfNotExists(new OutboxPersistenceConfiguration { TableName = TableName });
             await installer.CreateSagaTableIfNotExists(new SagaPersistenceConfiguration { TableName = TableName });

@@ -1,10 +1,12 @@
 ﻿namespace NServiceBus.PersistenceTesting
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
+    using Amazon.DynamoDBv2.Model;
     using Amazon.Runtime;
     using NUnit.Framework;
     using Persistence.DynamoDB;
@@ -35,7 +37,7 @@
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK"
             };
 
-            var installer = new Installer(DynamoDBClient);
+            var installer = new Installer(DynamoDBClient, new List<Tag> { new() { Key = "Tests", Value = "PersistenceTests" } });
 
             await installer.CreateOutboxTableIfNotExists(OutboxConfiguration, CancellationToken.None).ConfigureAwait(false);
             await installer.CreateSagaTableIfNotExists(SagaConfiguration, CancellationToken.None).ConfigureAwait(false);

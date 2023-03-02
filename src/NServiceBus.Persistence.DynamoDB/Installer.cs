@@ -9,31 +9,78 @@
 
     class Installer
     {
-        public Installer(IAmazonDynamoDB client) => this.client = client;
+        public Installer(IAmazonDynamoDB client, List<Tag> tags = null)
+        {
+            this.client = client;
+            this.tags = tags ?? new List<Tag>(0);
+        }
 
         public virtual async Task CreateOutboxTableIfNotExists(OutboxPersistenceConfiguration outboxConfiguration, CancellationToken cancellationToken = default)
         {
+            await CreateTable(
+                outboxConfiguration.TableName,
+                outboxConfiguration.PartitionKeyName,
+                outboxConfiguration.SortKeyName,
+                outboxConfiguration.BillingMode,
+                outboxConfiguration.ProvisionedThroughput,
+                cancellationToken).ConfigureAwait(false);
+            await ConfigureTimeToLive(outboxConfiguration, cancellationToken).ConfigureAwait(false);
+        }
+
+        public virtual Task CreateSagaTableIfNotExists(SagaPersistenceConfiguration sagaConfiguration, CancellationToken cancellationToken = default) => CreateTable(
+                sagaConfiguration.TableName,
+                sagaConfiguration.PartitionKeyName,
+                sagaConfiguration.SortKeyName,
+                sagaConfiguration.BillingMode,
+                sagaConfiguration.ProvisionedThroughput,
+                cancellationToken);
+
+        async Task CreateTable(string tableName, string partitionKeyName, string sortKeyName, BillingMode billingMode, ProvisionedThroughput provisionedThroughput, CancellationToken cancellationToken)
+        {
             var createTableRequest = new CreateTableRequest
             {
-                TableName = outboxConfiguration.TableName,
+                TableName = tableName,
                 AttributeDefinitions = new List<AttributeDefinition>
                 {
-                    new() { AttributeName = outboxConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
-                    new() { AttributeName = outboxConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S },
+                    new() { AttributeName = partitionKeyName, AttributeType = ScalarAttributeType.S },
+                    new() { AttributeName = sortKeyName, AttributeType = ScalarAttributeType.S }
                 },
                 KeySchema = new List<KeySchemaElement>
                 {
-                    new() { AttributeName = outboxConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
-                    new() { AttributeName = outboxConfiguration.SortKeyName, KeyType = KeyType.RANGE },
+                    new() { AttributeName = partitionKeyName, KeyType = KeyType.HASH },
+                    new() { AttributeName = sortKeyName, KeyType = KeyType.RANGE },
                 },
-                BillingMode = outboxConfiguration.BillingMode,
-                ProvisionedThroughput = outboxConfiguration.ProvisionedThroughput
+                BillingMode = billingMode,
+                ProvisionedThroughput = provisionedThroughput,
+                Tags = tags
             };
 
-            await CreateTable(createTableRequest, cancellationToken).ConfigureAwait(false);
-            await WaitForTableToBeActive(outboxConfiguration.TableName, cancellationToken).ConfigureAwait(false);
-            await ConfigureTimeToLive(outboxConfiguration, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
+            }
+            catch (ResourceInUseException)
+            {
+                // Intentionally ignored when there are races
+            }
 
+            await WaitForTableToBeActive(tableName, cancellationToken).ConfigureAwait(false);
+        }
+
+        async Task WaitForTableToBeActive(string tableName,
+            CancellationToken cancellationToken)
+        {
+            var request = new DescribeTableRequest { TableName = tableName };
+
+            TableStatus status;
+            do
+            {
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
+
+                var describeTableResponse =
+                    await client.DescribeTableAsync(request, cancellationToken).ConfigureAwait(false);
+                status = describeTableResponse.Table.TableStatus;
+            } while (status != TableStatus.ACTIVE);
         }
 
         async Task ConfigureTimeToLive(OutboxPersistenceConfiguration outboxConfiguration, CancellationToken cancellationToken)
@@ -63,58 +110,7 @@
             }, cancellationToken).ConfigureAwait(false);
         }
 
-        public virtual async Task CreateSagaTableIfNotExists(SagaPersistenceConfiguration sagaConfiguration, CancellationToken cancellationToken = default)
-        {
-            var createTableRequest = new CreateTableRequest
-            {
-                TableName = sagaConfiguration.TableName,
-                AttributeDefinitions = new List<AttributeDefinition>
-                {
-                    new() { AttributeName = sagaConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
-                    new() { AttributeName = sagaConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S }
-                },
-                KeySchema = new List<KeySchemaElement>
-                {
-                    new() { AttributeName = sagaConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
-                    new() { AttributeName = sagaConfiguration.SortKeyName, KeyType = KeyType.RANGE },
-                },
-                BillingMode = sagaConfiguration.BillingMode,
-                ProvisionedThroughput = sagaConfiguration.ProvisionedThroughput,
-            };
-
-            await CreateTable(createTableRequest, cancellationToken).ConfigureAwait(false);
-            await WaitForTableToBeActive(sagaConfiguration.TableName, cancellationToken).ConfigureAwait(false);
-        }
-
-        async Task CreateTable(CreateTableRequest createTableRequest,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
-            }
-            catch (ResourceInUseException)
-            {
-                // Intentionally ignored when there are races
-            }
-        }
-
-        async Task WaitForTableToBeActive(string tableName,
-            CancellationToken cancellationToken)
-        {
-            var request = new DescribeTableRequest { TableName = tableName };
-
-            TableStatus status;
-            do
-            {
-                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
-
-                var describeTableResponse =
-                    await client.DescribeTableAsync(request, cancellationToken).ConfigureAwait(false);
-                status = describeTableResponse.Table.TableStatus;
-            } while (status != TableStatus.ACTIVE);
-        }
-
         readonly IAmazonDynamoDB client;
+        readonly List<Tag> tags;
     }
 }

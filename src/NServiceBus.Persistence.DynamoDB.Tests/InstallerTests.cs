@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using Amazon.DynamoDBv2.Model;
@@ -35,7 +36,7 @@
                 PartitionKeyName = Guid.NewGuid().ToString("N"),
                 SortKeyName = Guid.NewGuid().ToString("N")
             };
-            installer = new Installer(dynamoClient);
+            installer = new Installer(dynamoClient, new List<Tag> { new() { Key = "Tests", Value = "InstallerTests" } });
         }
 
         class SagaInstallationTests : InstallerTests
