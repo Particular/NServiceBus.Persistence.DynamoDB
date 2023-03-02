@@ -22,7 +22,7 @@
 
         public async Task Install(string identity, CancellationToken cancellationToken = default)
         {
-            if (settings.IsFeatureEnabled(typeof(OutboxStorage))
+            if (settings.IsFeatureActive(typeof(OutboxStorage))
                && settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
                && outboxConfig.CreateTable)
             {
@@ -30,7 +30,7 @@
                     cancellationToken).ConfigureAwait(false);
             }
 
-            if (settings.IsFeatureEnabled(typeof(SagaStorage))
+            if (settings.IsFeatureActive(typeof(SagaStorage))
                 && settings.TryGet(out SagaPersistenceConfiguration sagaConfig)
                 && sagaConfig.CreateTable)
             {
