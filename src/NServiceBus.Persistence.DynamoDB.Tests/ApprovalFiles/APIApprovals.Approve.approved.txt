@@ -11,7 +11,6 @@ namespace NServiceBus
         public static NServiceBus.Persistence.DynamoDB.OutboxPersistenceConfiguration Outbox(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> TableName(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, string tableName) { }
-        public static NServiceBus.Persistence.DynamoDB.TransactionInformationConfiguration TransactionInformation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
     }
     public interface IDynamoDBStorageSession
     {
@@ -25,10 +24,6 @@ namespace NServiceBus
 }
 namespace NServiceBus.Persistence.DynamoDB
 {
-    public interface IPartitionKeyFromHeadersExtractor
-    {
-        bool TryExtract(System.Collections.Generic.IReadOnlyDictionary<string, string> headers, out NServiceBus.Persistence.DynamoDB.PartitionKey? partitionKey);
-    }
     public interface IProvideDynamoDBClient
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
@@ -44,10 +39,6 @@ namespace NServiceBus.Persistence.DynamoDB
         public System.TimeSpan TimeToLive { get; set; }
         public string TimeToLiveAttributeName { get; set; }
     }
-    public readonly struct PartitionKey
-    {
-        public PartitionKey(string headerValue) { }
-    }
     public class SagaPersistenceConfiguration
     {
         public SagaPersistenceConfiguration() { }
@@ -57,24 +48,12 @@ namespace NServiceBus.Persistence.DynamoDB
         public string SortKeyName { get; set; }
         public string TableName { get; set; }
     }
-    public class TransactionInformationConfiguration
-    {
-        public TransactionInformationConfiguration() { }
-        public void ExtractPartitionKeyFromHeader(string headerKey) { }
-        public void ExtractPartitionKeyFromHeader(string headerKey, System.Func<string, NServiceBus.Persistence.DynamoDB.PartitionKey> extractor) { }
-        public void ExtractPartitionKeyFromHeader(string headerKey, System.Func<string, string> extractor) { }
-        public void ExtractPartitionKeyFromHeader<TArg>(string headerKey, System.Func<string, TArg, NServiceBus.Persistence.DynamoDB.PartitionKey> extractor, TArg extractorArgument) { }
-        public void ExtractPartitionKeyFromHeader<TArg>(string headerKey, System.Func<string, TArg, string> extractor, TArg extractorArgument) { }
-        public void ExtractPartitionKeyFromHeaders(NServiceBus.Persistence.DynamoDB.IPartitionKeyFromHeadersExtractor extractor) { }
-        public void ExtractPartitionKeyFromHeaders(System.Func<System.Collections.Generic.IReadOnlyDictionary<string, string>, NServiceBus.Persistence.DynamoDB.PartitionKey?> extractor) { }
-        public void ExtractPartitionKeyFromHeaders<TArg>(System.Func<System.Collections.Generic.IReadOnlyDictionary<string, string>, TArg, NServiceBus.Persistence.DynamoDB.PartitionKey?> extractor, TArg extractorArgument) { }
-    }
 }
 namespace NServiceBus.Testing
 {
     public class TestableDynamoDBSynchronizedStorageSession : NServiceBus.IDynamoDBStorageSession, NServiceBus.Persistence.ISynchronizedStorageSession
     {
-        public TestableDynamoDBSynchronizedStorageSession(NServiceBus.Persistence.DynamoDB.PartitionKey partitionKey) { }
+        public TestableDynamoDBSynchronizedStorageSession() { }
         public System.Collections.Generic.IReadOnlyCollection<Amazon.DynamoDBv2.Model.TransactWriteItem> TransactWriteItems { get; }
     }
 }
