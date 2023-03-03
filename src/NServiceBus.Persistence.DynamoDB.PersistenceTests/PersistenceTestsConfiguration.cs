@@ -4,7 +4,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
-    using Extensibility;
     using NServiceBus.Outbox;
     using NServiceBus.Sagas;
     using NUnit.Framework;
@@ -56,27 +55,11 @@
 
         public Task Configure(CancellationToken cancellationToken = default)
         {
-            // with this we have a partition key per run which makes things naturally isolated
-            partitionKey = Guid.NewGuid().ToString();
             SagaStorage = new SagaPersister(SetupFixture.SagaConfiguration, Client);
             OutboxStorage = new OutboxPersister(
                 Client,
                 SetupFixture.OutboxConfiguration,
                 "PersistenceTest");
-
-            GetContextBagForSagaStorage = () =>
-            {
-                var contextBag = new ContextBag();
-                contextBag.Set(new PartitionKey(partitionKey));
-                return contextBag;
-            };
-
-            GetContextBagForOutbox = () =>
-            {
-                var contextBag = new ContextBag();
-                contextBag.Set(new PartitionKey(partitionKey));
-                return contextBag;
-            };
 
             CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(new DynamoDBClientProvidedByConfiguration { Client = SetupFixture.DynamoDBClient });
 
@@ -88,7 +71,5 @@
             // Cleanup is done by the setup fixture
             return Task.CompletedTask;
         }
-
-        string partitionKey;
     }
 }

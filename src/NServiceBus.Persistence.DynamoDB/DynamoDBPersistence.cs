@@ -17,7 +17,6 @@
                 s.SetDefault(new SagaPersistenceConfiguration());
                 s.SetDefault<IProvideDynamoDBClient>(new ThrowIfNoDynamoDBClientIsProvided());
                 s.EnableFeatureByDefault<InstallerFeature>();
-                s.EnableFeatureByDefault<Transaction>();
             });
 
             Supports<StorageType.Sagas>(s => s.EnableFeatureByDefault<SagaStorage>());

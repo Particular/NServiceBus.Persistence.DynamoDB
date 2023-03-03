@@ -2,9 +2,7 @@
 {
     using System.Collections.Generic;
     using Amazon.DynamoDBv2.Model;
-    using Extensibility;
     using Persistence;
-    using Persistence.DynamoDB;
 
     /// <summary>
     /// A fake implementation for <see cref="SynchronizedStorageSession"/> for testing purposes.
@@ -16,10 +14,8 @@
         /// <summary>
         /// Initializes a new TestableCosmosSynchronizedStorageSession with a partition key.
         /// </summary>
-        public TestableDynamoDBSynchronizedStorageSession(PartitionKey partitionKey)
+        public TestableDynamoDBSynchronizedStorageSession()
         {
-            var contextBag = new ContextBag();
-            contextBag.Set(partitionKey);
         }
 
         /// <summary>

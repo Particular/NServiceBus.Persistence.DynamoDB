@@ -63,17 +63,5 @@
         /// </summary>
         public static SagaPersistenceConfiguration Sagas(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions) =>
             persistenceExtensions.GetSettings().GetOrCreate<SagaPersistenceConfiguration>();
-
-        /// <summary>
-        /// Obtains the transaction information configuration options.
-        /// </summary>
-        public static TransactionInformationConfiguration TransactionInformation(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
-        {
-            Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
-
-            return persistenceExtensions.GetSettings().GetOrCreate<TransactionInformationConfiguration>();
-        }
-
-        // TODO Add ability to customize PK and SK names
     }
 }
