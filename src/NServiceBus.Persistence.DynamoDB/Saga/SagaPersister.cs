@@ -29,7 +29,7 @@
         {
             if (configuration.UsePessimisticLocking)
             {
-                return await ReadWithLock<TSagaData>(sagaId, context, cancellationToken).ConfigureAwait(false);
+                return await ReadWithLock<TSagaData>(sagaId, context, session, cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -50,7 +50,8 @@
             }
         }
 
-        async Task<TSagaData> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context, CancellationToken cancellationToken)
+        async Task<TSagaData> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
+            ISynchronizedStorageSession synchronizedStorageSession, CancellationToken cancellationToken)
             where TSagaData : class, IContainSagaData
         {
             using var timedTokenSource = new CancellationTokenSource(configuration.LeaseAcquistionTimeout);
@@ -96,6 +97,30 @@
                     {
                         // the saga exists
                         var sagaData = Deserialize<TSagaData>(response.Attributes, context);
+
+                        // ensure we cleanup the lock even if no update/save operation is being committed
+                        // note that a transactional batch can only contain a single operation per item in DynamoDB
+                        var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
+                        dynamoSession.TransactionCleanup = new UpdateItemRequest
+                        {
+                            Key = new Dictionary<string, AttributeValue>
+                            {
+                                { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                            },
+                            UpdateExpression = "SET #lock = :released_lock",
+                            ConditionExpression = "#lock = :current_lock", // only if the lock is still the same that we acquired.
+                            ExpressionAttributeNames =
+                                new Dictionary<string, string> { { "#lock", SagaLockAttributeName } },
+                            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                            {
+                                { ":current_lock", new AttributeValue { N = response.Attributes[SagaLockAttributeName].N } },
+                                { ":released_lock", new AttributeValue { N = "-1" } }
+                            },
+                            ReturnValues = ReturnValue.NONE,
+                            TableName = configuration.TableName
+                        };
+
                         return sagaData;
                     }
                     else

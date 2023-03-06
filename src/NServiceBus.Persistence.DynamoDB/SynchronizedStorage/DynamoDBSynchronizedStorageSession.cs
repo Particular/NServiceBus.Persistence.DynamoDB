@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -15,6 +16,9 @@
         bool commitOnComplete;
         bool disposed;
         readonly IAmazonDynamoDB client;
+        bool sessionSuccessfullyCommitted;
+
+        public UpdateItemRequest TransactionCleanup { get; set; }
 
         public DynamoDBSynchronizedStorageSession(IDynamoDBClientProvider dynamoDbClientProvider)
             => client = dynamoDbClientProvider.Client;
@@ -49,8 +53,14 @@
             return Task.CompletedTask;
         }
 
-        public Task CompleteAsync(CancellationToken cancellationToken = default) =>
-            commitOnComplete ? storageSession.Commit(cancellationToken) : Task.CompletedTask;
+        //TODO also release locks if no update/complete was made
+        //TODO move to storage session
+        public async Task CompleteAsync(CancellationToken cancellationToken = default)
+        {
+            var commitTask = commitOnComplete ? storageSession.Commit(cancellationToken) : Task.CompletedTask;
+            await commitTask.ConfigureAwait(false);
+            sessionSuccessfullyCommitted = true;
+        }
 
         public void Dispose()
         {
@@ -59,8 +69,29 @@
                 return;
             }
 
+            // release lock as fire & forget
+            _ = ReleaseLocksAsync();
+
             storageSession.Dispose();
             disposed = true;
+
+            async Task ReleaseLocksAsync()
+            {
+                if (!sessionSuccessfullyCommitted && TransactionCleanup != null)
+                {
+                    // release any outstanding lock
+                    try
+                    {
+
+                        await client.UpdateItemAsync(TransactionCleanup).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        // ignore failures and let the lock release naturally due to the max lock duration
+                        Console.WriteLine(e);
+                    }
+                }
+            }
         }
 
         public ContextBag CurrentContextBag
