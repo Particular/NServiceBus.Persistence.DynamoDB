@@ -17,6 +17,7 @@
             SagaVariants = new[]
             {
                 new TestFixtureData(new TestVariant(new PersistenceConfiguration(usePessimisticLocking: false))).SetArgDisplayNames("Optimistic"),
+                new TestFixtureData(new TestVariant(new PersistenceConfiguration(usePessimisticLocking: true))).SetArgDisplayNames("Pessimistic"),
             };
 
             OutboxVariants = new[]
@@ -54,6 +55,12 @@
 
         public Task Configure(CancellationToken cancellationToken = default)
         {
+            var configuration = (PersistenceConfiguration)Variant.Values[0];
+
+            // TODO consider splitting up table config from "persister config" to decouple from the static setupfixture
+            SetupFixture.SagaConfiguration.UsePessimisticLocking =
+                SupportsPessimisticConcurrency = configuration.UsePessimisticLocking;
+
             SagaStorage = new SagaPersister(SetupFixture.SagaConfiguration, Client);
             OutboxStorage = new OutboxPersister(
                 Client,

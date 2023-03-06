@@ -37,5 +37,7 @@
         /// Determines whether the NServiceBus installer should create the Outbox table when enabled.
         /// </summary>
         internal bool CreateTable { get; set; } = true;
+
+        internal bool UsePessimisticLocking { get; set; } = false;
     }
 }
