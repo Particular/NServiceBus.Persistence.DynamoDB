@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
+    using System;
     using Amazon.DynamoDBv2.Model;
     using Amazon.DynamoDBv2;
 
@@ -39,5 +40,9 @@
         internal bool CreateTable { get; set; } = true;
 
         internal bool UsePessimisticLocking { get; set; } = false;
+
+        //TODO should we make this publicly configurable?
+        internal TimeSpan LeaseDuration = TimeSpan.FromSeconds(30); // based on SQS visibility timeout
+        internal TimeSpan LeaseAcquistionTimeout { get; set; } = TimeSpan.FromSeconds(10);
     }
 }

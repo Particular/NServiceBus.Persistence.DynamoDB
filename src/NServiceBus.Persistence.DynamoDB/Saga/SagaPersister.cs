@@ -13,6 +13,9 @@
 
     class SagaPersister : ISagaPersister
     {
+        const string SagaDataVersionAttributeName = "___VERSION___";
+        const string SagaLockAttributeName = "NSB_lease_timeout";
+
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
 
@@ -24,19 +27,91 @@
 
         public async Task<TSagaData> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
         {
-            var getItemRequest = new GetItemRequest
+            if (configuration.UsePessimisticLocking)
             {
-                ConsistentRead = true,
-                Key = new Dictionary<string, AttributeValue>
+                return await ReadWithLock<TSagaData>(sagaId, context, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                // Using optimistic concurrency control
+                var getItemRequest = new GetItemRequest
+                {
+                    ConsistentRead = true,
+                    Key = new Dictionary<string, AttributeValue>
                     {
                         { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                         { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
                     },
-                TableName = configuration.TableName
-            };
+                    TableName = configuration.TableName
+                };
 
-            var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
-            return !response.IsItemSet ? default : Deserialize<TSagaData>(response.Item, context);
+                var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
+                return !response.IsItemSet ? default : Deserialize<TSagaData>(response.Item, context);
+            }
+        }
+
+        async Task<TSagaData> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context, CancellationToken cancellationToken)
+            where TSagaData : class, IContainSagaData
+        {
+            using var timedTokenSource = new CancellationTokenSource(configuration.LeaseAcquistionTimeout);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timedTokenSource.Token);
+            cancellationToken = cts.Token;
+            while (true)
+            {
+                //TODO should we throw a TimeoutException instead like CosmosDB?
+                cancellationToken.ThrowIfCancellationRequested();
+
+                //TODO: reset lock on successful commit. what about failed commits?
+                DateTimeOffset now = DateTimeOffset.UtcNow;
+                //update items creates a new item if it doesn't exist
+                var updateItemRequest = new UpdateItemRequest
+                {
+                    Key = new Dictionary<string, AttributeValue>
+                    {
+                        { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                        { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                    },
+                    UpdateExpression = "SET #lock = :lock_timeout", //TODO should we use lock or lease as the terminology?
+                    ConditionExpression = "attribute_not_exists(#lock) OR #lock < :now",
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        { "#lock", SagaLockAttributeName }
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        { ":now", new AttributeValue { N = now.ToFileTime().ToString() } },
+                        { ":lock_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
+                    },
+                    ReturnValues = ReturnValue.ALL_NEW,
+                    TableName = configuration.TableName
+                };
+
+                try
+                {
+                    var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
+                        .ConfigureAwait(false);
+                    // we need to find out if the saga already exists or not
+                    // TODO can we use a condition expression and figure out which condition failed? (new saga vs. lock failed)
+                    if (response.Attributes.ContainsKey(SagaDataVersionAttributeName))
+                    {
+                        // the saga exists
+                        var sagaData = Deserialize<TSagaData>(response.Attributes, context);
+                        return sagaData;
+                    }
+                    else
+                    {
+                        // it's a new saga (but we own the lock now)
+                        return null;
+                    }
+                }
+                //TODO create spec test to verify error code
+                catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
+                {
+                    // Condition failed, saga data is already locked but we don't know for how long
+                    await Task.Delay(100, cancellationToken)
+                        .ConfigureAwait(false); //TODO select better value and introduce jittering.
+                }
+            }
         }
 
         TSagaData Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
@@ -45,7 +120,7 @@
             var sagaDataAsJson = document.ToJson();
             // All this is super allocation heavy. But for a first version that is OK
             var sagaData = JsonSerializer.Deserialize<TSagaData>(sagaDataAsJson);
-            var currentVersion = int.Parse(attributeValues["___VERSION___"].N);
+            var currentVersion = int.Parse(attributeValues[SagaDataVersionAttributeName].N);
             context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
             return sagaData;
         }
@@ -81,13 +156,13 @@
                     ConditionExpression = "#v = :cv", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        { "#v", "___VERSION___" }
+                        { "#v", SagaDataVersionAttributeName }
                     },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
                         { ":cv", new AttributeValue { N = currentVersion.ToString() } }
                     },
-                    TableName = configuration.TableName,
+                    TableName = configuration.TableName
                 }
             });
             return Task.CompletedTask;
@@ -102,7 +177,9 @@
             map.Add(configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
             map.Add(configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             // Version should probably be properly moved into metadata to not clash with existing things
-            map.Add("___VERSION___", new AttributeValue { N = version.ToString() });
+            map.Add(SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() });
+            // release lock on save
+            map.Add(SagaLockAttributeName, new AttributeValue { N = "-1" });
             // According to the best practices we should also add Type information probably here
             return map;
         }
@@ -123,7 +200,7 @@
                     ConditionExpression = "#v = :cv", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        { "#v", "___VERSION___" }
+                        { "#v", SagaDataVersionAttributeName }
                     },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
