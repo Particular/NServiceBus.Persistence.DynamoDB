@@ -11,6 +11,9 @@
 
     class StorageSession
     {
+        public bool SagaLockReleased;
+        public Func<IAmazonDynamoDB, Task> CleanupAction { get; set; }
+
         public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
             this.dynamoDbClient = dynamoDbClient;
@@ -56,10 +59,36 @@
             {
                 throw new InvalidOperationException("Unable to complete transaction. Retrying");
             }
+
+            if (SagaLockReleased)
+            {
+                // The transaction operations already released any lock, don't clean them up explicitly
+                CleanupAction = null;
+            }
         }
 
         public void Dispose()
         {
+
+            if (CleanupAction != null)
+            {
+                // release lock as fire & forget
+                _ = ReleaseLocksAsync();
+            }
+
+            async Task ReleaseLocksAsync()
+            {
+                // release any outstanding lock
+                try
+                {
+                    await CleanupAction(dynamoDbClient).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // ignore failures and let the lock release naturally due to the max lock duration
+                    //TODO should we log these exceptions?
+                }
+            }
         }
 
         public ContextBag CurrentContextBag { get; set; }

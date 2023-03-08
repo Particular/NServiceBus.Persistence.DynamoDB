@@ -12,14 +12,10 @@
 
     class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSession
     {
-        StorageSession storageSession;
+        internal StorageSession storageSession;
         bool commitOnComplete;
         bool disposed;
         readonly IAmazonDynamoDB client;
-        bool sessionSuccessfullyCommitted;
-        public bool SagaLockReleased;
-
-        public Func<IAmazonDynamoDB, Task> CleanupAction { get; set; }
 
         public DynamoDBSynchronizedStorageSession(IDynamoDBClientProvider dynamoDbClientProvider)
             => client = dynamoDbClientProvider.Client;
@@ -54,19 +50,10 @@
             return Task.CompletedTask;
         }
 
-        //TODO also release locks if complete was made
-        //TODO move to storage session
         public async Task CompleteAsync(CancellationToken cancellationToken = default)
         {
             var commitTask = commitOnComplete ? storageSession.Commit(cancellationToken) : Task.CompletedTask;
             await commitTask.ConfigureAwait(false);
-            sessionSuccessfullyCommitted = true;
-
-            if (SagaLockReleased == false && CleanupAction != null)
-            {
-                // a lock was acquired without an update/save operation to release to lock again
-                _ = ReleaseLocksAsync(); // TODO we could await it? We could also move the cleanup logic to the dispose as well.
-            }
         }
 
         public void Dispose()
@@ -76,32 +63,8 @@
                 return;
             }
 
-            if (!sessionSuccessfullyCommitted && CleanupAction != null)
-            {
-                // release lock as fire & forget
-                _ = ReleaseLocksAsync();
-            }
-
-
             storageSession.Dispose();
             disposed = true;
-
-        }
-
-#pragma warning disable PS0018
-        async Task ReleaseLocksAsync()
-#pragma warning restore PS0018
-        {
-            // release any outstanding lock
-            try
-            {
-                await CleanupAction(client).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                // ignore failures and let the lock release naturally due to the max lock duration
-                Console.WriteLine(e);
-            }
         }
 
         public ContextBag CurrentContextBag
