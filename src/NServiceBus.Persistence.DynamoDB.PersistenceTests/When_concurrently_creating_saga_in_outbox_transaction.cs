@@ -1,152 +1,151 @@
-﻿using System;
-using System.Threading.Tasks;
-using NServiceBus.PersistenceTesting.Sagas;
-using NUnit.Framework;
-
-namespace NServiceBus.PersistenceTesting;
-
-
-
-public class When_concurrently_creating_saga_in_outbox_transaction : SagaPersisterTests
+﻿namespace NServiceBus.PersistenceTesting
 {
-    [Test]
-    public async Task Should_lock_saga_until_transaction_committed()
+    using System;
+    using System.Threading.Tasks;
+    using NServiceBus.PersistenceTesting.Sagas;
+    using NUnit.Framework;
+
+    public class When_concurrently_creating_saga_in_outbox_transaction : SagaPersisterTests
     {
-        configuration.RequiresPessimisticConcurrencySupport();
-
-        var saga1 = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
-
-        var session1LockAcquired = new TaskCompletionSource<bool>();
-
-        var session1 = Task.Run(async () =>
+        [Test]
+        public async Task Should_lock_saga_until_transaction_committed()
         {
-            var contextBag1 = configuration.GetContextBagForOutbox();
-            using (var outboxTransaction1 = await configuration.OutboxStorage.BeginTransaction(contextBag1))
+            configuration.RequiresPessimisticConcurrencySupport();
+
+            var saga1 = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
+
+            var session1LockAcquired = new TaskCompletionSource<bool>();
+
+            var session1 = Task.Run(async () =>
             {
-                using (var synchronizedStorageSession = configuration.CreateStorageSession())
+                var contextBag1 = configuration.GetContextBagForOutbox();
+                using (var outboxTransaction1 = await configuration.OutboxStorage.BeginTransaction(contextBag1))
                 {
-                    await synchronizedStorageSession.TryOpen(outboxTransaction1, contextBag1);
+                    using (var synchronizedStorageSession = configuration.CreateStorageSession())
+                    {
+                        await synchronizedStorageSession.TryOpen(outboxTransaction1, contextBag1);
 
-                    var readBeforeCreate = await configuration.SagaStorage.Get<TestSagaData>(
-                        nameof(TestSagaData.SomeId),
-                        saga1.SomeId, synchronizedStorageSession, contextBag1);
-                    Assert.IsNull(readBeforeCreate);
-                    session1LockAcquired.SetResult(true); // attempt parallel read
+                        var readBeforeCreate = await configuration.SagaStorage.Get<TestSagaData>(
+                            nameof(TestSagaData.SomeId),
+                            saga1.SomeId, synchronizedStorageSession, contextBag1);
+                        Assert.IsNull(readBeforeCreate);
+                        session1LockAcquired.SetResult(true); // attempt parallel read
 
 
-                    await SaveSagaWithSession(saga1, synchronizedStorageSession, contextBag1);
+                        await SaveSagaWithSession(saga1, synchronizedStorageSession, contextBag1);
 
-                    await synchronizedStorageSession.CompleteAsync();
+                        await synchronizedStorageSession.CompleteAsync();
+                    }
+
+                    await Task.Delay(1000); // give session 2 some time to read the same entry
+
+                    await outboxTransaction1.Commit();
                 }
+            });
 
-                await Task.Delay(1000); // give session 2 some time to read the same entry
+            var session2 = Task.Run(async () =>
+            {
+                var contextBag2 = configuration.GetContextBagForOutbox();
+                using (var outboxTransaction2 = await configuration.OutboxStorage.BeginTransaction(contextBag2))
+                {
+                    using (var synchronizedStorageSession = configuration.CreateStorageSession())
+                    {
+                        await synchronizedStorageSession.TryOpen(outboxTransaction2, contextBag2);
 
-                await outboxTransaction1.Commit();
-            }
-        });
+                        await session1LockAcquired.Task; //wait for session 1 to acquire lock before read
 
-        var session2 = Task.Run(async () =>
+                        // this should be blocked by pessimistic concurrency until session 1 completed
+                        var session2Read = await configuration.SagaStorage.Get<TestSagaData>(
+                            nameof(TestSagaData.SomeId),
+                            saga1.SomeId, synchronizedStorageSession, contextBag2);
+                        // after session 1 completed, we should read the created saga
+                        Assert.NotNull(session2Read);
+                    }
+                }
+            });
+
+            await Task.WhenAll(session1, session2);
+        }
+
+        [Test]
+        public async Task Should_lock_saga_until_transaction_disposed()
         {
-            var contextBag2 = configuration.GetContextBagForOutbox();
-            using (var outboxTransaction2 = await configuration.OutboxStorage.BeginTransaction(contextBag2))
+            configuration.RequiresPessimisticConcurrencySupport();
+
+            var saga1 = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
+
+            var session1LockAcquired = new TaskCompletionSource<bool>();
+
+            var session1 = Task.Run(async () =>
             {
-                using (var synchronizedStorageSession = configuration.CreateStorageSession())
+                var contextBag1 = configuration.GetContextBagForOutbox();
+                using (var outboxTransaction1 = await configuration.OutboxStorage.BeginTransaction(contextBag1))
                 {
-                    await synchronizedStorageSession.TryOpen(outboxTransaction2, contextBag2);
+                    using (var synchronizedStorageSession = configuration.CreateStorageSession())
+                    {
+                        await synchronizedStorageSession.TryOpen(outboxTransaction1, contextBag1);
 
-                    await session1LockAcquired.Task; //wait for session 1 to acquire lock before read
+                        var readBeforeCreate = await configuration.SagaStorage.Get<TestSagaData>(
+                            nameof(TestSagaData.SomeId),
+                            saga1.SomeId, synchronizedStorageSession, contextBag1);
+                        Assert.IsNull(readBeforeCreate);
+                        session1LockAcquired.SetResult(true); // attempt parallel read
 
-                    // this should be blocked by pessimistic concurrency until session 1 completed
-                    var session2Read = await configuration.SagaStorage.Get<TestSagaData>(
-                        nameof(TestSagaData.SomeId),
-                        saga1.SomeId, synchronizedStorageSession, contextBag2);
-                    // after session 1 completed, we should read the created saga
-                    Assert.NotNull(session2Read);
+
+                        await SaveSagaWithSession(saga1, synchronizedStorageSession, contextBag1);
+
+                        await synchronizedStorageSession.CompleteAsync();
+                    }
+
+                    await Task.Delay(1000); // give session 2 some time to read the same entry
+
+                    // do not commit transaction
                 }
-            }
-        });
+            });
 
-        await Task.WhenAll(session1, session2);
-    }
+            var session2 = Task.Run(async () =>
+            {
+                var contextBag2 = configuration.GetContextBagForOutbox();
+                using (var outboxTransaction2 = await configuration.OutboxStorage.BeginTransaction(contextBag2))
+                {
+                    using (var synchronizedStorageSession = configuration.CreateStorageSession())
+                    {
+                        await synchronizedStorageSession.TryOpen(outboxTransaction2, contextBag2);
 
-    [Test]
-    public async Task Should_lock_saga_until_transaction_disposed()
-    {
-        configuration.RequiresPessimisticConcurrencySupport();
+                        await session1LockAcquired.Task; //wait for session 1 to acquire lock before read
 
-        var saga1 = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
+                        // this should be blocked by pessimistic concurrency until session 1 completed
+                        var session2Read = await configuration.SagaStorage.Get<TestSagaData>(
+                            nameof(TestSagaData.SomeId),
+                            saga1.SomeId, synchronizedStorageSession, contextBag2);
+                        // after session 1 completed, we should read the created saga
+                        Assert.IsNull(session2Read);
+                    }
+                }
+            });
 
-        var session1LockAcquired = new TaskCompletionSource<bool>();
+            await Task.WhenAll(session1, session2);
+        }
 
-        var session1 = Task.Run(async () =>
+        public class TestSaga : Saga<TestSagaData>, IAmStartedByMessages<StartTestSagaMessage>
         {
-            var contextBag1 = configuration.GetContextBagForOutbox();
-            using (var outboxTransaction1 = await configuration.OutboxStorage.BeginTransaction(contextBag1))
-            {
-                using (var synchronizedStorageSession = configuration.CreateStorageSession())
-                {
-                    await synchronizedStorageSession.TryOpen(outboxTransaction1, contextBag1);
+            protected override void ConfigureHowToFindSaga(SagaPropertyMapper<TestSagaData> mapper) => mapper.ConfigureMapping<StartTestSagaMessage>(m => m.SomeId).ToSaga(s => s.SomeId);
 
-                    var readBeforeCreate = await configuration.SagaStorage.Get<TestSagaData>(
-                        nameof(TestSagaData.SomeId),
-                        saga1.SomeId, synchronizedStorageSession, contextBag1);
-                    Assert.IsNull(readBeforeCreate);
-                    session1LockAcquired.SetResult(true); // attempt parallel read
+            public Task Handle(StartTestSagaMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
+        }
 
-
-                    await SaveSagaWithSession(saga1, synchronizedStorageSession, contextBag1);
-
-                    await synchronizedStorageSession.CompleteAsync();
-                }
-
-                await Task.Delay(1000); // give session 2 some time to read the same entry
-
-                // do not commit transaction
-            }
-        });
-
-        var session2 = Task.Run(async () =>
+        public class TestSagaData : ContainSagaData
         {
-            var contextBag2 = configuration.GetContextBagForOutbox();
-            using (var outboxTransaction2 = await configuration.OutboxStorage.BeginTransaction(contextBag2))
-            {
-                using (var synchronizedStorageSession = configuration.CreateStorageSession())
-                {
-                    await synchronizedStorageSession.TryOpen(outboxTransaction2, contextBag2);
+            public string SomeId { get; set; } = "Test";
+        }
 
-                    await session1LockAcquired.Task; //wait for session 1 to acquire lock before read
+        public class StartTestSagaMessage : IMessage
+        {
+            public string SomeId { get; set; }
+        }
 
-                    // this should be blocked by pessimistic concurrency until session 1 completed
-                    var session2Read = await configuration.SagaStorage.Get<TestSagaData>(
-                        nameof(TestSagaData.SomeId),
-                        saga1.SomeId, synchronizedStorageSession, contextBag2);
-                    // after session 1 completed, we should read the created saga
-                    Assert.IsNull(session2Read);
-                }
-            }
-        });
-
-        await Task.WhenAll(session1, session2);
-    }
-
-    public class TestSaga : Saga<TestSagaData>, IAmStartedByMessages<StartTestSagaMessage>
-    {
-        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<TestSagaData> mapper) => mapper.ConfigureMapping<StartTestSagaMessage>(m => m.SomeId).ToSaga(s => s.SomeId);
-
-        public Task Handle(StartTestSagaMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
-    }
-
-    public class TestSagaData : ContainSagaData
-    {
-        public string SomeId { get; set; } = "Test";
-    }
-
-    public class StartTestSagaMessage : IMessage
-    {
-        public string SomeId { get; set; }
-    }
-
-    public When_concurrently_creating_saga_in_outbox_transaction(TestVariant param) : base(param)
-    {
+        public When_concurrently_creating_saga_in_outbox_transaction(TestVariant param) : base(param)
+        {
+        }
     }
 }

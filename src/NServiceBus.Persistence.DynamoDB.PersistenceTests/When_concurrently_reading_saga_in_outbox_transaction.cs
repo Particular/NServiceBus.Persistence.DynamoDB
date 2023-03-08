@@ -1,10 +1,10 @@
-﻿using NServiceBus.PersistenceTesting.Sagas;
-using System.Threading.Tasks;
-using System;
-using NUnit.Framework;
-
-namespace NServiceBus.PersistenceTesting
+﻿namespace NServiceBus.PersistenceTesting
 {
+    using Sagas;
+    using System.Threading.Tasks;
+    using System;
+    using NUnit.Framework;
+
     public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersisterTests
     {
         [Test]
@@ -175,7 +175,7 @@ namespace NServiceBus.PersistenceTesting
 
                         await synchronizedStorageSession.CompleteAsync();
                     }
-                    
+
                     await Task.Delay(1000); // give session 2 some time to read the same entry
 
                     session1DisposeTime = DateTime.UtcNow;
@@ -244,7 +244,7 @@ namespace NServiceBus.PersistenceTesting
 
                         await synchronizedStorageSession.CompleteAsync();
                     }
-                    
+
                     await Task.Delay(1000); // give session 2 some time to read the same entry
 
                     session1DisposeTime = DateTime.UtcNow;
