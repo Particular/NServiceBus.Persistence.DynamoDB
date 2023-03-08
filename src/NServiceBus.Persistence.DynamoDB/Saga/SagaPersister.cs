@@ -154,6 +154,7 @@
                 catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
                 {
                     // Condition failed, saga data is already locked but we don't know for how long
+                    //TODO if we decide to throw a different exception, we should catch for OperationCancelledException here
                     await Task.Delay(100, cancellationToken)
                         .ConfigureAwait(false); //TODO select better value and introduce jittering.
                 }
@@ -178,10 +179,10 @@
                 Put = new Put
                 {
                     Item = Serialize(sagaData, 0),
-                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists.
+                    ConditionExpression = "attribute_not_exists(#version)", // fail if a saga (not just the lock) already exists
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        {"#SK", configuration.SortKeyName}
+                        {"#version", SagaDataVersionAttributeName}
                     },
                     TableName = configuration.TableName,
                 }
