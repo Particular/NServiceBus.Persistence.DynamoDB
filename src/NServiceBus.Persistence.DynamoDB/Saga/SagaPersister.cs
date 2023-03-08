@@ -101,7 +101,7 @@
                         // ensure we cleanup the lock even if no update/save operation is being committed
                         // note that a transactional batch can only contain a single operation per item in DynamoDB
                         var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                        dynamoSession.TransactionCleanup = new UpdateItemRequest
+                        dynamoSession.CleanupAction = client => client.UpdateItemAsync(new UpdateItemRequest
                         {
                             Key = new Dictionary<string, AttributeValue>
                             {
@@ -119,13 +119,34 @@
                             },
                             ReturnValues = ReturnValue.NONE,
                             TableName = configuration.TableName
-                        };
+                        });
 
                         return sagaData;
                     }
                     else
                     {
                         // it's a new saga (but we own the lock now)
+
+                        // we need to delete the entry containing the lock
+                        var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
+                        dynamoSession.CleanupAction = client => client.DeleteItemAsync(new DeleteItemRequest
+                        {
+                            Key = new Dictionary<string, AttributeValue>
+                            {
+                                { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                            },
+                            ConditionExpression = "#lock = :current_lock", // only if the lock is still the same that we acquired.
+                            ExpressionAttributeNames =
+                                new Dictionary<string, string> { { "#lock", SagaLockAttributeName } },
+                            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                            {
+                                { ":current_lock", new AttributeValue { N = response.Attributes[SagaLockAttributeName].N } },
+                            },
+                            ReturnValues = ReturnValue.NONE,
+                            TableName = configuration.TableName
+                        });
+
                         return null;
                     }
                 }

@@ -19,7 +19,7 @@
         bool sessionSuccessfullyCommitted;
         public bool SagaLockReleased;
 
-        public UpdateItemRequest TransactionCleanup { get; set; }
+        public Func<IAmazonDynamoDB, Task> CleanupAction { get; set; }
 
         public DynamoDBSynchronizedStorageSession(IDynamoDBClientProvider dynamoDbClientProvider)
             => client = dynamoDbClientProvider.Client;
@@ -62,7 +62,7 @@
             await commitTask.ConfigureAwait(false);
             sessionSuccessfullyCommitted = true;
 
-            if (SagaLockReleased == false && TransactionCleanup != null)
+            if (SagaLockReleased == false && CleanupAction != null)
             {
                 // a lock was acquired without an update/save operation to release to lock again
                 _ = ReleaseLocksAsync(); // TODO we could await it? We could also move the cleanup logic to the dispose as well.
@@ -76,8 +76,12 @@
                 return;
             }
 
-            // release lock as fire & forget
-            _ = ReleaseLocksAsync();
+            if (!sessionSuccessfullyCommitted && CleanupAction != null)
+            {
+                // release lock as fire & forget
+                _ = ReleaseLocksAsync();
+            }
+
 
             storageSession.Dispose();
             disposed = true;
@@ -88,19 +92,15 @@
         async Task ReleaseLocksAsync()
 #pragma warning restore PS0018
         {
-            if (!sessionSuccessfullyCommitted && TransactionCleanup != null)
+            // release any outstanding lock
+            try
             {
-                // release any outstanding lock
-                try
-                {
-
-                    await client.UpdateItemAsync(TransactionCleanup).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    // ignore failures and let the lock release naturally due to the max lock duration
-                    Console.WriteLine(e);
-                }
+                await CleanupAction(client).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                // ignore failures and let the lock release naturally due to the max lock duration
+                Console.WriteLine(e);
             }
         }
 
