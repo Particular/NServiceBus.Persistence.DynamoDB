@@ -165,6 +165,10 @@
                     TableName = configuration.TableName,
                 }
             });
+
+            var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
+            dynamoSession.SagaLockReleased = true;
+
             return Task.CompletedTask;
         }
 
@@ -190,6 +194,10 @@
                     TableName = configuration.TableName
                 }
             });
+
+            var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
+            dynamoSession.SagaLockReleased = true;
+
             return Task.CompletedTask;
         }
 
