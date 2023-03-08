@@ -2,10 +2,10 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
+    using Amazon.DynamoDBv2.DataModel;
     using Amazon.DynamoDBv2.DocumentModel;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
@@ -15,11 +15,13 @@
     {
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
+        readonly DynamoDBContext dynamoDbContext;
 
         public SagaPersister(SagaPersistenceConfiguration configuration, IAmazonDynamoDB dynamoDbClient)
         {
             this.configuration = configuration;
             this.dynamoDbClient = dynamoDbClient;
+            dynamoDbContext = new DynamoDBContext(this.dynamoDbClient);
         }
 
         public async Task<TSagaData> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
@@ -42,9 +44,7 @@
         TSagaData Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
         {
             var document = Document.FromAttributeMap(attributeValues);
-            var sagaDataAsJson = document.ToJson();
-            // All this is super allocation heavy. But for a first version that is OK
-            var sagaData = JsonSerializer.Deserialize<TSagaData>(sagaDataAsJson);
+            var sagaData = (TSagaData)dynamoDbContext.ConvertFromDocument(document, typeof(TSagaData));
             var currentVersion = int.Parse(attributeValues["___VERSION___"].N);
             context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
             return sagaData;
@@ -95,9 +95,7 @@
 
         Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
         {
-            // All this is super allocation heavy. But for a first version that is OK
-            var sagaDataJson = JsonSerializer.Serialize(sagaData, sagaData.GetType());
-            var doc = Document.FromJson(sagaDataJson);
+            var doc = dynamoDbContext.ConvertToDocument(sagaData, sagaData.GetType());
             var map = doc.ToAttributeMap();
             map.Add(configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
             map.Add(configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
