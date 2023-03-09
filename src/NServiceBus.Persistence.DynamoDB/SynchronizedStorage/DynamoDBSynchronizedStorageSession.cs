@@ -16,10 +16,8 @@
         bool disposed;
         readonly IAmazonDynamoDB client;
 
-        public DynamoDBSynchronizedStorageSession(IProvideDynamoDBClient dynamoDbClientProvider)
-        {
-            client = dynamoDbClientProvider.Client;
-        }
+        public DynamoDBSynchronizedStorageSession(IDynamoDBClientProvider dynamoDbClientProvider)
+            => client = dynamoDbClientProvider.Client;
 
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = default)

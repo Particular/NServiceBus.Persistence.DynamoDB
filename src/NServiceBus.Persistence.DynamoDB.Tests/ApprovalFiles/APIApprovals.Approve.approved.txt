@@ -24,7 +24,7 @@ namespace NServiceBus
 }
 namespace NServiceBus.Persistence.DynamoDB
 {
-    public interface IProvideDynamoDBClient
+    public interface IDynamoDBClientProvider
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
     }

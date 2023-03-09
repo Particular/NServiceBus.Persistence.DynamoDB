@@ -6,7 +6,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using Amazon.Runtime;
 
     // This type will be tracked by the container and therefore disposed by the container
-    sealed class DefaultDynamoDbClientProvider : IProvideDynamoDBClient, IDisposable
+    sealed class DefaultDynamoDbClientProviderProvider : IDynamoDBClientProvider, IDisposable
     {
         public IAmazonDynamoDB Client => client.Value;
 

@@ -23,7 +23,7 @@
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
             Guard.AgainstNull(nameof(dynamoDBClient), dynamoDBClient);
 
-            persistenceExtensions.GetSettings().Set<IProvideDynamoDBClient>(new DynamoDBClientProvidedByConfiguration(dynamoDBClient));
+            persistenceExtensions.GetSettings().Set<IDynamoDBClientProvider>(new DynamoDBClientProvidedByConfigurationProvider(dynamoDBClient));
             return persistenceExtensions;
         }
 
