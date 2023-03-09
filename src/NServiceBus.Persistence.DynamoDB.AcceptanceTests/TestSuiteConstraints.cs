@@ -7,7 +7,6 @@
         public bool SupportsDtc { get; } = false;
         public bool SupportsCrossQueueTransactions { get; } = true;
         public bool SupportsNativePubSub { get; } = true;
-        public bool SupportsNativeDeferral { get; } = true;
         public bool SupportsOutbox { get; } = true;
         public bool SupportsDelayedDelivery { get; } = true;
         public bool SupportsPurgeOnStartup { get; } = true;
