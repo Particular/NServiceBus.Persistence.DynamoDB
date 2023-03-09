@@ -2,8 +2,15 @@
 {
     using Amazon.DynamoDBv2;
 
-    class DynamoDBClientProvidedByConfiguration : IProvideDynamoDBClient
+    sealed class DynamoDBClientProvidedByConfiguration : IProvideDynamoDBClient
     {
-        public IAmazonDynamoDB Client { get; set; }
+        public DynamoDBClientProvidedByConfiguration(IAmazonDynamoDB client)
+        {
+            Guard.AgainstNull(nameof(client), client);
+
+            Client = client;
+        }
+
+        public IAmazonDynamoDB Client { get; }
     }
 }

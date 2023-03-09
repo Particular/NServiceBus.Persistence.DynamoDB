@@ -18,12 +18,12 @@
         /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient
         /// </summary>
         /// <remarks>The lifetime of the provided client is assumed to be controlled by the caller of this method and thus the client will not be disposed.</remarks>
-        public static PersistenceExtensions<DynamoDBPersistence> DynamoDBClient(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, AmazonDynamoDBClient dynamoDBClient)
+        public static PersistenceExtensions<DynamoDBPersistence> DynamoDBClient(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, IAmazonDynamoDB dynamoDBClient)
         {
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
             Guard.AgainstNull(nameof(dynamoDBClient), dynamoDBClient);
 
-            persistenceExtensions.GetSettings().Set<IProvideDynamoDBClient>(new DynamoDBClientProvidedByConfiguration { Client = dynamoDBClient });
+            persistenceExtensions.GetSettings().Set<IProvideDynamoDBClient>(new DynamoDBClientProvidedByConfiguration(dynamoDBClient));
             return persistenceExtensions;
         }
 

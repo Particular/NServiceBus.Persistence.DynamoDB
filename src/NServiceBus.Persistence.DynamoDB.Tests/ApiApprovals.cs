@@ -11,7 +11,7 @@
         [Test]
         public void Approve()
         {
-            var publicApi = ApiGenerator.GeneratePublicApi(typeof(DynamoDBPersistence).Assembly, new ApiGeneratorOptions
+            var publicApi = typeof(DynamoDBPersistence).Assembly.GeneratePublicApi(new ApiGeneratorOptions
             {
                 ExcludeAttributes = new[] { "System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute" }
             });

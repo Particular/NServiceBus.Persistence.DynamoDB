@@ -34,7 +34,6 @@
             }
         }
 
-
         public bool SupportsDtc => false;
 
         public bool SupportsOutbox => true;
@@ -61,15 +60,13 @@
                 SetupFixture.OutboxConfiguration,
                 "PersistenceTest");
 
-            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(new DynamoDBClientProvidedByConfiguration { Client = SetupFixture.DynamoDBClient });
+            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(new DynamoDBClientProvidedByConfiguration(SetupFixture.DynamoDBClient));
 
             return Task.CompletedTask;
         }
 
-        public Task Cleanup(CancellationToken cancellationToken = default)
-        {
+        public Task Cleanup(CancellationToken cancellationToken = default) =>
             // Cleanup is done by the setup fixture
-            return Task.CompletedTask;
-        }
+            Task.CompletedTask;
     }
 }

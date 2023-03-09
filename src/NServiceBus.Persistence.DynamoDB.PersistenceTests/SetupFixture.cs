@@ -8,6 +8,7 @@
     using Amazon.Runtime;
     using NUnit.Framework;
     using Persistence.DynamoDB;
+    using Persistence.DynamoDB.Tests;
 
     [SetUpFixture]
     public class SetupFixture
@@ -15,10 +16,7 @@
         [OneTimeSetUp]
         public async Task OneTimeSetUp()
         {
-            var credentials = new EnvironmentVariablesAWSCredentials();
-            var amazonDynamoDbConfig = new AmazonDynamoDBConfig();
-            var client = new AmazonDynamoDBClient(credentials, amazonDynamoDbConfig);
-            DynamoDBClient = client;
+            DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
             OutboxConfiguration = new OutboxPersistenceConfiguration()
             {

@@ -7,14 +7,13 @@
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using NUnit.Framework;
-    using Amazon.Runtime;
 
     //TODO test when both saga+outbox are enabled
     //TODO would be nice to be able to tag the tables as tests for easier identification in AWS
     [TestFixture]
     public abstract class InstallerTests
     {
-        AmazonDynamoDBClient dynamoClient;
+        IAmazonDynamoDB dynamoClient;
         Installer installer;
         OutboxPersistenceConfiguration outboxSettings;
         SagaPersistenceConfiguration sagaSettings;
@@ -22,7 +21,7 @@
         [SetUp]
         public void Setup()
         {
-            dynamoClient = new AmazonDynamoDBClient(new EnvironmentVariablesAWSCredentials(), new AmazonDynamoDBConfig());
+            dynamoClient = ClientFactory.CreateDynamoDBClient();
             outboxSettings = new OutboxPersistenceConfiguration
             {
                 TableName = Guid.NewGuid().ToString("N") + "_installer_tests_outbox",

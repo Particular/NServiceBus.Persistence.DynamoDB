@@ -7,7 +7,7 @@ namespace NServiceBus
     public static class DynamoDBPersistenceConfig
     {
         public static void DisableTablesCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> DynamoDBClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, Amazon.DynamoDBv2.AmazonDynamoDBClient dynamoDBClient) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> DynamoDBClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, Amazon.DynamoDBv2.IAmazonDynamoDB dynamoDBClient) { }
         public static NServiceBus.Persistence.DynamoDB.OutboxPersistenceConfiguration Outbox(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> TableName(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, string tableName) { }
