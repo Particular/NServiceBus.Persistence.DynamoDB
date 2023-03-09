@@ -35,11 +35,14 @@
         public ProvisionedThroughput ProvisionedThroughput { get; set; }
 
         /// <summary>
+        /// Enables pessimistic locking mode to avoid concurrent modifications to the same saga. Enable this mode to reduce retries due to optimistic concurrency control violations.
+        /// </summary>
+        public bool UsePessimisticLocking { get; set; } = false;
+
+        /// <summary>
         /// Determines whether the NServiceBus installer should create the Outbox table when enabled.
         /// </summary>
         internal bool CreateTable { get; set; } = true;
-
-        internal bool UsePessimisticLocking { get; set; } = false;
 
         //TODO should we make this publicly configurable?
         internal TimeSpan LeaseDuration = TimeSpan.FromSeconds(30); // based on SQS visibility timeout
