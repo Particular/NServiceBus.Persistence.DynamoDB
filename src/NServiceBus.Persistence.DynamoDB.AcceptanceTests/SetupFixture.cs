@@ -7,6 +7,7 @@
     using Amazon.Runtime;
     using NUnit.Framework;
     using Persistence.DynamoDB;
+    using Persistence.DynamoDB.Tests;
 
     [SetUpFixture]
     public class SetupFixture
@@ -16,9 +17,7 @@
         {
             TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}";
 
-            var credentials = new EnvironmentVariablesAWSCredentials();
-            var amazonDynamoDbConfig = new AmazonDynamoDBConfig();
-            var client = new AmazonDynamoDBClient(credentials, amazonDynamoDbConfig);
+            var client = ClientFactory.CreateDynamoDBClient();
 
             DynamoDBClient = client;
 
@@ -36,6 +35,6 @@
         }
 
         public static string TableName;
-        public static AmazonDynamoDBClient DynamoDBClient;
+        public static IAmazonDynamoDB DynamoDBClient;
     }
 }

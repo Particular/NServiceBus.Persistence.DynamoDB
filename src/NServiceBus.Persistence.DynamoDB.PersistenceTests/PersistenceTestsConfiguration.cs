@@ -10,7 +10,7 @@
     using Persistence;
     using Persistence.DynamoDB;
 
-    public partial class PersistenceTestsConfiguration : IProvideDynamoDBClient
+    public partial class PersistenceTestsConfiguration : IDynamoDBClientProvider
     {
         static PersistenceTestsConfiguration()
         {
@@ -33,7 +33,6 @@
                 UsePessimisticLocking = usePessimisticLocking;
             }
         }
-
 
         public bool SupportsDtc => false;
 
@@ -61,15 +60,13 @@
                 SetupFixture.OutboxConfiguration,
                 "PersistenceTest");
 
-            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(new DynamoDBClientProvidedByConfiguration { Client = SetupFixture.DynamoDBClient });
+            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(this);
 
             return Task.CompletedTask;
         }
 
-        public Task Cleanup(CancellationToken cancellationToken = default)
-        {
+        public Task Cleanup(CancellationToken cancellationToken = default) =>
             // Cleanup is done by the setup fixture
-            return Task.CompletedTask;
-        }
+            Task.CompletedTask;
     }
 }

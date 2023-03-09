@@ -26,5 +26,9 @@
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Persistence.DynamoDB\NServiceBus.Persistence.DynamoDB.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\ClientFactory.cs" />
+  </ItemGroup>
 
 </Project>

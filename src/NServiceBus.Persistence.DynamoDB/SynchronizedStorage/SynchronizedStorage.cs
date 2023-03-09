@@ -1,8 +1,8 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
-    using System.Linq;
     using Features;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
 
     class SynchronizedStorage : Feature
     {
@@ -12,10 +12,7 @@
 
         protected override void Setup(FeatureConfigurationContext context)
         {
-            if (!context.Services.Any(descriptor => descriptor.ServiceType == typeof(IProvideDynamoDBClient)))
-            {
-                context.Services.AddSingleton(context.Settings.Get<IProvideDynamoDBClient>());
-            }
+            context.Services.TryAddSingleton(context.Settings.Get<IDynamoDBClientProvider>());
 
             context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoDBSynchronizedStorageSession>();
             context.Services.AddScoped(sp => sp.GetRequiredService<ICompletableSynchronizedStorageSession>().DynamoDBPersistenceSession());

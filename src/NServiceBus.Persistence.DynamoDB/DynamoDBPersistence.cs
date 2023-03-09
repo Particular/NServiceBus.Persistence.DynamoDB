@@ -15,7 +15,7 @@
             {
                 s.SetDefault(new OutboxPersistenceConfiguration());
                 s.SetDefault(new SagaPersistenceConfiguration());
-                s.SetDefault<IProvideDynamoDBClient>(new ThrowIfNoDynamoDBClientIsProvided());
+                s.SetDefault<IDynamoDBClientProvider>(new DefaultDynamoDbClientProviderProvider());
                 s.EnableFeatureByDefault<InstallerFeature>();
             });
 

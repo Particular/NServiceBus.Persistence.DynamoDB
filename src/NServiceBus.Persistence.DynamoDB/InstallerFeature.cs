@@ -12,7 +12,7 @@
 
         protected override void Setup(FeatureConfigurationContext context)
         {
-            var installer = new Installer(context.Settings.Get<IProvideDynamoDBClient>().Client);
+            var installer = new Installer(context.Settings.Get<IDynamoDBClientProvider>().Client);
             context.Services.AddSingleton(installer);
         }
     }
