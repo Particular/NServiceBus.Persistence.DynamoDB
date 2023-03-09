@@ -11,8 +11,10 @@
 
     class StorageSession
     {
-        public bool SagaLockReleased;
-        public Func<IAmazonDynamoDB, Task> CleanupAction { get; set; }
+        public HashSet<Guid> SagaLocksReleased = new HashSet<Guid>();
+
+        //TODO optimize allocations by avoiding creation of the dictionary on OOC settings. Expect 1 saga to be the default.
+        public Dictionary<Guid, Func<IAmazonDynamoDB, Task>> CleanupActions { get; } = new();
 
         public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
@@ -60,17 +62,17 @@
                 throw new InvalidOperationException("Unable to complete transaction. Retrying");
             }
 
-            if (SagaLockReleased)
+            // The transaction operations already released any lock, don't clean them up explicitly
+            foreach (var sagaId in SagaLocksReleased)
             {
-                // The transaction operations already released any lock, don't clean them up explicitly
-                CleanupAction = null;
+                CleanupActions.Remove(sagaId);
             }
         }
 
         public void Dispose()
         {
 
-            if (CleanupAction != null)
+            if (CleanupActions != null)
             {
                 // release lock as fire & forget
                 _ = ReleaseLocksAsync();
@@ -79,14 +81,19 @@
             async Task ReleaseLocksAsync()
             {
                 // release any outstanding lock
-                try
+
+                //TODO use a batch instead to reduce this to a single request.
+                foreach (var action in CleanupActions.Values)
                 {
-                    await CleanupAction(dynamoDbClient).ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    // ignore failures and let the lock release naturally due to the max lock duration
-                    //TODO should we log these exceptions?
+                    try
+                    {
+                        await action(dynamoDbClient).ConfigureAwait(false);
+                    }
+                    catch (Exception)
+                    {
+                        // ignore failures and let the lock release naturally due to the max lock duration
+                        //TODO should we log these exceptions?
+                    }
                 }
             }
         }

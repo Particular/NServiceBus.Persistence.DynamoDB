@@ -101,7 +101,7 @@
                         // ensure we cleanup the lock even if no update/save operation is being committed
                         // note that a transactional batch can only contain a single operation per item in DynamoDB
                         var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                        dynamoSession.storageSession.CleanupAction = client => client.UpdateItemAsync(new UpdateItemRequest
+                        dynamoSession.storageSession.CleanupActions[sagaId] = client => client.UpdateItemAsync(new UpdateItemRequest
                         {
                             Key = new Dictionary<string, AttributeValue>
                             {
@@ -129,7 +129,7 @@
 
                         // we need to delete the entry containing the lock
                         var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                        dynamoSession.storageSession.CleanupAction = client => client.DeleteItemAsync(new DeleteItemRequest
+                        dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
                         {
                             Key = new Dictionary<string, AttributeValue>
                             {
@@ -189,7 +189,7 @@
             });
 
             var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
-            dynamoSession.storageSession.SagaLockReleased = true;
+            dynamoSession.storageSession.SagaLocksReleased.Add(sagaData.Id);
 
             return Task.CompletedTask;
         }
@@ -218,7 +218,7 @@
             });
 
             var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
-            dynamoSession.storageSession.SagaLockReleased = true;
+            dynamoSession.storageSession.SagaLocksReleased.Add(sagaData.Id);
 
             return Task.CompletedTask;
         }
