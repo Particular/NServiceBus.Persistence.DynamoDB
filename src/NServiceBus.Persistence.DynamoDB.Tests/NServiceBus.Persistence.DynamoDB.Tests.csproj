@@ -10,7 +10,8 @@
   <ItemGroup>
     <PackageReference Include="GitHubActionsTestLogger" Version="2.0.1" />
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.101.56" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <!-- DO NOT REMOVE Newtonsoft.Json: Added due to an implicit dependency from Particular.Approvals. This can be removed once Particular.Approvals has been updated to 13.0.3 -->
+    <PackageReference Include="Newtonsoft.json" Version="13.0.3" />
     <PackageReference Include="NServiceBus" Version="8.0.3" />
     <PackageReference Include="NServiceBus.Testing" Version="8.0.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.4.2" />
