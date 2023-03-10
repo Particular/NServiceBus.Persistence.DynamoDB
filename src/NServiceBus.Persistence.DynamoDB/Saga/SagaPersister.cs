@@ -200,7 +200,9 @@
                 Put = new Put
                 {
                     Item = Serialize(sagaData, 0),
-                    ConditionExpression = "attribute_not_exists(#version)", // fail if a saga (not just the lock) already exists
+                    // fail if a saga (not just the lock) already exists
+                    // SaveSaga could overwrite an existing lock if the caller didn't acquire a lock before calling Save but Core is guaranteed to acquire the lock first. In such a case, optimistic concurrency would fail the commit from the lock-holder which is ok because Save is generally not guaranteed to be fully pessimistic locking and other persisters only apply optimistic concurrency guarantees on this operation.
+                    ConditionExpression = "attribute_not_exists(#version)",
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
                         {"#version", SagaDataVersionAttributeName}
