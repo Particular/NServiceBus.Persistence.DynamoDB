@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -132,7 +131,7 @@
             var n = 1;
             foreach (var operation in outboxMessage.TransportOperations)
             {
-                var bodyStream = new MemoryStream(operation.Body.ToArray());
+                var bodyStream = new ReadOnlyMemoryStream(operation.Body);
                 yield return new TransactWriteItem
                 {
                     Put = new Put
