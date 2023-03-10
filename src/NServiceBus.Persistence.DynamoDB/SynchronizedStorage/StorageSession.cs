@@ -82,7 +82,7 @@
             {
                 // release any outstanding lock
 
-                //TODO use a batch instead to reduce this to a single request.
+                // Batches only support put/delete operations, no updates, therefore we execute all cleanups separately
                 foreach (var action in CleanupActions.Values)
                 {
                     try
