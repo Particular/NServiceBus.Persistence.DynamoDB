@@ -91,12 +91,19 @@
             var messageId = attributeValues["MessageId"].S;
             var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues["Properties"]));
             var headers = DeserializeStringDictionary(attributeValues["Headers"]);
-            MemoryStream bodyStream = attributeValues["Body"].B;
+            var bodyMemory = GetAndTrackBodyMemory(attributeValues["Body"], properties);
+            return new TransportOperation(messageId, properties, bodyMemory, headers);
+        }
+
+        ReadOnlyMemory<byte> GetAndTrackBodyMemory(AttributeValue bodyValue, DispatchProperties properties)
+        {
+            MemoryStream bodyStream = bodyValue.B;
             int bodyStreamLength = (int)bodyStream.Length;
             var buffer = ArrayPool<byte>.Shared.Rent(bodyStreamLength);
             var bytesRead = bodyStream.Read(buffer, 0, bodyStreamLength);
             bufferTracking.Add(properties, new ReturnBuffer(buffer));
-            return new TransportOperation(messageId, properties, buffer.AsMemory(0, bytesRead), headers);
+            ReadOnlyMemory<byte> bodyMemory = buffer.AsMemory(0, bytesRead);
+            return bodyMemory;
         }
 
         static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue) =>
