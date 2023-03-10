@@ -49,11 +49,8 @@
             return Task.CompletedTask;
         }
 
-        public async Task CompleteAsync(CancellationToken cancellationToken = default)
-        {
-            var commitTask = commitOnComplete ? storageSession.Commit(cancellationToken) : Task.CompletedTask;
-            await commitTask.ConfigureAwait(false);
-        }
+        public Task CompleteAsync(CancellationToken cancellationToken = default) =>
+            commitOnComplete ? storageSession.Commit(cancellationToken) : Task.CompletedTask;
 
         public void Dispose()
         {
