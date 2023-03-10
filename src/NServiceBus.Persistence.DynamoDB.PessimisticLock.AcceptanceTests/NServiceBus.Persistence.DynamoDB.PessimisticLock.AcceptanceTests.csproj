@@ -25,8 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\SharedAcceptanceTests.All\*.cs" />
-    <Compile Include="..\SharedAcceptanceTests.RequirePartitionKey\*.cs" />
+    <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\ClientFactory.cs" />
   </ItemGroup>
 
   <ItemGroup>

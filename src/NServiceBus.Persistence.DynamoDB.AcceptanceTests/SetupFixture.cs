@@ -4,7 +4,6 @@
     using System.IO;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
-    using Amazon.Runtime;
     using NUnit.Framework;
     using Persistence.DynamoDB;
     using Persistence.DynamoDB.Tests;
