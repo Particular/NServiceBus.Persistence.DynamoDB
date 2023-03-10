@@ -55,115 +55,125 @@
             where TSagaData : class, IContainSagaData
         {
             using var timedTokenSource = new CancellationTokenSource(configuration.LeaseAcquistionTimeout);
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timedTokenSource.Token);
-            cancellationToken = cts.Token;
-            while (true)
-            {
-                //TODO should we throw a TimeoutException instead like CosmosDB?
-                cancellationToken.ThrowIfCancellationRequested();
+            using var sharedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timedTokenSource.Token);
+            cancellationToken = sharedTokenSource.Token;
 
-                DateTimeOffset now = DateTimeOffset.UtcNow;
-                //update creates a new item if it doesn't exist
-                var updateItemRequest = new UpdateItemRequest
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    Key = new Dictionary<string, AttributeValue>
+                    DateTimeOffset now = DateTimeOffset.UtcNow;
+                    //update creates a new item if it doesn't exist
+                    var updateItemRequest = new UpdateItemRequest
+                    {
+                        Key = new Dictionary<string, AttributeValue>
                     {
                         { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                         { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                     },
-                    UpdateExpression = "SET #lease = :lease_timeout",
-                    ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
-                    ExpressionAttributeNames = new Dictionary<string, string>
+                        UpdateExpression = "SET #lease = :lease_timeout",
+                        ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
+                        ExpressionAttributeNames = new Dictionary<string, string>
                     {
                         { "#lease", SagaLeaseAttributeName }
                     },
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
                         { ":now", new AttributeValue { N = now.ToFileTime().ToString() } },
                         { ":lease_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
                     },
-                    ReturnValues = ReturnValue.ALL_NEW,
-                    TableName = configuration.TableName
-                };
+                        ReturnValues = ReturnValue.ALL_NEW,
+                        TableName = configuration.TableName
+                    };
 
-                try
-                {
-                    var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
-                        .ConfigureAwait(false);
-                    // we need to find out if the saga already exists or not
-                    if (response.Attributes.ContainsKey(SagaDataVersionAttributeName))
+                    try
                     {
-                        // the saga exists
-                        var sagaData = Deserialize<TSagaData>(response.Attributes, context);
-
-                        // ensure we cleanup the lock even if no update/save operation is being committed
-                        // note that a transactional batch can only contain a single operation per item in DynamoDB
-                        var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                        dynamoSession.storageSession.CleanupActions[sagaId] = client => client.UpdateItemAsync(new UpdateItemRequest
+                        var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
+                            .ConfigureAwait(false);
+                        // we need to find out if the saga already exists or not
+                        if (response.Attributes.ContainsKey(SagaDataVersionAttributeName))
                         {
-                            Key = new Dictionary<string, AttributeValue>
+                            // the saga exists
+                            var sagaData = Deserialize<TSagaData>(response.Attributes, context);
+
+                            // ensure we cleanup the lock even if no update/save operation is being committed
+                            // note that a transactional batch can only contain a single operation per item in DynamoDB
+                            var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
+                            dynamoSession.storageSession.CleanupActions[sagaId] = client => client.UpdateItemAsync(new UpdateItemRequest
+                            {
+                                Key = new Dictionary<string, AttributeValue>
                             {
                                 { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                                 { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
-                            UpdateExpression = "SET #lease = :released_lease",
-                            ConditionExpression = "#lease = :current_lease AND #version = :current_version", // only if the lock is still the same that we acquired.
-                            ExpressionAttributeNames =
-                                new Dictionary<string, string>
-                                {
+                                UpdateExpression = "SET #lease = :released_lease",
+                                ConditionExpression = "#lease = :current_lease AND #version = :current_version", // only if the lock is still the same that we acquired.
+                                ExpressionAttributeNames =
+                                    new Dictionary<string, string>
+                                    {
                                     { "#lease", SagaLeaseAttributeName },
                                     { "#version", SagaDataVersionAttributeName }
-                                },
-                            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                                    },
+                                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                             {
                                 { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
                                 { ":released_lease", new AttributeValue { N = "-1" } },
                                 { ":current_version", response.Attributes[SagaDataVersionAttributeName] }
                             },
-                            ReturnValues = ReturnValue.NONE,
-                            TableName = configuration.TableName
-                        });
+                                ReturnValues = ReturnValue.NONE,
+                                TableName = configuration.TableName
+                            });
 
-                        return sagaData;
-                    }
-                    else
-                    {
-                        // it's a new saga (but we own the lock now)
-
-                        // we need to delete the entry containing the lock
-                        var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                        dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
+                            return sagaData;
+                        }
+                        else
                         {
-                            Key = new Dictionary<string, AttributeValue>
+                            // it's a new saga (but we own the lock now)
+
+                            // we need to delete the entry containing the lock
+                            var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
+                            dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
+                            {
+                                Key = new Dictionary<string, AttributeValue>
                             {
                                 { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                                 { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
-                            ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#version)", // only if the lock is still the same that we acquired.
-                            ExpressionAttributeNames = new Dictionary<string, string>
+                                ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#version)", // only if the lock is still the same that we acquired.
+                                ExpressionAttributeNames = new Dictionary<string, string>
                             {
                                 { "#lease", SagaLeaseAttributeName },
                                 { "#version", SagaDataVersionAttributeName }
                             },
-                            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                             {
                                 { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
                             },
-                            ReturnValues = ReturnValue.NONE,
-                            TableName = configuration.TableName
-                        });
+                                ReturnValues = ReturnValue.NONE,
+                                TableName = configuration.TableName
+                            });
 
-                        return null;
+                            return null;
+                        }
+                    }
+                    //TODO create spec test to verify error code
+                    catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
+                    {
+                        // Condition failed, saga data is already locked but we don't know for how long
+                        await Task.Delay(100, cancellationToken)
+                            .ConfigureAwait(false); //TODO select better value and introduce jittering.
                     }
                 }
-                //TODO create spec test to verify error code
-                catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
-                {
-                    // Condition failed, saga data is already locked but we don't know for how long
-                    //TODO if we decide to throw a different exception, we should catch for OperationCancelledException here
-                    await Task.Delay(100, cancellationToken)
-                        .ConfigureAwait(false); //TODO select better value and introduce jittering.
-                }
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new InvalidOperationException(); // code is unreachable
+            }
+#pragma warning disable PS0020 // When catching OperationCanceledException, cancellation needs to be properly accounted for
+            catch (OperationCanceledException e) when (timedTokenSource.IsCancellationRequested)
+#pragma warning restore PS0020 // When catching OperationCanceledException, cancellation needs to be properly accounted for
+            {
+                // cancelled due to lease acquisition timeout
+                // we want to rethrow other OperationCanceledExceptions
+                throw new TimeoutException($"Failed to acquire the lock for saga ID {sagaId}.", e);
             }
         }
 
