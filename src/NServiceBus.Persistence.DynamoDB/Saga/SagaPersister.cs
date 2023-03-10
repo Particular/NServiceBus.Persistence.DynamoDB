@@ -14,7 +14,7 @@
     class SagaPersister : ISagaPersister
     {
         const string SagaDataVersionAttributeName = "___VERSION___";
-        const string SagaLockAttributeName = "___LEASE_TIMEOUT___";
+        const string SagaLeaseAttributeName = "___LEASE_TIMEOUT___";
 
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
@@ -62,9 +62,8 @@
                 //TODO should we throw a TimeoutException instead like CosmosDB?
                 cancellationToken.ThrowIfCancellationRequested();
 
-                //TODO: reset lock on successful commit. what about failed commits?
                 DateTimeOffset now = DateTimeOffset.UtcNow;
-                //update items creates a new item if it doesn't exist
+                //update creates a new item if it doesn't exist
                 var updateItemRequest = new UpdateItemRequest
                 {
                     Key = new Dictionary<string, AttributeValue>
@@ -72,16 +71,16 @@
                         { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                         { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                     },
-                    UpdateExpression = "SET #lock = :lock_timeout", //TODO should we use lock or lease as the terminology?
-                    ConditionExpression = "attribute_not_exists(#lock) OR #lock < :now",
+                    UpdateExpression = "SET #lease = :lease_timeout",
+                    ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        { "#lock", SagaLockAttributeName }
+                        { "#lease", SagaLeaseAttributeName }
                     },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
                         { ":now", new AttributeValue { N = now.ToFileTime().ToString() } },
-                        { ":lock_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
+                        { ":lease_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
                     },
                     ReturnValues = ReturnValue.ALL_NEW,
                     TableName = configuration.TableName
@@ -92,7 +91,6 @@
                     var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
                         .ConfigureAwait(false);
                     // we need to find out if the saga already exists or not
-                    // TODO can we use a condition expression and figure out which condition failed? (new saga vs. lock failed)
                     if (response.Attributes.ContainsKey(SagaDataVersionAttributeName))
                     {
                         // the saga exists
@@ -108,14 +106,14 @@
                                 { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                                 { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
-                            UpdateExpression = "SET #lock = :released_lock",
-                            ConditionExpression = "#lock = :current_lock", // only if the lock is still the same that we acquired.
+                            UpdateExpression = "SET #lease = :released_lease",
+                            ConditionExpression = "#lease = :current_lease", // only if the lock is still the same that we acquired.
                             ExpressionAttributeNames =
-                                new Dictionary<string, string> { { "#lock", SagaLockAttributeName } },
+                                new Dictionary<string, string> { { "#lease", SagaLeaseAttributeName } },
                             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                             {
-                                { ":current_lock", new AttributeValue { N = response.Attributes[SagaLockAttributeName].N } },
-                                { ":released_lock", new AttributeValue { N = "-1" } }
+                                { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
+                                { ":released_lease", new AttributeValue { N = "-1" } }
                             },
                             ReturnValues = ReturnValue.NONE,
                             TableName = configuration.TableName
@@ -136,12 +134,12 @@
                                 { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                                 { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
-                            ConditionExpression = "#lock = :current_lock", // only if the lock is still the same that we acquired.
+                            ConditionExpression = "#lease = :current_lease", // only if the lock is still the same that we acquired.
                             ExpressionAttributeNames =
-                                new Dictionary<string, string> { { "#lock", SagaLockAttributeName } },
+                                new Dictionary<string, string> { { "#lease", SagaLeaseAttributeName } },
                             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                             {
-                                { ":current_lock", new AttributeValue { N = response.Attributes[SagaLockAttributeName].N } },
+                                { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
                             },
                             ReturnValues = ReturnValue.NONE,
                             TableName = configuration.TableName
@@ -233,8 +231,8 @@
             map.Add(configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             // Version should probably be properly moved into metadata to not clash with existing things
             map.Add(SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() });
-            // release lock on save
-            map.Add(SagaLockAttributeName, new AttributeValue { N = "-1" });
+            // release lease on save
+            map.Add(SagaLeaseAttributeName, new AttributeValue { N = "-1" });
             // According to the best practices we should also add Type information probably here
             return map;
         }
