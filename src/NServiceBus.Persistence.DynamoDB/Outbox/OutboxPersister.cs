@@ -94,13 +94,9 @@
             MemoryStream bodyStream = attributeValues["Body"].B;
             int bodyStreamLength = (int)bodyStream.Length;
             var buffer = ArrayPool<byte>.Shared.Rent(bodyStreamLength);
-#if NET
-            bodyStream.Write(buffer);
-#else
-            bodyStream.Write(buffer, 0, bodyStreamLength);
-#endif
+            var bytesRead = bodyStream.Read(buffer, 0, bodyStreamLength);
             bufferTracking.Add(properties, new ReturnBuffer(buffer));
-            return new TransportOperation(messageId, properties, buffer, headers);
+            return new TransportOperation(messageId, properties, buffer.AsMemory(0, bytesRead), headers);
         }
 
         static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue) =>
