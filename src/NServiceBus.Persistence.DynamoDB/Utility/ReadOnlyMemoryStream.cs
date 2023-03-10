@@ -34,6 +34,23 @@ namespace NServiceBus.Persistence.DynamoDB
             return bytesToCopy;
         }
 
+#if NET
+        public override int Read(Span<byte> buffer)
+        {
+            var bytesToCopy = (int)Math.Min(memory.Length - position, buffer.Length);
+            if (bytesToCopy <= 0)
+            {
+                return 0;
+            }
+
+            var source = memory.Span.Slice((int)position, bytesToCopy);
+            source.CopyTo(buffer);
+
+            position += bytesToCopy;
+            return bytesToCopy;
+        }
+#endif
+
         public override byte[] ToArray() => memory.ToArray();
 
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
