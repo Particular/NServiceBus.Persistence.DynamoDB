@@ -15,7 +15,7 @@
             var saga = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
             await SaveSaga(saga);
 
-            var session1LockAcquired = new TaskCompletionSource<bool>();
+            var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
             DateTime session1CommitTimestamp = default;
@@ -81,7 +81,7 @@
 
             var saga = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
 
-            var session1LockAcquired = new TaskCompletionSource<bool>();
+            var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
             DateTime session1CommitTimestamp = default;
@@ -148,7 +148,7 @@
             var saga = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
             await SaveSaga(saga);
 
-            var session1LockAcquired = new TaskCompletionSource<bool>();
+            var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
             DateTime session1DisposeTime = default;
@@ -214,7 +214,7 @@
 
             var saga = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
 
-            var session1LockAcquired = new TaskCompletionSource<bool>();
+            var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
             DateTime session1DisposeTime = default;

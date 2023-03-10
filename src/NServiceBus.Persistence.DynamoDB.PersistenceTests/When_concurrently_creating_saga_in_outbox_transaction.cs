@@ -69,7 +69,7 @@
 
             var saga1 = new TestSagaData { SomeId = Guid.NewGuid().ToString() };
 
-            var session1LockAcquired = new TaskCompletionSource<bool>();
+            var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var lockingSession = Task.Run(async () =>
             {
