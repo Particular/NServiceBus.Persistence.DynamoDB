@@ -162,7 +162,6 @@
                             return null;
                         }
                     }
-                    //TODO create spec test to verify error code
                     catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
                     {
                         // Condition failed, saga data is already locked but we don't know for how long

@@ -93,7 +93,6 @@
                     {
                         // ignore failures and let the lock release naturally due to the max lock duration
                         Logger.Warn("Failed to cleanup saga locks", e);
-                        //TODO should we log these exceptions?
                     }
                 }
             }
