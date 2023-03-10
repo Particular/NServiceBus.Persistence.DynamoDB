@@ -1,8 +1,11 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
@@ -83,14 +86,21 @@
             return new OutboxMessage(incomingId, operations);
         }
 
-        static TransportOperation DeserializeOperation(Dictionary<string, AttributeValue> attributeValues)
+        TransportOperation DeserializeOperation(Dictionary<string, AttributeValue> attributeValues)
         {
             var messageId = attributeValues["MessageId"].S;
             var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues["Properties"]));
             var headers = DeserializeStringDictionary(attributeValues["Headers"]);
-            // this is all very wasteful but good enough for the prototype
-            byte[] body = attributeValues["Body"].B.ToArray();
-            return new TransportOperation(messageId, properties, body, headers);
+            MemoryStream bodyStream = attributeValues["Body"].B;
+            int bodyStreamLength = (int)bodyStream.Length;
+            var buffer = ArrayPool<byte>.Shared.Rent(bodyStreamLength);
+#if NET
+            bodyStream.Write(buffer);
+#else
+            bodyStream.Write(buffer, 0, bodyStreamLength);
+#endif
+            bufferTracking.Add(properties, new ReturnBuffer(buffer));
+            return new TransportOperation(messageId, properties, buffer, headers);
         }
 
         static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue) =>
@@ -251,5 +261,22 @@
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly OutboxPersistenceConfiguration configuration;
         readonly string endpointIdentifier;
+        readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = new();
+
+        sealed class ReturnBuffer
+        {
+            public ReturnBuffer(byte[] buffer) => this.buffer = buffer;
+
+            ~ReturnBuffer()
+            {
+                if (buffer != null)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                    buffer = null;
+                }
+            }
+
+            byte[] buffer;
+        }
     }
 }
