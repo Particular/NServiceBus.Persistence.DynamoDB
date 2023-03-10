@@ -6,7 +6,7 @@ namespace NServiceBus.Persistence.DynamoDB
     sealed class ReadOnlyMemoryStream : MemoryStream
     {
         readonly ReadOnlyMemory<byte> memory;
-        long position;
+        int position;
 
         public ReadOnlyMemoryStream(ReadOnlyMemory<byte> memory)
         {
@@ -22,10 +22,10 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var bytesToCopy = (int)Math.Min(count, memory.Length - position);
+            var bytesToCopy = Math.Min(count, memory.Length - position);
 
             var destination = buffer.AsSpan().Slice(offset, bytesToCopy);
-            var source = memory.Span.Slice((int)position, bytesToCopy);
+            var source = memory.Span.Slice(position, bytesToCopy);
 
             source.CopyTo(destination);
 
@@ -37,13 +37,13 @@ namespace NServiceBus.Persistence.DynamoDB
 #if NET
         public override int Read(Span<byte> buffer)
         {
-            var bytesToCopy = (int)Math.Min(memory.Length - position, buffer.Length);
+            var bytesToCopy = Math.Min(memory.Length - position, buffer.Length);
             if (bytesToCopy <= 0)
             {
                 return 0;
             }
 
-            var source = memory.Span.Slice((int)position, bytesToCopy);
+            var source = memory.Span.Slice(position, bytesToCopy);
             source.CopyTo(buffer);
 
             position += bytesToCopy;
@@ -59,6 +59,6 @@ namespace NServiceBus.Persistence.DynamoDB
         public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length => memory.Length;
-        public override long Position { get => position; set => position = value; }
+        public override long Position { get => position; set => position = (int)value; }
     }
 }
