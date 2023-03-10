@@ -14,7 +14,7 @@
     class SagaPersister : ISagaPersister
     {
         const string SagaDataVersionAttributeName = "___VERSION___";
-        const string SagaLockAttributeName = "NSB_lease_timeout";
+        const string SagaLockAttributeName = "___LEASE_TIMEOUT___";
 
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
