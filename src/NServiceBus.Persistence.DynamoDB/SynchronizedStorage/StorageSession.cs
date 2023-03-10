@@ -8,10 +8,13 @@
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
+    using Logging;
 
     class StorageSession
     {
-        public HashSet<Guid> SagaLocksReleased = new HashSet<Guid>();
+        static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
+
+        public HashSet<Guid> SagaLocksReleased = new();
 
         //TODO optimize allocations by avoiding creation of the dictionary on OOC settings. Expect 1 saga to be the default.
         public Dictionary<Guid, Func<IAmazonDynamoDB, Task>> CleanupActions { get; } = new();
@@ -72,11 +75,8 @@
         public void Dispose()
         {
 
-            if (CleanupActions != null)
-            {
-                // release lock as fire & forget
-                _ = ReleaseLocksAsync();
-            }
+            // release lock as fire & forget
+            _ = ReleaseLocksAsync();
 
             async Task ReleaseLocksAsync()
             {
@@ -89,9 +89,10 @@
                     {
                         await action(dynamoDbClient).ConfigureAwait(false);
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
                         // ignore failures and let the lock release naturally due to the max lock duration
+                        Logger.Warn("Failed to cleanup saga locks", e);
                         //TODO should we log these exceptions?
                     }
                 }
