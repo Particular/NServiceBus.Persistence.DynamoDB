@@ -6,6 +6,7 @@
     using NUnit.Framework;
     using Sagas;
 
+    // These tests are very similar to When_concurrent_update_exceed_lock_request_timeout_pessimistic, but they are more specific in regards to the expected exception type
     public class When_failing_to_acquire_lock : SagaPersisterTests
     {
         [Test]
@@ -14,36 +15,26 @@
             configuration.RequiresPessimisticConcurrencySupport();
 
             var saga = new TestSagaData() { SomeId = Guid.NewGuid().ToString() };
-            try
+            await SaveSaga(saga);
+
+            var lockingSessionContext = configuration.GetContextBagForSagaStorage();
+            using var lockingSession = configuration.CreateStorageSession();
+            await lockingSession.Open(lockingSessionContext);
+
+            // acquire lock
+            var lockedSaga = await configuration.SagaStorage.Get<TestSagaData>(saga.Id, lockingSession, lockingSessionContext);
+            Assert.IsNotNull(lockedSaga);
+
+            var blockedSessionContext = configuration.GetContextBagForSagaStorage();
+            using (var blockedSession = configuration.CreateStorageSession())
             {
-                await SaveSaga(saga);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
+                await blockedSession.Open(blockedSessionContext);
+
+                // lock is still held by session 1
+                var exception = Assert.ThrowsAsync<TimeoutException>(() => configuration.SagaStorage.Get<TestSagaData>(saga.Id, blockedSession, blockedSessionContext));
             }
 
-            var session1Context = configuration.GetContextBagForSagaStorage();
-            using (var session1 = configuration.CreateStorageSession())
-            {
-                await session1.Open(session1Context);
-
-                // acquire lock
-                var lockedSaga = await configuration.SagaStorage.Get<TestSagaData>(saga.Id, session1, session1Context);
-                Assert.IsNotNull(lockedSaga);
-
-                var session2Context = configuration.GetContextBagForSagaStorage();
-                using (var session2 = configuration.CreateStorageSession())
-                {
-                    await session2.Open(session2Context);
-
-                    // lock is still held by session 1
-                    var exception = Assert.ThrowsAsync<TimeoutException>(() => configuration.SagaStorage.Get<TestSagaData>(saga.Id, session2, session2Context));
-                }
-
-                await session1.CompleteAsync();
-            }
+            await lockingSession.CompleteAsync();
         }
 
         [Test]
@@ -55,26 +46,25 @@
             await SaveSaga(saga);
 
             var session1Context = configuration.GetContextBagForSagaStorage();
-            using (var session1 = configuration.CreateStorageSession())
+            using var lockingSession = configuration.CreateStorageSession();
+            await lockingSession.Open(session1Context);
+
+            // acquire lock
+            var lockedSaga = await configuration.SagaStorage.Get<TestSagaData>(saga.Id, lockingSession, session1Context);
+            Assert.IsNotNull(lockedSaga);
+
+            var session2Context = configuration.GetContextBagForSagaStorage();
+            using (var blockedSession = configuration.CreateStorageSession())
             {
-                await session1.Open(session1Context);
+                await blockedSession.Open(session2Context);
 
-                // acquire lock
-                var lockedSaga = await configuration.SagaStorage.Get<TestSagaData>(saga.Id, session1, session1Context);
-                Assert.IsNotNull(lockedSaga);
-
-                var session2Context = configuration.GetContextBagForSagaStorage();
-                using (var session2 = configuration.CreateStorageSession())
-                {
-                    await session2.Open(session2Context);
-
-                    var cancelledToken = new CancellationToken(true);
-                    // lock is still held by session 1
-                    var exception = Assert.ThrowsAsync<OperationCanceledException>(() => configuration.SagaStorage.Get<TestSagaData>(saga.Id, session2, session2Context, cancelledToken));
-                }
-
-                await session1.CompleteAsync();
+                var cancelTokenAfter = TimeSpan.FromTicks(configuration.SessionTimeout.GetValueOrDefault(TimeSpan.FromSeconds(1)).Ticks / 4);
+                using var pipelineCancellationTokenSource = new CancellationTokenSource(cancelTokenAfter);
+                // lock is still held by session 1
+                var exception = Assert.ThrowsAsync<OperationCanceledException>(() => configuration.SagaStorage.Get<TestSagaData>(saga.Id, blockedSession, session2Context, pipelineCancellationTokenSource.Token));
             }
+
+            await lockingSession.CompleteAsync();
         }
 
         public class TestSaga : Saga<TestSagaData>, IAmStartedByMessages<StartTestSagaMessage>
