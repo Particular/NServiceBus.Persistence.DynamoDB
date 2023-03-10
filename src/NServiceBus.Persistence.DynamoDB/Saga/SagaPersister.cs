@@ -170,8 +170,7 @@
                             .ConfigureAwait(false);
                     }
                 }
-                cancellationToken.ThrowIfCancellationRequested();
-                throw new InvalidOperationException(); // code is unreachable
+                throw new OperationCanceledException(cancellationToken);
             }
 #pragma warning disable PS0020 // When catching OperationCanceledException, cancellation needs to be properly accounted for
             catch (OperationCanceledException e) when (timedTokenSource.IsCancellationRequested)
