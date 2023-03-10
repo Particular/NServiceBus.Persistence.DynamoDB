@@ -68,7 +68,7 @@
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    DateTimeOffset now = DateTimeOffset.UtcNow;
+                    DateTimeOffset now = DateTimeOffset.UtcNow.Add(dynamoDbClient.Config.ClockOffset);
                     //update creates a new item if it doesn't exist
                     var updateItemRequest = new UpdateItemRequest
                     {
