@@ -56,7 +56,7 @@ namespace NServiceBus.Persistence.DynamoDB
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         public override bool CanRead => true;
-        public override bool CanSeek => true;
+        public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length => memory.Length;
         public override long Position { get => position; set => position = value; }
