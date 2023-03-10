@@ -34,6 +34,8 @@ namespace NServiceBus.Persistence.DynamoDB
             return bytesToCopy;
         }
 
+        public override byte[] ToArray() => memory.ToArray();
+
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         public override bool CanRead => true;
