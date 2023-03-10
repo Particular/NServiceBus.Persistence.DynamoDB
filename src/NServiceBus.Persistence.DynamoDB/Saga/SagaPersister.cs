@@ -19,6 +19,12 @@
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
 
+#if NET6_0_OR_GREATER
+        readonly Random random = Random.Shared;
+#else
+        readonly Random random = new Random();
+#endif
+
         public SagaPersister(SagaPersistenceConfiguration configuration, IAmazonDynamoDB dynamoDbClient)
         {
             this.configuration = configuration;
@@ -160,8 +166,8 @@
                     catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
                     {
                         // Condition failed, saga data is already locked but we don't know for how long
-                        await Task.Delay(100, cancellationToken)
-                            .ConfigureAwait(false); //TODO select better value and introduce jittering.
+                        await Task.Delay(random.Next(100, 300), cancellationToken)
+                            .ConfigureAwait(false);
                     }
                 }
                 cancellationToken.ThrowIfCancellationRequested();
