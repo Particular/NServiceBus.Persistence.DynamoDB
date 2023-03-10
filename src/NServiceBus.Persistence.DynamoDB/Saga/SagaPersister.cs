@@ -107,13 +107,18 @@
                                 { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
                             UpdateExpression = "SET #lease = :released_lease",
-                            ConditionExpression = "#lease = :current_lease", // only if the lock is still the same that we acquired.
+                            ConditionExpression = "#lease = :current_lease AND #version = :current_version", // only if the lock is still the same that we acquired.
                             ExpressionAttributeNames =
-                                new Dictionary<string, string> { { "#lease", SagaLeaseAttributeName } },
+                                new Dictionary<string, string>
+                                {
+                                    { "#lease", SagaLeaseAttributeName },
+                                    { "#version", SagaDataVersionAttributeName }
+                                },
                             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                             {
                                 { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
-                                { ":released_lease", new AttributeValue { N = "-1" } }
+                                { ":released_lease", new AttributeValue { N = "-1" } },
+                                { ":current_version", response.Attributes[SagaDataVersionAttributeName] }
                             },
                             ReturnValues = ReturnValue.NONE,
                             TableName = configuration.TableName
@@ -134,9 +139,12 @@
                                 { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                                 { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
-                            ConditionExpression = "#lease = :current_lease", // only if the lock is still the same that we acquired.
-                            ExpressionAttributeNames =
-                                new Dictionary<string, string> { { "#lease", SagaLeaseAttributeName } },
+                            ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#version)", // only if the lock is still the same that we acquired.
+                            ExpressionAttributeNames = new Dictionary<string, string>
+                            {
+                                { "#lease", SagaLeaseAttributeName },
+                                { "#version", SagaDataVersionAttributeName }
+                            },
                             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                             {
                                 { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
