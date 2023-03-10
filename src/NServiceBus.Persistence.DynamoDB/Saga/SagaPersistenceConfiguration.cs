@@ -44,8 +44,14 @@
         /// </summary>
         internal bool CreateTable { get; set; } = true;
 
-        //TODO should we make this publicly configurable?
-        internal TimeSpan LeaseDuration = TimeSpan.FromSeconds(30); // based on SQS visibility timeout
-        internal TimeSpan LeaseAcquistionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        /// <summary>
+        /// Defines the lease duration when using pessimistic locking.
+        /// </summary>
+        public TimeSpan LeaseDuration = TimeSpan.FromSeconds(30); // based on SQS visibility timeout
+
+        /// <summary>
+        /// How long the client should attempt to acquire a lock when using pessimistic locking before giving up.
+        /// </summary>
+        public TimeSpan LeaseAcquistionTimeout { get; set; } = TimeSpan.FromSeconds(10);
     }
 }

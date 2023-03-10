@@ -42,8 +42,10 @@ namespace NServiceBus.Persistence.DynamoDB
     }
     public class SagaPersistenceConfiguration
     {
+        public System.TimeSpan LeaseDuration;
         public SagaPersistenceConfiguration() { }
         public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
+        public System.TimeSpan LeaseAcquistionTimeout { get; set; }
         public string PartitionKeyName { get; set; }
         public Amazon.DynamoDBv2.Model.ProvisionedThroughput ProvisionedThroughput { get; set; }
         public string SortKeyName { get; set; }
