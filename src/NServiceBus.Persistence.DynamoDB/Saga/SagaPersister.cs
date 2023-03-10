@@ -209,6 +209,7 @@
                 }
             });
 
+            // we can't remove the action directly because the transaction was not completed yet
             var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
             dynamoSession.storageSession.SagaLocksReleased.Add(sagaData.Id);
 
@@ -238,6 +239,7 @@
                 }
             });
 
+            // we can't remove the action directly because the transaction was not completed yet
             var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
             dynamoSession.storageSession.SagaLocksReleased.Add(sagaData.Id);
 
