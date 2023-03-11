@@ -38,7 +38,6 @@
         public async Task<OutboxMessage> Get(string messageId, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            var allItems = new List<Dictionary<string, AttributeValue>>();
             var queryRequest = new QueryRequest
             {
                 ConsistentRead = true,
@@ -52,35 +51,47 @@
                 TableName = configuration.TableName
             };
             QueryResponse response = null;
+            int numberOfTransportOperations = 0;
+            string incomingId = null;
+            List<Dictionary<string, AttributeValue>> transportOperationsAttributes = null;
             do
             {
                 queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
-                allItems.AddRange(response.Items);
+                bool headerItemSet = false;
+                if (incomingId == null && response.Items.Count >= 1)
+                {
+                    var headerItem = response.Items[0];
+                    incomingId = headerItem[configuration.PartitionKeyName].S;
+                    // TODO: In case we delete stuff we can probably even remove this property
+                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
+                    headerItemSet = true;
+                }
+
+                for (int i = headerItemSet ? 1 : 0; i < response.Items.Count; i++)
+                {
+                    transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
+                    transportOperationsAttributes.AddRange(response.Items);
+                }
             } while (response.LastEvaluatedKey.Count > 0);
 
-            if (allItems.Count == 0)
-            {
+            return incomingId == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
-                return null;
-            }
-
-            return DeserializeOutboxMessage(allItems, context);
+                null : DeserializeOutboxMessage(incomingId, transportOperationsAttributes, context);
         }
 
-        OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems,
-            ContextBag contextBag)
+        OutboxMessage DeserializeOutboxMessage(string incomingId,
+            List<Dictionary<string, AttributeValue>> responseItems, ContextBag contextBag)
         {
-            var headerItem = responseItems.First();
-            var incomingId = headerItem[configuration.PartitionKeyName].S;
-            // TODO: In case we delete stuff we can probably even remove this property
-            int numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
-            contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
+            contextBag.Set(OperationsCountContextProperty, responseItems.Count);
 
-            var operations = Array.Empty<TransportOperation>();
-            if (numberOfTransportOperations > 0)
+            var operations = responseItems.Count == 0
+                ? Array.Empty<TransportOperation>()
+                : new TransportOperation[responseItems.Count];
+
+            for (int i = 0; i < responseItems.Count; i++)
             {
-                operations = responseItems.Skip(1).Select(DeserializeOperation).ToArray();
+                operations[i] = DeserializeOperation(responseItems[i]);
             }
 
             return new OutboxMessage(incomingId, operations);
