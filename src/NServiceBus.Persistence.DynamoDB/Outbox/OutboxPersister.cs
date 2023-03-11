@@ -4,7 +4,6 @@
     using System.Buffers;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -117,8 +116,16 @@
             return bodyMemory;
         }
 
-        static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue) =>
-            attributeValue.M.ToDictionary(x => x.Key, x => x.Value.S);
+        static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue)
+        {
+            Dictionary<string, AttributeValue> attributeValues = attributeValue.M;
+            var dictionary = new Dictionary<string, string>(attributeValues.Count);
+            foreach (var pair in attributeValues)
+            {
+                dictionary.Add(pair.Key, pair.Value.S);
+            }
+            return dictionary;
+        }
 
         IEnumerable<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
         {
@@ -202,7 +209,12 @@
 
         static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string> value)
         {
-            return value.ToDictionary(x => x.Key, x => new AttributeValue { S = x.Value });
+            var attributeValues = new Dictionary<string, AttributeValue>(value.Count);
+            foreach (KeyValuePair<string, string> pair in value)
+            {
+                attributeValues.Add(pair.Key, new AttributeValue(pair.Value));
+            }
+            return attributeValues;
         }
 
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context,
