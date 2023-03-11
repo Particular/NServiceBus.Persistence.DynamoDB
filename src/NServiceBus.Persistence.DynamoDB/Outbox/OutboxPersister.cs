@@ -39,22 +39,22 @@
             CancellationToken cancellationToken = default)
         {
             var allItems = new List<Dictionary<string, AttributeValue>>();
+            var queryRequest = new QueryRequest
+            {
+                ConsistentRead = true,
+                KeyConditionExpression = $"#PK = :outboxId",
+                ExpressionAttributeNames =
+                    new Dictionary<string, string> { { "#PK", configuration.PartitionKeyName } },
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                {
+                    { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
+                },
+                TableName = configuration.TableName
+            };
             QueryResponse response = null;
             do
             {
-                var queryRequest = new QueryRequest
-                {
-                    ConsistentRead = true,
-                    KeyConditionExpression = $"#PK = :outboxId",
-                    ExclusiveStartKey = response?.LastEvaluatedKey,
-                    ExpressionAttributeNames =
-                        new Dictionary<string, string> { { "#PK", configuration.PartitionKeyName } },
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                    {
-                        { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
-                    },
-                    TableName = configuration.TableName
-                };
+                queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
                 allItems.AddRange(response.Items);
             } while (response.LastEvaluatedKey.Count > 0);
