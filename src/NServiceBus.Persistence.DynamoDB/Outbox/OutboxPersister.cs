@@ -70,7 +70,7 @@
                 for (int i = headerItemSet ? 1 : 0; i < response.Items.Count; i++)
                 {
                     transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
-                    transportOperationsAttributes.AddRange(response.Items);
+                    transportOperationsAttributes.Add(response.Items[i]);
                 }
             } while (response.LastEvaluatedKey.Count > 0);
 
@@ -82,15 +82,16 @@
         OutboxMessage DeserializeOutboxMessage(string incomingId,
             List<Dictionary<string, AttributeValue>> responseItems, ContextBag contextBag)
         {
-            contextBag.Set(OperationsCountContextProperty, responseItems.Count);
+            var count = responseItems?.Count ?? 0;
+            contextBag.Set(OperationsCountContextProperty, count);
 
-            var operations = responseItems.Count == 0
+            var operations = count == 0
                 ? Array.Empty<TransportOperation>()
-                : new TransportOperation[responseItems.Count];
+                : new TransportOperation[count];
 
-            for (int i = 0; i < responseItems.Count; i++)
+            for (int i = 0; i < count; i++)
             {
-                operations[i] = DeserializeOperation(responseItems[i]);
+                operations[i] = DeserializeOperation(responseItems![i]);
             }
 
             return new OutboxMessage(incomingId, operations);
