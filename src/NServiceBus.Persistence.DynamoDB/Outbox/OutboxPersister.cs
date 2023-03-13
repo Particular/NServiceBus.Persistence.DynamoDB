@@ -53,29 +53,29 @@ namespace NServiceBus.Persistence.DynamoDB
             };
             QueryResponse? response = null;
             int numberOfTransportOperations = 0;
-            bool? foundHeaderEntry = null;
+            bool? foundOutboxMetadataEntry = null;
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
             do
             {
                 queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
-                bool hasOutboxHeaderEntry = false;
-                if (foundHeaderEntry == null && response.Items.Count >= 1)
+                bool responseItemsHasOutboxMetadataEntry = false;
+                if (foundOutboxMetadataEntry == null && response.Items.Count >= 1)
                 {
-                    foundHeaderEntry = true;
+                    foundOutboxMetadataEntry = true;
                     var headerItem = response.Items[0];
-                    numberOfTransportOperations = Convert.ToInt32(headerItem["NumberTransportOperations"].N);
-                    hasOutboxHeaderEntry = true;
+                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    responseItemsHasOutboxMetadataEntry = true;
                 }
 
-                for (int i = hasOutboxHeaderEntry ? 1 : 0; i < response.Items.Count; i++)
+                for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
                 {
                     transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
                     transportOperationsAttributes.Add(response.Items[i]);
                 }
             } while (response.LastEvaluatedKey.Count > 0);
 
-            return foundHeaderEntry == null ?
+            return foundOutboxMetadataEntry == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
                 null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
@@ -147,7 +147,7 @@ namespace NServiceBus.Persistence.DynamoDB
                         {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                         {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
-                            "NumberTransportOperations",
+                            "TransportOperationsCount",
                             new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
@@ -252,7 +252,7 @@ namespace NServiceBus.Persistence.DynamoDB
                         {
                             {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                             {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
-                            {"NumberTransportOperations", new AttributeValue {N = "0"}},
+                            {"TransportOperationsCount", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
                             {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
                             {configuration.TimeToLiveAttributeName, new AttributeValue {N = epochSeconds.ToString()}}
