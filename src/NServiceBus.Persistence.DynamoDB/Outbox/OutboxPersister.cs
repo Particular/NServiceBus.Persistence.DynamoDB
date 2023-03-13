@@ -280,45 +280,19 @@ namespace NServiceBus.Persistence.DynamoDB
             // transactions come with a cost. They cost double the amount of write units compared to batch writes.
             // Setting the outbox record as dispatch is an idempotent operation that doesn't require transactionality
             // so using the cheaper API in terms of write operations is a sane choice.
-            // TODO: Cleanup this code
-            if (writeRequests.Count < 25)
+            var writeRequestBatches = WriteRequestBatcher.Batch(writeRequests);
+            BatchWriteItemRequest? batchWriteItemRequest = null;
+            foreach (var writeRequestBatch in writeRequestBatches)
             {
-                var batchWriteItemRequest = new BatchWriteItemRequest
+                batchWriteItemRequest ??= new BatchWriteItemRequest
                 {
                     RequestItems = new Dictionary<string, List<WriteRequest>>
                     {
-                        { configuration.Table.TableName, writeRequests }
+                        { configuration.Table.TableName, writeRequestBatch }
                     },
                 };
+                batchWriteItemRequest.RequestItems[configuration.Table.TableName] = writeRequestBatch;
                 await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                var maxWriteRequests = new List<WriteRequest>(25);
-                var batchWriteItemRequest = new BatchWriteItemRequest
-                {
-                    RequestItems = new Dictionary<string, List<WriteRequest>>
-                    {
-                        { configuration.Table.TableName, writeRequests }
-                    },
-                };
-                for (int i = 0; i < writeRequests.Count; i++)
-                {
-                    var request = writeRequests[i];
-                    if (i != 0 && i % 25 == 0)
-                    {
-                        batchWriteItemRequest.RequestItems[configuration.Table.TableName] = maxWriteRequests;
-                        await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
-                        maxWriteRequests.Clear();
-                    }
-                    maxWriteRequests.Add(request);
-                }
-
-                if (maxWriteRequests.Count > 0)
-                {
-                    batchWriteItemRequest.RequestItems[configuration.Table.TableName] = maxWriteRequests;
-                    await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
-                }
             }
         }
 
