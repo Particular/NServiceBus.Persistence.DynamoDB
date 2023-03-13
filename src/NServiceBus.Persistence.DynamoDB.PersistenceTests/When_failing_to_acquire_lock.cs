@@ -61,7 +61,7 @@
                 var cancelTokenAfter = TimeSpan.FromTicks(configuration.SessionTimeout.GetValueOrDefault(TimeSpan.FromSeconds(1)).Ticks / 4);
                 using var pipelineCancellationTokenSource = new CancellationTokenSource(cancelTokenAfter);
                 // lock is still held by session 1
-                var exception = Assert.ThrowsAsync<OperationCanceledException>(() => configuration.SagaStorage.Get<TestSagaData>(saga.Id, blockedSession, session2Context, pipelineCancellationTokenSource.Token));
+                Assert.CatchAsync<OperationCanceledException>(() => configuration.SagaStorage.Get<TestSagaData>(saga.Id, blockedSession, session2Context, pipelineCancellationTokenSource.Token));
             }
 
             await lockingSession.CompleteAsync();
