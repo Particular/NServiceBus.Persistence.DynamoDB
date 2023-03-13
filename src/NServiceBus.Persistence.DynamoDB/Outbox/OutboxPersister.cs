@@ -51,34 +51,34 @@
             };
             QueryResponse response = null;
             int numberOfTransportOperations = 0;
-            string incomingId = null;
+            bool? foundHeaderEntry = null;
             List<Dictionary<string, AttributeValue>> transportOperationsAttributes = null;
             do
             {
                 queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
-                bool headerItemSet = false;
-                if (incomingId == null && response.Items.Count >= 1)
+                bool hasOutboxHeaderEntry = false;
+                if (foundHeaderEntry == null && response.Items.Count >= 1)
                 {
+                    foundHeaderEntry = true;
                     var headerItem = response.Items[0];
-                    incomingId = headerItem[configuration.PartitionKeyName].S;
-                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
-                    headerItemSet = true;
+                    numberOfTransportOperations = Convert.ToInt32(headerItem["NumberTransportOperations"].N);
+                    hasOutboxHeaderEntry = true;
                 }
 
-                for (int i = headerItemSet ? 1 : 0; i < response.Items.Count; i++)
+                for (int i = hasOutboxHeaderEntry ? 1 : 0; i < response.Items.Count; i++)
                 {
                     transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
                     transportOperationsAttributes.Add(response.Items[i]);
                 }
             } while (response.LastEvaluatedKey.Count > 0);
 
-            return incomingId == null ?
+            return foundHeaderEntry == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
-                null : DeserializeOutboxMessage(incomingId, numberOfTransportOperations, transportOperationsAttributes, context);
+                null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage DeserializeOutboxMessage(string incomingId, int numberOfTransportOperations,
+        OutboxMessage DeserializeOutboxMessage(string messageId, int numberOfTransportOperations,
             List<Dictionary<string, AttributeValue>> transportOperationsAttributes, ContextBag contextBag)
         {
             // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
@@ -94,7 +94,7 @@
                 operations[i] = DeserializeOperation(transportOperationsAttributes![i]);
             }
 
-            return new OutboxMessage(incomingId, operations);
+            return new OutboxMessage(messageId, operations);
         }
 
         TransportOperation DeserializeOperation(Dictionary<string, AttributeValue> attributeValues)
@@ -145,7 +145,7 @@
                         {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                         {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
-                            "TransportOperations",
+                            "NumberTransportOperations",
                             new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
@@ -247,7 +247,7 @@
                         {
                             {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                             {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
-                            {"TransportOperations", new AttributeValue {N = "0"}},
+                            {"NumberTransportOperations", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
                             {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
                             {configuration.TimeToLiveAttributeName, new AttributeValue {N = epochSeconds.ToString()}}
