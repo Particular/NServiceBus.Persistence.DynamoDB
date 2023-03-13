@@ -1,4 +1,6 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿#nullable enable
+
+namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Buffers;
@@ -34,7 +36,7 @@
             return Task.FromResult((IOutboxTransaction)transaction);
         }
 
-        public async Task<OutboxMessage> Get(string messageId, ContextBag context,
+        public async Task<OutboxMessage?> Get(string messageId, ContextBag context,
             CancellationToken cancellationToken = default)
         {
             var queryRequest = new QueryRequest
@@ -49,10 +51,10 @@
                 },
                 TableName = configuration.TableName
             };
-            QueryResponse response = null;
+            QueryResponse? response = null;
             int numberOfTransportOperations = 0;
             bool? foundHeaderEntry = null;
-            List<Dictionary<string, AttributeValue>> transportOperationsAttributes = null;
+            List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
             do
             {
                 queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
@@ -78,8 +80,8 @@
                 null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage DeserializeOutboxMessage(string messageId, int numberOfTransportOperations,
-            List<Dictionary<string, AttributeValue>> transportOperationsAttributes, ContextBag contextBag)
+        OutboxMessage? DeserializeOutboxMessage(string messageId, int numberOfTransportOperations,
+            List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {
             // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
             // potential partial deletes
@@ -175,12 +177,11 @@
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
-                            // TODO: Make this better in terms of allocations?
                             {
                                 "Properties",
                                 new AttributeValue
                                 {
-                                    M = SerializeStringDictionary(operation.Options ?? new DispatchProperties()),
+                                    M = SerializeStringDictionary(operation.Options),
                                     IsMSet = true
                                 }
                             },
@@ -188,8 +189,7 @@
                                 "Headers",
                                 new AttributeValue
                                 {
-                                    M = SerializeStringDictionary(operation.Headers ??
-                                                                  new Dictionary<string, string>()),
+                                    M = SerializeStringDictionary(operation.Headers),
                                     IsMSet = true
                                 }
                             },
@@ -208,8 +208,13 @@
             }
         }
 
-        static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string> value)
+        static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string>? value)
         {
+            if (value == null)
+            {
+                return new Dictionary<string, AttributeValue>(0);
+            }
+
             var attributeValues = new Dictionary<string, AttributeValue>(value.Count);
             foreach (KeyValuePair<string, string> pair in value)
             {
@@ -335,7 +340,7 @@
                 }
             }
 
-            byte[] buffer;
+            byte[]? buffer;
         }
     }
 }
