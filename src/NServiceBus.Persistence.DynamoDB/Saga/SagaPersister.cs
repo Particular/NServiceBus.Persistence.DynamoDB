@@ -19,7 +19,7 @@
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
 
-#if NET6_0_OR_GREATER
+#if NET
         readonly Random random = Random.Shared;
 #else
         readonly Random random = new Random();
