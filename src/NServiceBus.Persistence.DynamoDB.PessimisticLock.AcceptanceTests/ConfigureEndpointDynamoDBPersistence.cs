@@ -10,7 +10,7 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
     {
         if (configuration.GetSettings().Get<bool>("Endpoint.SendOnly"))
         {
-            return Task.FromResult(0);
+            return Task.CompletedTask;
         }
 
         // disable installers which are enabled by default in the standard endpoint templates
@@ -22,7 +22,7 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
 
         persistence.Sagas().UsePessimisticLocking = true;
 
-        return Task.FromResult(0);
+        return Task.CompletedTask;
     }
 
     public Task Cleanup() => Task.CompletedTask;
