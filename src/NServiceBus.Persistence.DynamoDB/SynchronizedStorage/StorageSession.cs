@@ -8,9 +8,17 @@
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
+    using Logging;
 
     class StorageSession
     {
+        static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
+
+        public HashSet<Guid> SagaLocksReleased = new();
+
+        //TODO optimize allocations by avoiding creation of the dictionary on OOC settings. Expect 1 saga to be the default.
+        public Dictionary<Guid, Func<IAmazonDynamoDB, Task>> CleanupActions { get; } = new();
+
         public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
             this.dynamoDbClient = dynamoDbClient;
@@ -56,10 +64,38 @@
             {
                 throw new InvalidOperationException("Unable to complete transaction. Retrying");
             }
+
+            // The transaction operations already released any lock, don't clean them up explicitly
+            foreach (var sagaId in SagaLocksReleased)
+            {
+                CleanupActions.Remove(sagaId);
+            }
         }
 
         public void Dispose()
         {
+
+            // release lock as fire & forget
+            _ = ReleaseLocksAsync();
+
+            async Task ReleaseLocksAsync()
+            {
+                // release any outstanding lock
+
+                // Batches only support put/delete operations, no updates, therefore we execute all cleanups separately
+                foreach (var action in CleanupActions.Values)
+                {
+                    try
+                    {
+                        await action(dynamoDbClient).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        // ignore failures and let the lock release naturally due to the max lock duration
+                        Logger.Warn("Failed to cleanup saga locks", e);
+                    }
+                }
+            }
         }
 
         public ContextBag CurrentContextBag { get; set; }

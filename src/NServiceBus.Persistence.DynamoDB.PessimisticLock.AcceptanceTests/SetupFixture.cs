@@ -16,9 +16,7 @@
         {
             TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}";
 
-            var client = ClientFactory.CreateDynamoDBClient();
-
-            DynamoDBClient = client;
+            DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
             var installer = new Installer(DynamoDBClient);
 

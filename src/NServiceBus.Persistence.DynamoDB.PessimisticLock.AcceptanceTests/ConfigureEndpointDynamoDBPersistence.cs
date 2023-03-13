@@ -20,6 +20,8 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
         persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
         persistence.TableName(SetupFixture.TableName);
 
+        persistence.Sagas().UsePessimisticLocking = true;
+
         return Task.CompletedTask;
     }
 

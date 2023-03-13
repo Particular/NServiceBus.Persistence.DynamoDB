@@ -11,7 +11,7 @@
 
     class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSession
     {
-        StorageSession storageSession;
+        internal StorageSession storageSession;
         bool commitOnComplete;
         bool disposed;
         readonly IAmazonDynamoDB client;
