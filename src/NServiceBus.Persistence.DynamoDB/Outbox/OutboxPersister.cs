@@ -62,7 +62,6 @@
                 {
                     var headerItem = response.Items[0];
                     incomingId = headerItem[configuration.PartitionKeyName].S;
-                    // TODO: In case we delete stuff we can probably even remove this property
                     numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
                     headerItemSet = true;
                 }
@@ -76,22 +75,23 @@
 
             return incomingId == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
-                null : DeserializeOutboxMessage(incomingId, transportOperationsAttributes, context);
+                null : DeserializeOutboxMessage(incomingId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage DeserializeOutboxMessage(string incomingId,
-            List<Dictionary<string, AttributeValue>> responseItems, ContextBag contextBag)
+        OutboxMessage DeserializeOutboxMessage(string incomingId, int numberOfTransportOperations,
+            List<Dictionary<string, AttributeValue>> transportOperationsAttributes, ContextBag contextBag)
         {
-            var count = responseItems?.Count ?? 0;
-            contextBag.Set(OperationsCountContextProperty, count);
+            // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
+            // potential partial deletes
+            contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
 
-            var operations = count == 0
+            var operations = numberOfTransportOperations == 0
                 ? Array.Empty<TransportOperation>()
-                : new TransportOperation[count];
+                : new TransportOperation[numberOfTransportOperations];
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < numberOfTransportOperations; i++)
             {
-                operations[i] = DeserializeOperation(responseItems![i]);
+                operations[i] = DeserializeOperation(transportOperationsAttributes![i]);
             }
 
             return new OutboxMessage(incomingId, operations);
