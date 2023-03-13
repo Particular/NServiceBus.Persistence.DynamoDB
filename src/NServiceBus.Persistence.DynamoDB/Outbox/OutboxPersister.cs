@@ -1,9 +1,12 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿#nullable enable
+
+namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
@@ -33,69 +36,99 @@
             return Task.FromResult((IOutboxTransaction)transaction);
         }
 
-        public async Task<OutboxMessage> Get(string messageId, ContextBag context,
+        public async Task<OutboxMessage?> Get(string messageId, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            var allItems = new List<Dictionary<string, AttributeValue>>();
-            QueryResponse response = null;
+            var queryRequest = new QueryRequest
+            {
+                ConsistentRead = true,
+                KeyConditionExpression = $"#PK = :outboxId",
+                ExpressionAttributeNames =
+                    new Dictionary<string, string> { { "#PK", configuration.PartitionKeyName } },
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                {
+                    { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
+                },
+                TableName = configuration.TableName
+            };
+            QueryResponse? response = null;
+            int numberOfTransportOperations = 0;
+            bool? foundOutboxMetadataEntry = null;
+            List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
             do
             {
-                var queryRequest = new QueryRequest
-                {
-                    ConsistentRead = true,
-                    KeyConditionExpression = $"#PK = :outboxId",
-                    ExclusiveStartKey = response?.LastEvaluatedKey,
-                    ExpressionAttributeNames =
-                        new Dictionary<string, string> { { "#PK", configuration.PartitionKeyName } },
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                    {
-                        { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
-                    },
-                    TableName = configuration.TableName
-                };
+                queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
                 response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
-                allItems.AddRange(response.Items);
+                bool responseItemsHasOutboxMetadataEntry = false;
+                if (foundOutboxMetadataEntry == null && response.Items.Count >= 1)
+                {
+                    foundOutboxMetadataEntry = true;
+                    var headerItem = response.Items[0];
+                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    responseItemsHasOutboxMetadataEntry = true;
+                }
+
+                for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
+                {
+                    transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
+                    transportOperationsAttributes.Add(response.Items[i]);
+                }
             } while (response.LastEvaluatedKey.Count > 0);
 
-            if (allItems.Count == 0)
-            {
+            return foundOutboxMetadataEntry == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
-                return null;
-            }
-
-            return DeserializeOutboxMessage(allItems, context);
+                null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage DeserializeOutboxMessage(List<Dictionary<string, AttributeValue>> responseItems,
-            ContextBag contextBag)
+        OutboxMessage? DeserializeOutboxMessage(string messageId, int numberOfTransportOperations,
+            List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {
-            var headerItem = responseItems.First();
-            var incomingId = headerItem[configuration.PartitionKeyName].S;
-            // TODO: In case we delete stuff we can probably even remove this property
-            int numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperations"].N);
+            // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
+            // potential partial deletes
             contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
 
-            var operations = Array.Empty<TransportOperation>();
-            if (numberOfTransportOperations > 0)
+            var operations = numberOfTransportOperations == 0
+                ? Array.Empty<TransportOperation>()
+                : new TransportOperation[numberOfTransportOperations];
+
+            for (int i = 0; i < numberOfTransportOperations; i++)
             {
-                operations = responseItems.Skip(1).Select(DeserializeOperation).ToArray();
+                operations[i] = DeserializeOperation(transportOperationsAttributes![i]);
             }
 
-            return new OutboxMessage(incomingId, operations);
+            return new OutboxMessage(messageId, operations);
         }
 
-        static TransportOperation DeserializeOperation(Dictionary<string, AttributeValue> attributeValues)
+        TransportOperation DeserializeOperation(Dictionary<string, AttributeValue> attributeValues)
         {
             var messageId = attributeValues["MessageId"].S;
             var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues["Properties"]));
             var headers = DeserializeStringDictionary(attributeValues["Headers"]);
-            // this is all very wasteful but good enough for the prototype
-            byte[] body = attributeValues["Body"].B.ToArray();
-            return new TransportOperation(messageId, properties, body, headers);
+            var bodyMemory = GetAndTrackBodyMemory(attributeValues["Body"], properties);
+            return new TransportOperation(messageId, properties, bodyMemory, headers);
         }
 
-        static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue) =>
-            attributeValue.M.ToDictionary(x => x.Key, x => x.Value.S);
+        ReadOnlyMemory<byte> GetAndTrackBodyMemory(AttributeValue bodyValue, DispatchProperties properties)
+        {
+            MemoryStream bodyStream = bodyValue.B;
+            int bodyStreamLength = (int)bodyStream.Length;
+            var buffer = ArrayPool<byte>.Shared.Rent(bodyStreamLength);
+            var bytesRead = bodyStream.Read(buffer, 0, bodyStreamLength);
+            bufferTracking.Add(properties, new ReturnBuffer(buffer));
+            ReadOnlyMemory<byte> bodyMemory = buffer.AsMemory(0, bytesRead);
+            return bodyMemory;
+        }
+
+        static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue)
+        {
+            Dictionary<string, AttributeValue> attributeValues = attributeValue.M;
+            var dictionary = new Dictionary<string, string>(attributeValues.Count);
+            foreach (var pair in attributeValues)
+            {
+                dictionary.Add(pair.Key, pair.Value.S);
+            }
+            return dictionary;
+        }
 
         IEnumerable<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
         {
@@ -114,7 +147,7 @@
                         {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                         {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
-                            "TransportOperations",
+                            "TransportOperationsCount",
                             new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
@@ -132,7 +165,7 @@
             var n = 1;
             foreach (var operation in outboxMessage.TransportOperations)
             {
-                var bodyStream = new MemoryStream(operation.Body.ToArray());
+                var bodyStream = new ReadOnlyMemoryStream(operation.Body);
                 yield return new TransactWriteItem
                 {
                     Put = new Put
@@ -144,12 +177,11 @@
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
-                            // TODO: Make this better in terms of allocations?
                             {
                                 "Properties",
                                 new AttributeValue
                                 {
-                                    M = SerializeStringDictionary(operation.Options ?? new DispatchProperties()),
+                                    M = SerializeStringDictionary(operation.Options),
                                     IsMSet = true
                                 }
                             },
@@ -157,8 +189,7 @@
                                 "Headers",
                                 new AttributeValue
                                 {
-                                    M = SerializeStringDictionary(operation.Headers ??
-                                                                  new Dictionary<string, string>()),
+                                    M = SerializeStringDictionary(operation.Headers),
                                     IsMSet = true
                                 }
                             },
@@ -177,9 +208,19 @@
             }
         }
 
-        static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string> value)
+        static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string>? value)
         {
-            return value.ToDictionary(x => x.Key, x => new AttributeValue { S = x.Value });
+            if (value == null)
+            {
+                return new Dictionary<string, AttributeValue>(0);
+            }
+
+            var attributeValues = new Dictionary<string, AttributeValue>(value.Count);
+            foreach (KeyValuePair<string, string> pair in value)
+            {
+                attributeValues.Add(pair.Key, new AttributeValue(pair.Value));
+            }
+            return attributeValues;
         }
 
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context,
@@ -211,7 +252,7 @@
                         {
                             {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                             {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
-                            {"TransportOperations", new AttributeValue {N = "0"}},
+                            {"TransportOperationsCount", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
                             {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
                             {configuration.TimeToLiveAttributeName, new AttributeValue {N = epochSeconds.ToString()}}
@@ -239,18 +280,67 @@
             // transactions come with a cost. They cost double the amount of write units compared to batch writes.
             // Setting the outbox record as dispatch is an idempotent operation that doesn't require transactionality
             // so using the cheaper API in terms of write operations is a sane choice.
-            var batchWriteItemRequest = new BatchWriteItemRequest
+            // TODO: Cleanup this code
+            if (writeRequests.Count < 25)
             {
-                RequestItems = new Dictionary<string, List<WriteRequest>>
+                var batchWriteItemRequest = new BatchWriteItemRequest
                 {
-                    { configuration.TableName, writeRequests }
-                },
-            };
-            await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
+                    RequestItems = new Dictionary<string, List<WriteRequest>>
+                    {
+                        { configuration.TableName, writeRequests }
+                    },
+                };
+                await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                var maxWriteRequests = new List<WriteRequest>(25);
+                var batchWriteItemRequest = new BatchWriteItemRequest
+                {
+                    RequestItems = new Dictionary<string, List<WriteRequest>>
+                    {
+                        { configuration.TableName, writeRequests }
+                    },
+                };
+                for (int i = 0; i < writeRequests.Count; i++)
+                {
+                    var request = writeRequests[i];
+                    if (i != 0 && i % 25 == 0)
+                    {
+                        batchWriteItemRequest.RequestItems[configuration.TableName] = maxWriteRequests;
+                        await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
+                        maxWriteRequests.Clear();
+                    }
+                    maxWriteRequests.Add(request);
+                }
+
+                if (maxWriteRequests.Count > 0)
+                {
+                    batchWriteItemRequest.RequestItems[configuration.TableName] = maxWriteRequests;
+                    await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
 
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly OutboxPersistenceConfiguration configuration;
         readonly string endpointIdentifier;
+        readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = new();
+
+        sealed class ReturnBuffer
+        {
+            public ReturnBuffer(byte[] buffer) => this.buffer = buffer;
+
+            ~ReturnBuffer()
+            {
+                if (buffer != null)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                    buffer = null;
+                }
+            }
+
+            byte[]? buffer;
+        }
     }
 }
