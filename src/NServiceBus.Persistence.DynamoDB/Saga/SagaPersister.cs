@@ -162,7 +162,7 @@
                             return null;
                         }
                     }
-                    catch (AmazonDynamoDBException e) when (e.ErrorCode == "ConditionalCheckFailedException")
+                    catch (AmazonDynamoDBException e) when (e is ConditionalCheckFailedException or TransactionConflictException)
                     {
                         // Condition failed, saga data is already locked but we don't know for how long
                         await Task.Delay(random.Next(100, 300), cancellationToken)
