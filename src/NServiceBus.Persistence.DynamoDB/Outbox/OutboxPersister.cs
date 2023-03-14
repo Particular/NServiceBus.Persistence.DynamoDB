@@ -44,12 +44,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 ConsistentRead = true,
                 KeyConditionExpression = $"#PK = :outboxId",
                 ExpressionAttributeNames =
-                    new Dictionary<string, string> { { "#PK", configuration.PartitionKeyName } },
+                    new Dictionary<string, string> { { "#PK", configuration.TableConfiguration.PartitionKeyName } },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
                     { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
                 },
-                TableName = configuration.TableName
+                TableName = configuration.TableConfiguration.TableName
             };
             QueryResponse? response = null;
             int numberOfTransportOperations = 0;
@@ -144,22 +144,22 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     Item = new Dictionary<string, AttributeValue>
                     {
-                        {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
-                        {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
+                        {configuration.TableConfiguration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
+                        {configuration.TableConfiguration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
                         {
                             "TransportOperationsCount",
                             new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
                         {"DispatchedAt", new AttributeValue {NULL = true}},
-                        {configuration.TimeToLiveAttributeName, new AttributeValue {NULL = true}} //TTL
+                        {configuration.TableConfiguration.TimeToLiveAttributeName!, new AttributeValue {NULL = true}} //TTL
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        {"#SK", configuration.SortKeyName}
+                        {"#SK", configuration.TableConfiguration.SortKeyName}
                     },
-                    TableName = configuration.TableName,
+                    TableName = configuration.TableConfiguration.TableName,
                 }
             };
             var n = 1;
@@ -172,8 +172,8 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
-                            {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
+                            {configuration.TableConfiguration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
+                            {configuration.TableConfiguration.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
@@ -194,14 +194,14 @@ namespace NServiceBus.Persistence.DynamoDB
                                 }
                             },
                             {"Body", new AttributeValue {B = bodyStream}},
-                            {configuration.TimeToLiveAttributeName, new AttributeValue {NULL = true}} //TTL
+                            {configuration.TableConfiguration.TimeToLiveAttributeName!, new AttributeValue {NULL = true}} //TTL
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                         ExpressionAttributeNames = new Dictionary<string, string>()
                         {
-                            {"#SK", configuration.SortKeyName}
+                            {"#SK", configuration.TableConfiguration.SortKeyName}
                         },
-                        TableName = configuration.TableName
+                        TableName = configuration.TableConfiguration.TableName
                     }
                 };
                 n++;
@@ -250,12 +250,12 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                            {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
+                            {configuration.TableConfiguration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
+                            {configuration.TableConfiguration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
                             {"TransportOperationsCount", new AttributeValue {N = "0"}},
                             {"Dispatched", new AttributeValue {BOOL = true}},
                             {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
-                            {configuration.TimeToLiveAttributeName, new AttributeValue {N = epochSeconds.ToString()}}
+                            {configuration.TableConfiguration.TimeToLiveAttributeName!, new AttributeValue {N = epochSeconds.ToString()}}
                         },
                     }
                 }
@@ -269,8 +269,8 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                            {configuration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#{i}"}}, //Sort key
+                            {configuration.TableConfiguration.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
+                            {configuration.TableConfiguration.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#{i}"}}, //Sort key
                         }
                     }
                 });
@@ -287,7 +287,7 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     RequestItems = new Dictionary<string, List<WriteRequest>>
                     {
-                        { configuration.TableName, writeRequests }
+                        { configuration.TableConfiguration.TableName, writeRequests }
                     },
                 };
                 await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
@@ -299,7 +299,7 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     RequestItems = new Dictionary<string, List<WriteRequest>>
                     {
-                        { configuration.TableName, writeRequests }
+                        { configuration.TableConfiguration.TableName, writeRequests }
                     },
                 };
                 for (int i = 0; i < writeRequests.Count; i++)
@@ -307,7 +307,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     var request = writeRequests[i];
                     if (i != 0 && i % 25 == 0)
                     {
-                        batchWriteItemRequest.RequestItems[configuration.TableName] = maxWriteRequests;
+                        batchWriteItemRequest.RequestItems[configuration.TableConfiguration.TableName] = maxWriteRequests;
                         await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
                         maxWriteRequests.Clear();
                     }
@@ -316,7 +316,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
                 if (maxWriteRequests.Count > 0)
                 {
-                    batchWriteItemRequest.RequestItems[configuration.TableName] = maxWriteRequests;
+                    batchWriteItemRequest.RequestItems[configuration.TableConfiguration.TableName] = maxWriteRequests;
                     await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
                 }
             }

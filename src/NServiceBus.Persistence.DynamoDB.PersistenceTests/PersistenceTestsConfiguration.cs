@@ -57,17 +57,24 @@
         {
             var configuration = (PersistenceConfiguration)Variant.Values[0];
 
-            // TODO consider splitting up table config from "persister config" to decouple from the static setupfixture
-            SetupFixture.SagaConfiguration.UsePessimisticLocking =
-                SupportsPessimisticConcurrency = configuration.UsePessimisticLocking;
-            SetupFixture.SagaConfiguration.LeaseAcquistionTimeout = Variant.SessionTimeout ?? TimeSpan.FromSeconds(10);
+            SagaStorage = new SagaPersister(
+                new SagaPersistenceConfiguration
+                {
+                    TableConfiguration = SetupFixture.SagaTable,
+                    UsePessimisticLocking = SupportsPessimisticConcurrency = configuration.UsePessimisticLocking,
+                    LeaseAcquistionTimeout = Variant.SessionTimeout ?? TimeSpan.FromSeconds(10)
+                },
+                Client);
 
-            SagaStorage = new SagaPersister(SetupFixture.SagaConfiguration, Client);
             OutboxStorage = new OutboxPersister(
                 Client,
-                SetupFixture.OutboxConfiguration,
+                new OutboxPersistenceConfiguration
+                {
+                    TableConfiguration = SetupFixture.OutboxTable
+                },
                 "PersistenceTest");
 
+            //TODO define TTL value which was 100 sec
             CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(this);
 
             return Task.CompletedTask;

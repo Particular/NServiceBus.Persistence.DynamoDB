@@ -45,10 +45,10 @@
                     ConsistentRead = true,
                     Key = new Dictionary<string, AttributeValue>
                     {
-                        { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                        { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
+                        { configuration.TableConfiguration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                        { configuration.TableConfiguration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
                     },
-                    TableName = configuration.TableName
+                    TableName = configuration.TableConfiguration.TableName
                 };
 
                 var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
@@ -74,8 +74,8 @@
                     {
                         Key = new Dictionary<string, AttributeValue>
                     {
-                        { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                        { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                        { configuration.TableConfiguration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                        { configuration.TableConfiguration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                     },
                         UpdateExpression = "SET #lease = :lease_timeout",
                         ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
@@ -89,7 +89,7 @@
                         { ":lease_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
                     },
                         ReturnValues = ReturnValue.ALL_NEW,
-                        TableName = configuration.TableName
+                        TableName = configuration.TableConfiguration.TableName
                     };
 
                     try
@@ -109,8 +109,8 @@
                             {
                                 Key = new Dictionary<string, AttributeValue>
                             {
-                                { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                                { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                                { configuration.TableConfiguration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                { configuration.TableConfiguration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
                                 UpdateExpression = "SET #lease = :released_lease",
                                 ConditionExpression = "#lease = :current_lease AND #version = :current_version", // only if the lock is still the same that we acquired.
@@ -127,7 +127,7 @@
                                 { ":current_version", response.Attributes[SagaDataVersionAttributeName] }
                             },
                                 ReturnValues = ReturnValue.NONE,
-                                TableName = configuration.TableName
+                                TableName = configuration.TableConfiguration.TableName
                             });
 
                             return sagaData;
@@ -142,8 +142,8 @@
                             {
                                 Key = new Dictionary<string, AttributeValue>
                             {
-                                { configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                                { configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                                { configuration.TableConfiguration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                { configuration.TableConfiguration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                             },
                                 ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#version)", // only if the lock is still the same that we acquired.
                                 ExpressionAttributeNames = new Dictionary<string, string>
@@ -156,7 +156,7 @@
                                 { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
                             },
                                 ReturnValues = ReturnValue.NONE,
-                                TableName = configuration.TableName
+                                TableName = configuration.TableConfiguration.TableName
                             });
 
                             return null;
@@ -206,7 +206,7 @@
                     {
                         {"#version", SagaDataVersionAttributeName}
                     },
-                    TableName = configuration.TableName,
+                    TableName = configuration.TableConfiguration.TableName,
                 }
             });
 
@@ -236,7 +236,7 @@
                     {
                         { ":cv", new AttributeValue { N = currentVersion.ToString() } }
                     },
-                    TableName = configuration.TableName
+                    TableName = configuration.TableConfiguration.TableName
                 }
             });
 
@@ -253,8 +253,8 @@
             var sagaDataJson = JsonSerializer.Serialize(sagaData, sagaData.GetType());
             var doc = Document.FromJson(sagaDataJson);
             var map = doc.ToAttributeMap();
-            map.Add(configuration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
-            map.Add(configuration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
+            map.Add(configuration.TableConfiguration.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
+            map.Add(configuration.TableConfiguration.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             // Version should probably be properly moved into metadata to not clash with existing things
             map.Add(SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() });
             // release lease on save
@@ -273,8 +273,8 @@
                 {
                     Key = new Dictionary<string, AttributeValue>
                     {
-                        {configuration.PartitionKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
-                        {configuration.SortKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
+                        {configuration.TableConfiguration.PartitionKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
+                        {configuration.TableConfiguration.SortKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
                     },
                     ConditionExpression = "#v = :cv", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
@@ -285,7 +285,7 @@
                     {
                         { ":cv", new AttributeValue { N = currentVersion.ToString() } }
                     },
-                    TableName = configuration.TableName,
+                    TableName = configuration.TableConfiguration.TableName,
                 }
             });
             return Task.CompletedTask;

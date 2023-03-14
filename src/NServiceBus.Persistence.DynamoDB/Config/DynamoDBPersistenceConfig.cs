@@ -12,6 +12,16 @@
         internal const string SharedTableName = "NServiceBus.Storage";
         internal const string DefaultPartitionKeyName = "PK";
         internal const string DefaultSortKeyName = "SK";
+
+        readonly DynamoTableConfiguration defaultTableConfiguration = new DynamoTableConfiguration()
+        {
+            TableName = SharedTableName,
+            PartitionKeyName = DefaultPartitionKeyName,
+            SortKeyName = DefaultSortKeyName,
+            BillingMode = BillingMode.PAY_PER_REQUEST,
+            TimeToLiveAttributeName = "ExpiresAt"
+        };
+
         internal static readonly BillingMode DefaultBillingMode = BillingMode.PAY_PER_REQUEST;
 
         /// <summary>
@@ -34,8 +44,8 @@
         {
             Guard.AgainstNullAndEmpty(nameof(tableName), tableName);
 
-            persistenceExtensions.Outbox().TableName = tableName;
-            persistenceExtensions.Sagas().TableName = tableName;
+            persistenceExtensions.Outbox().TableConfiguration.TableName = tableName;
+            persistenceExtensions.Sagas().TableConfiguration.TableName = tableName;
 
             return persistenceExtensions;
         }

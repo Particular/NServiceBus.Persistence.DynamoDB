@@ -20,8 +20,10 @@
 
             var installer = new Installer(DynamoDBClient);
 
-            await installer.CreateOutboxTableIfNotExists(new OutboxPersistenceConfiguration { TableName = TableName });
-            await installer.CreateSagaTableIfNotExists(new SagaPersistenceConfiguration { TableName = TableName });
+            await installer.CreateTable(new DynamoTableConfiguration
+            {
+                TableName = TableName,
+            });
         }
 
         [OneTimeTearDown]

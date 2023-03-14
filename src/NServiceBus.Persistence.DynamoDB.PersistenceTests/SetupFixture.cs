@@ -17,37 +17,38 @@
         {
             DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
-            OutboxConfiguration = new OutboxPersistenceConfiguration()
+            OutboxTable = new DynamoTableConfiguration()
             {
-                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
+                TableName =
+                    $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
                 TimeToLiveAttributeName = Guid.NewGuid().ToString("N") + "TTL",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK",
-                TimeToLive = TimeSpan.FromSeconds(100)
             };
-            SagaConfiguration = new SagaPersistenceConfiguration()
+            SagaTable = new DynamoTableConfiguration()
             {
-                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga",
+                TableName =
+                    $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK"
             };
 
             var installer = new Installer(DynamoDBClient);
 
-            await installer.CreateOutboxTableIfNotExists(OutboxConfiguration, CancellationToken.None).ConfigureAwait(false);
-            await installer.CreateSagaTableIfNotExists(SagaConfiguration, CancellationToken.None).ConfigureAwait(false);
+            await installer.CreateTable(OutboxTable, CancellationToken.None).ConfigureAwait(false);
+            await installer.CreateTable(SagaTable, CancellationToken.None).ConfigureAwait(false);
         }
 
         [OneTimeTearDown]
         public async Task OneTimeTearDown()
         {
-            await DynamoDBClient.DeleteTableAsync(SagaConfiguration.TableName).ConfigureAwait(false);
-            await DynamoDBClient.DeleteTableAsync(OutboxConfiguration.TableName).ConfigureAwait(false);
+            await DynamoDBClient.DeleteTableAsync(SagaTable.TableName).ConfigureAwait(false);
+            await DynamoDBClient.DeleteTableAsync(OutboxTable.TableName).ConfigureAwait(false);
             DynamoDBClient.Dispose();
         }
 
         public static IAmazonDynamoDB DynamoDBClient;
-        public static OutboxPersistenceConfiguration OutboxConfiguration;
-        public static SagaPersistenceConfiguration SagaConfiguration;
+        public static DynamoTableConfiguration SagaTable { get; set; }
+        public static DynamoTableConfiguration OutboxTable { get; set; }
     }
 }

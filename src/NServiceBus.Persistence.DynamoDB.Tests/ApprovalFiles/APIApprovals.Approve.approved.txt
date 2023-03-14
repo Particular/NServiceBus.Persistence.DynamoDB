@@ -25,6 +25,16 @@ namespace NServiceBus
 }
 namespace NServiceBus.Persistence.DynamoDB
 {
+    public class DynamoTableConfiguration : System.IEquatable<NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration>
+    {
+        public DynamoTableConfiguration() { }
+        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
+        public string PartitionKeyName { get; set; }
+        public Amazon.DynamoDBv2.Model.ProvisionedThroughput? ProvisionedThroughput { get; set; }
+        public string SortKeyName { get; set; }
+        public string TableName { get; set; }
+        public string? TimeToLiveAttributeName { get; set; }
+    }
     public interface IDynamoDBClientProvider
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
@@ -32,24 +42,15 @@ namespace NServiceBus.Persistence.DynamoDB
     public class OutboxPersistenceConfiguration
     {
         public OutboxPersistenceConfiguration() { }
-        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
-        public string PartitionKeyName { get; set; }
-        public Amazon.DynamoDBv2.Model.ProvisionedThroughput ProvisionedThroughput { get; set; }
-        public string SortKeyName { get; set; }
-        public string TableName { get; set; }
+        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration TableConfiguration { get; set; }
         public System.TimeSpan TimeToLive { get; set; }
-        public string TimeToLiveAttributeName { get; set; }
     }
     public class SagaPersistenceConfiguration
     {
         public System.TimeSpan LeaseDuration;
         public SagaPersistenceConfiguration() { }
-        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
         public System.TimeSpan LeaseAcquistionTimeout { get; set; }
-        public string PartitionKeyName { get; set; }
-        public Amazon.DynamoDBv2.Model.ProvisionedThroughput ProvisionedThroughput { get; set; }
-        public string SortKeyName { get; set; }
-        public string TableName { get; set; }
+        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration TableConfiguration { get; set; }
         public bool UsePessimisticLocking { get; set; }
     }
 }
