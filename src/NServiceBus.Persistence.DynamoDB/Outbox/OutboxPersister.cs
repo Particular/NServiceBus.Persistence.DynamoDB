@@ -137,7 +137,7 @@ namespace NServiceBus.Persistence.DynamoDB
             return dictionary;
         }
 
-        IEnumerable<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
+        IReadOnlyCollection<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
         {
             contextBag.Set(OperationsCountContextProperty, outboxMessage.TransportOperations.Length);
             contextBag.Set($"dynamo_version:{outboxMessage.MessageId}", 0);
@@ -146,36 +146,44 @@ namespace NServiceBus.Persistence.DynamoDB
             // and could easily hit the 400 KB limit of an item when all operations would be serialized into
             // the same item. This is why multiple items are written for a single outbox record. With the transact
             // write items this can be done atomically.
-            yield return new TransactWriteItem()
+            var transactWriteItems = new List<TransactWriteItem>(outboxMessage.TransportOperations.Length + 1)
             {
-                Put = new Put
+                new TransactWriteItem()
                 {
-                    Item = new Dictionary<string, AttributeValue>
+                    Put = new Put
                     {
-                        {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
-                        {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
+                        Item = new Dictionary<string, AttributeValue>
                         {
-                            "TransportOperationsCount",
-                            new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
+                            {
+                                configuration.Table.PartitionKeyName,
+                                new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}" }
+                            },
+                            {
+                                configuration.Table.SortKeyName,
+                                new AttributeValue { S = $"OUTBOX#{outboxMessage.MessageId}#0" }
+                            }, //Sort key
+                            {
+                                "TransportOperationsCount",
+                                new AttributeValue { N = outboxMessage.TransportOperations.Length.ToString() }
+                            },
+                            { "Dispatched", new AttributeValue { BOOL = false } },
+                            { "DispatchedAt", new AttributeValue { NULL = true } },
+                            { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } }, //TTL
+                            { OutboxDataVersionAttributeName, new AttributeValue { N = "0" } },
                         },
-                        {"Dispatched", new AttributeValue {BOOL = false}},
-                        {"DispatchedAt", new AttributeValue {NULL = true}},
-                        {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}}, //TTL
-                        {OutboxDataVersionAttributeName, new AttributeValue {N = "0"}},
-                    },
-                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
-                    ExpressionAttributeNames = new Dictionary<string, string>
-                    {
-                        {"#SK", configuration.Table.SortKeyName}
-                    },
-                    TableName = configuration.Table.TableName,
+                        ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
+                        ExpressionAttributeNames =
+                            new Dictionary<string, string> { { "#SK", configuration.Table.SortKeyName } },
+                        TableName = configuration.Table.TableName,
+                    }
                 }
             };
+
             var n = 1;
             foreach (var operation in outboxMessage.TransportOperations)
             {
                 var bodyStream = new ReadOnlyMemoryStream(operation.Body);
-                yield return new TransactWriteItem
+                transactWriteItems[n] = new TransactWriteItem
                 {
                     Put = new Put
                     {
@@ -215,6 +223,8 @@ namespace NServiceBus.Persistence.DynamoDB
                 };
                 n++;
             }
+
+            return transactWriteItems;
         }
 
         static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string>? value)
