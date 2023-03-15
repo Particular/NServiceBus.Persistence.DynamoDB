@@ -14,7 +14,7 @@
         [OneTimeSetUp]
         public async Task OneTimeSetUp()
         {
-            TableConfiguration = new DynamoTableConfiguration
+            TableConfiguration = new TableConfiguration
             {
                 TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}",
             };
@@ -34,6 +34,6 @@
         }
 
         public static IAmazonDynamoDB DynamoDBClient;
-        public static DynamoTableConfiguration TableConfiguration;
+        public static TableConfiguration TableConfiguration;
     }
 }

@@ -25,7 +25,7 @@
         /// <summary>
         /// Uses the provided table configuration for both Saga and Outbox storage settings.
         /// </summary>
-        public static PersistenceExtensions<DynamoDBPersistence> UseSharedTable(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, DynamoTableConfiguration sharedTableConfiguration)
+        public static PersistenceExtensions<DynamoDBPersistence> UseSharedTable(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, TableConfiguration sharedTableConfiguration)
         {
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
             Guard.AgainstNull(nameof(sharedTableConfiguration), sharedTableConfiguration);

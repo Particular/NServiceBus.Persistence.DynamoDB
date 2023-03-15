@@ -8,7 +8,7 @@ namespace NServiceBus.Persistence.DynamoDB
     /// <summary>
     /// Describes a DynamoDB table.
     /// </summary>
-    public record DynamoTableConfiguration
+    public record TableConfiguration
     {
         /// <summary>
         /// The name of the table used to store outbox information

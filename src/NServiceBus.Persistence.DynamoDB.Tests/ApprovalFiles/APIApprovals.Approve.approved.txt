@@ -11,7 +11,7 @@ namespace NServiceBus
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> DynamoDBClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, Amazon.DynamoDBv2.IAmazonDynamoDB dynamoDBClient) { }
         public static NServiceBus.Persistence.DynamoDB.OutboxPersistenceConfiguration Outbox(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration sharedTableConfiguration) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, NServiceBus.Persistence.DynamoDB.TableConfiguration sharedTableConfiguration) { }
     }
     public interface IDynamoDBStorageSession
     {
@@ -25,16 +25,6 @@ namespace NServiceBus
 }
 namespace NServiceBus.Persistence.DynamoDB
 {
-    public class DynamoTableConfiguration : System.IEquatable<NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration>
-    {
-        public DynamoTableConfiguration() { }
-        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
-        public string PartitionKeyName { get; set; }
-        public Amazon.DynamoDBv2.Model.ProvisionedThroughput? ProvisionedThroughput { get; set; }
-        public string SortKeyName { get; set; }
-        public string TableName { get; set; }
-        public string? TimeToLiveAttributeName { get; set; }
-    }
     public interface IDynamoDBClientProvider
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
@@ -42,7 +32,7 @@ namespace NServiceBus.Persistence.DynamoDB
     public class OutboxPersistenceConfiguration
     {
         public OutboxPersistenceConfiguration() { }
-        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration Table { get; set; }
+        public NServiceBus.Persistence.DynamoDB.TableConfiguration Table { get; set; }
         public System.TimeSpan TimeToLive { get; set; }
     }
     public class SagaPersistenceConfiguration
@@ -50,8 +40,18 @@ namespace NServiceBus.Persistence.DynamoDB
         public System.TimeSpan LeaseDuration;
         public SagaPersistenceConfiguration() { }
         public System.TimeSpan LeaseAcquisitionTimeout { get; set; }
-        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration Table { get; set; }
+        public NServiceBus.Persistence.DynamoDB.TableConfiguration Table { get; set; }
         public bool UsePessimisticLocking { get; set; }
+    }
+    public class TableConfiguration : System.IEquatable<NServiceBus.Persistence.DynamoDB.TableConfiguration>
+    {
+        public TableConfiguration() { }
+        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
+        public string PartitionKeyName { get; set; }
+        public Amazon.DynamoDBv2.Model.ProvisionedThroughput? ProvisionedThroughput { get; set; }
+        public string SortKeyName { get; set; }
+        public string TableName { get; set; }
+        public string? TimeToLiveAttributeName { get; set; }
     }
 }
 namespace NServiceBus.Testing

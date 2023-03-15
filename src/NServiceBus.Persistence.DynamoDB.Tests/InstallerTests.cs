@@ -14,13 +14,13 @@
     {
         IAmazonDynamoDB dynamoClient;
         Installer installer;
-        DynamoTableConfiguration tableConfiguration;
+        TableConfiguration tableConfiguration;
 
         [SetUp]
         public void Setup()
         {
             dynamoClient = ClientFactory.CreateDynamoDBClient();
-            tableConfiguration = new DynamoTableConfiguration
+            tableConfiguration = new TableConfiguration
             {
                 TableName = Guid.NewGuid().ToString("N") + "_installer_tests",
                 PartitionKeyName = Guid.NewGuid().ToString("N"),

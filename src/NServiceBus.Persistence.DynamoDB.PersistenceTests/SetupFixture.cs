@@ -17,7 +17,7 @@
         {
             DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
-            OutboxTable = new DynamoTableConfiguration()
+            OutboxTable = new TableConfiguration()
             {
                 TableName =
                     $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
@@ -25,7 +25,7 @@
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK",
             };
-            SagaTable = new DynamoTableConfiguration()
+            SagaTable = new TableConfiguration()
             {
                 TableName =
                     $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga",
@@ -48,7 +48,7 @@
         }
 
         public static IAmazonDynamoDB DynamoDBClient;
-        public static DynamoTableConfiguration SagaTable { get; set; }
-        public static DynamoTableConfiguration OutboxTable { get; set; }
+        public static TableConfiguration SagaTable { get; set; }
+        public static TableConfiguration OutboxTable { get; set; }
     }
 }

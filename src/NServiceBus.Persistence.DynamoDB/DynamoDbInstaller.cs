@@ -22,7 +22,7 @@
 
         public async Task Install(string identity, CancellationToken cancellationToken = default)
         {
-            DynamoTableConfiguration outboxTableConfiguration = null;
+            TableConfiguration outboxTableConfiguration = null;
             if (settings.IsFeatureActive(typeof(OutboxStorage))
                && settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
                && outboxConfig.CreateTable)

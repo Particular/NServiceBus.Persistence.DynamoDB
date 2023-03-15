@@ -123,7 +123,7 @@
             {
             }
 
-            public override Task CreateTable(DynamoTableConfiguration tableConfiguration, CancellationToken cancellationToken = default)
+            public override Task CreateTable(TableConfiguration tableConfiguration, CancellationToken cancellationToken = default)
             {
                 TablesCreated.Add(tableConfiguration.TableName);
                 return Task.CompletedTask;

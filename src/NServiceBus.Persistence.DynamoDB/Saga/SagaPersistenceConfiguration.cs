@@ -10,7 +10,7 @@
         /// <summary>
         /// The configuration of the table used by the outbox persistence.
         /// </summary>
-        public DynamoTableConfiguration Table { get; set; } = new DynamoTableConfiguration()
+        public TableConfiguration Table { get; set; } = new TableConfiguration()
         {
             TimeToLiveAttributeName = null
         };

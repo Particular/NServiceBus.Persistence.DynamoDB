@@ -11,7 +11,7 @@
     {
         public Installer(IAmazonDynamoDB client) => this.client = client;
 
-        public virtual async Task CreateTable(DynamoTableConfiguration tableConfiguration,
+        public virtual async Task CreateTable(TableConfiguration tableConfiguration,
             CancellationToken cancellationToken = default)
         {
             if (tableConfiguration.BillingMode == BillingMode.PROVISIONED && tableConfiguration.ProvisionedThroughput == null)
