@@ -14,26 +14,26 @@
         [OneTimeSetUp]
         public async Task OneTimeSetUp()
         {
-            TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}";
+            TableConfiguration = new DynamoTableConfiguration
+            {
+                TableName = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}",
+            };
 
             DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
             var installer = new Installer(DynamoDBClient);
 
-            await installer.CreateTable(new DynamoTableConfiguration
-            {
-                TableName = TableName,
-            });
+            await installer.CreateTable(TableConfiguration);
         }
 
         [OneTimeTearDown]
         public async Task OneTimeTearDown()
         {
-            await DynamoDBClient.DeleteTableAsync(TableName);
+            await DynamoDBClient.DeleteTableAsync(TableConfiguration.TableName);
             DynamoDBClient.Dispose();
         }
 
-        public static string TableName;
         public static IAmazonDynamoDB DynamoDBClient;
+        public static DynamoTableConfiguration TableConfiguration;
     }
 }

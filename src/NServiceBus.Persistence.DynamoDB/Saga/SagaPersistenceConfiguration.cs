@@ -10,7 +10,10 @@
         /// <summary>
         /// The configuration of the table used by the outbox persistence.
         /// </summary>
-        public DynamoTableConfiguration TableConfiguration { get; set; } = new DynamoTableConfiguration();
+        public DynamoTableConfiguration Table { get; set; } = new DynamoTableConfiguration()
+        {
+            TimeToLiveAttributeName = null
+        };
 
         /// <summary>
         /// Enables pessimistic locking mode to avoid concurrent modifications to the same saga. Enable this mode to reduce retries due to optimistic concurrency control violations.
@@ -30,6 +33,6 @@
         /// <summary>
         /// How long the client should attempt to acquire a lock when using pessimistic locking before giving up.
         /// </summary>
-        public TimeSpan LeaseAcquistionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan LeaseAcquisitionTimeout { get; set; } = TimeSpan.FromSeconds(10);
     }
 }

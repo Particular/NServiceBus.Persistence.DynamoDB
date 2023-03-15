@@ -18,7 +18,7 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
 
         var persistence = configuration.UsePersistence<DynamoDBPersistence>();
         persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
-        persistence.TableName(SetupFixture.TableName);
+        persistence.UseSharedTable(SetupFixture.TableConfiguration);
 
         persistence.Sagas().UsePessimisticLocking = true;
 

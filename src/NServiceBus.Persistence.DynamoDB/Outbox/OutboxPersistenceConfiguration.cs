@@ -10,10 +10,7 @@
         /// <summary>
         /// The configuration of the table used by the outbox persistence.
         /// </summary>
-        public DynamoTableConfiguration TableConfiguration { get; set; } = new DynamoTableConfiguration
-        {
-            TimeToLiveAttributeName = "ExpireAt"
-        };
+        public DynamoTableConfiguration Table { get; set; } = new DynamoTableConfiguration();
 
         /// <summary>
         /// The Time to Live for outbox records.

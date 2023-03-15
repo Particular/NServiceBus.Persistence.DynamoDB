@@ -29,10 +29,10 @@
 
         void ValidateOutboxSettings(OutboxPersistenceConfiguration outboxConfiguration)
         {
-            if (outboxConfiguration.TableConfiguration.TimeToLiveAttributeName == null)
+            if (outboxConfiguration.Table.TimeToLiveAttributeName == null)
             {
                 throw new InvalidOperationException(
-                    $"The saga persistence table requires a time-to-live attribute to be defined. Use the{nameof(SagaPersistenceConfiguration)}.{nameof(SagaPersistenceConfiguration.TableConfiguration)}.{nameof(DynamoTableConfiguration.TimeToLiveAttributeName)} setting to specify the name of the time-to-live attribute");
+                    $"The saga persistence table requires a time-to-live attribute to be defined. Use the{nameof(SagaPersistenceConfiguration)}.{nameof(SagaPersistenceConfiguration.Table)}.{nameof(DynamoTableConfiguration.TimeToLiveAttributeName)} setting to specify the name of the time-to-live attribute");
             }
         }
     }

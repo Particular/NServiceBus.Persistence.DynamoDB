@@ -89,8 +89,8 @@
 
                     var persistence = c.UsePersistence<DynamoDBPersistence>();
                     persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
-                    persistence.Outbox().TableConfiguration.TableName = testContext.OutboxTableName;
-                    persistence.Sagas().TableConfiguration.TableName = testContext.SagaTableName;
+                    persistence.Outbox().Table.TableName = testContext.OutboxTableName;
+                    persistence.Sagas().Table.TableName = testContext.SagaTableName;
 
                     c.EnableInstallers();
                     c.RegisterComponents(sc => sc.AddSingleton<Installer>(testContext.Installer));

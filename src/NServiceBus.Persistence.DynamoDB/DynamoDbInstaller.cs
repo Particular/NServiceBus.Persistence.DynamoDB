@@ -22,21 +22,21 @@
 
         public async Task Install(string identity, CancellationToken cancellationToken = default)
         {
-            DynamoTableConfiguration sagaTableConfiguration = null;
+            DynamoTableConfiguration outboxTableConfiguration = null;
             if (settings.IsFeatureActive(typeof(OutboxStorage))
                && settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
                && outboxConfig.CreateTable)
             {
-                sagaTableConfiguration = outboxConfig.TableConfiguration;
-                await installer.CreateTable(sagaTableConfiguration, cancellationToken).ConfigureAwait(false);
+                outboxTableConfiguration = outboxConfig.Table;
+                await installer.CreateTable(outboxTableConfiguration, cancellationToken).ConfigureAwait(false);
             }
 
             if (settings.IsFeatureActive(typeof(SagaStorage))
                 && settings.TryGet(out SagaPersistenceConfiguration sagaConfig)
                 && sagaConfig.CreateTable
-                && sagaTableConfiguration != sagaConfig.TableConfiguration)
+                && outboxTableConfiguration?.TableName != sagaConfig.Table.TableName)
             {
-                await installer.CreateTable(sagaConfig.TableConfiguration, cancellationToken).ConfigureAwait(false);
+                await installer.CreateTable(sagaConfig.Table, cancellationToken).ConfigureAwait(false);
             }
         }
     }

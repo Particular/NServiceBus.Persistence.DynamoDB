@@ -11,7 +11,7 @@ namespace NServiceBus
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> DynamoDBClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, Amazon.DynamoDBv2.IAmazonDynamoDB dynamoDBClient) { }
         public static NServiceBus.Persistence.DynamoDB.OutboxPersistenceConfiguration Outbox(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
         public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> TableName(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, string tableName) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration sharedTableConfiguration) { }
     }
     public interface IDynamoDBStorageSession
     {
@@ -42,15 +42,15 @@ namespace NServiceBus.Persistence.DynamoDB
     public class OutboxPersistenceConfiguration
     {
         public OutboxPersistenceConfiguration() { }
-        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration TableConfiguration { get; set; }
+        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration Table { get; set; }
         public System.TimeSpan TimeToLive { get; set; }
     }
     public class SagaPersistenceConfiguration
     {
         public System.TimeSpan LeaseDuration;
         public SagaPersistenceConfiguration() { }
-        public System.TimeSpan LeaseAcquistionTimeout { get; set; }
-        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration TableConfiguration { get; set; }
+        public System.TimeSpan LeaseAcquisitionTimeout { get; set; }
+        public NServiceBus.Persistence.DynamoDB.DynamoTableConfiguration Table { get; set; }
         public bool UsePessimisticLocking { get; set; }
     }
 }

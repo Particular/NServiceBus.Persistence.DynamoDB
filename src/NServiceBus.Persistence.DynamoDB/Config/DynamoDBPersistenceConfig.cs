@@ -9,21 +9,6 @@
     /// </summary>
     public static class DynamoDBPersistenceConfig
     {
-        internal const string SharedTableName = "NServiceBus.Storage";
-        internal const string DefaultPartitionKeyName = "PK";
-        internal const string DefaultSortKeyName = "SK";
-
-        readonly DynamoTableConfiguration defaultTableConfiguration = new DynamoTableConfiguration()
-        {
-            TableName = SharedTableName,
-            PartitionKeyName = DefaultPartitionKeyName,
-            SortKeyName = DefaultSortKeyName,
-            BillingMode = BillingMode.PAY_PER_REQUEST,
-            TimeToLiveAttributeName = "ExpiresAt"
-        };
-
-        internal static readonly BillingMode DefaultBillingMode = BillingMode.PAY_PER_REQUEST;
-
         /// <summary>
         /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient
         /// </summary>
@@ -38,15 +23,15 @@
         }
 
         /// <summary>
-        /// Sets the table name for the outbox and the saga storage
+        /// Uses the provided table configuration for both Saga and Outbox storage settings.
         /// </summary>
-        public static PersistenceExtensions<DynamoDBPersistence> TableName(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, string tableName)
+        public static PersistenceExtensions<DynamoDBPersistence> UseSharedTable(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, DynamoTableConfiguration sharedTableConfiguration)
         {
-            Guard.AgainstNullAndEmpty(nameof(tableName), tableName);
+            Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
+            Guard.AgainstNull(nameof(sharedTableConfiguration), sharedTableConfiguration);
 
-            persistenceExtensions.Outbox().TableConfiguration.TableName = tableName;
-            persistenceExtensions.Sagas().TableConfiguration.TableName = tableName;
-
+            persistenceExtensions.Sagas().Table = sharedTableConfiguration;
+            persistenceExtensions.Outbox().Table = sharedTableConfiguration;
             return persistenceExtensions;
         }
 
