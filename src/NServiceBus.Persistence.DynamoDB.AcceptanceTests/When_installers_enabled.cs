@@ -10,7 +10,6 @@
     using NUnit.Framework;
     using Persistence.DynamoDB;
 
-    //TODO: should not create tables when saga+outbox enabled but configured to be disabled
     public class When_installers_enabled : NServiceBusAcceptanceTest
     {
         [Test]
