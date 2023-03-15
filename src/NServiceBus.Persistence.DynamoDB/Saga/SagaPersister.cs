@@ -73,21 +73,21 @@
                     var updateItemRequest = new UpdateItemRequest
                     {
                         Key = new Dictionary<string, AttributeValue>
-                    {
-                        { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                        { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
-                    },
+                        {
+                            { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                            { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                        },
                         UpdateExpression = "SET #lease = :lease_timeout",
                         ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
                         ExpressionAttributeNames = new Dictionary<string, string>
-                    {
-                        { "#lease", SagaLeaseAttributeName }
-                    },
+                        {
+                            { "#lease", SagaLeaseAttributeName }
+                        },
                         ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                    {
-                        { ":now", new AttributeValue { N = now.ToFileTime().ToString() } },
-                        { ":lease_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
-                    },
+                        {
+                            { ":now", new AttributeValue { N = now.ToFileTime().ToString() } },
+                            { ":lease_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
+                        },
                         ReturnValues = ReturnValue.ALL_NEW,
                         TableName = configuration.Table.TableName
                     };
@@ -108,10 +108,10 @@
                             dynamoSession.storageSession.CleanupActions[sagaId] = client => client.UpdateItemAsync(new UpdateItemRequest
                             {
                                 Key = new Dictionary<string, AttributeValue>
-                            {
-                                { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                                { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
-                            },
+                                {
+                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                    { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                                },
                                 UpdateExpression = "SET #lease = :released_lease",
                                 ConditionExpression = "#lease = :current_lease AND #version = :current_version", // only if the lock is still the same that we acquired.
                                 ExpressionAttributeNames =
@@ -121,11 +121,11 @@
                                     { "#version", SagaDataVersionAttributeName }
                                     },
                                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                            {
-                                { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
-                                { ":released_lease", new AttributeValue { N = "-1" } },
-                                { ":current_version", response.Attributes[SagaDataVersionAttributeName] }
-                            },
+                                {
+                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
+                                    { ":released_lease", new AttributeValue { N = "-1" } },
+                                    { ":current_version", response.Attributes[SagaDataVersionAttributeName] }
+                                },
                                 ReturnValues = ReturnValue.NONE,
                                 TableName = configuration.Table.TableName
                             });
@@ -141,20 +141,20 @@
                             dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
                             {
                                 Key = new Dictionary<string, AttributeValue>
-                            {
-                                { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                                { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
-                            },
+                                {
+                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                    { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                                },
                                 ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#version)", // only if the lock is still the same that we acquired.
                                 ExpressionAttributeNames = new Dictionary<string, string>
-                            {
-                                { "#lease", SagaLeaseAttributeName },
-                                { "#version", SagaDataVersionAttributeName }
-                            },
+                                {
+                                    { "#lease", SagaLeaseAttributeName },
+                                    { "#version", SagaDataVersionAttributeName }
+                                },
                                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                            {
-                                { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
-                            },
+                                {
+                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
+                                },
                                 ReturnValues = ReturnValue.NONE,
                                 TableName = configuration.Table.TableName
                             });
