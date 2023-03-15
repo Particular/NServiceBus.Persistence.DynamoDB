@@ -7,18 +7,21 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.CompilerServices;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
     using Amazon.Util;
     using Extensibility;
+    using Logging;
     using Outbox;
     using Transport;
     using TransportOperation = Outbox.TransportOperation;
 
     class OutboxPersister : IOutboxStorage
     {
+        const string OutboxDataVersionAttributeName = "___VERSION___";
         const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
 
         public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration, string endpointIdentifier)
@@ -53,6 +56,7 @@ namespace NServiceBus.Persistence.DynamoDB
             };
             QueryResponse? response = null;
             int numberOfTransportOperations = 0;
+            int currentVersion = 0;
             bool? foundOutboxMetadataEntry = null;
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
             do
@@ -65,6 +69,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     foundOutboxMetadataEntry = true;
                     var headerItem = response.Items[0];
                     numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    currentVersion = Convert.ToInt32(headerItem[OutboxDataVersionAttributeName].N);
                     responseItemsHasOutboxMetadataEntry = true;
                 }
 
@@ -77,15 +82,17 @@ namespace NServiceBus.Persistence.DynamoDB
 
             return foundOutboxMetadataEntry == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
-                null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
+                null : DeserializeOutboxMessage(messageId, currentVersion, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage? DeserializeOutboxMessage(string messageId, int numberOfTransportOperations,
+        OutboxMessage? DeserializeOutboxMessage(string messageId, int currentVersion,
+            int numberOfTransportOperations,
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {
             // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
             // potential partial deletes
             contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
+            contextBag.Set($"dynamo_version:{messageId}", currentVersion);
 
             var operations = numberOfTransportOperations == 0
                 ? Array.Empty<TransportOperation>()
@@ -133,6 +140,7 @@ namespace NServiceBus.Persistence.DynamoDB
         IEnumerable<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
         {
             contextBag.Set(OperationsCountContextProperty, outboxMessage.TransportOperations.Length);
+            contextBag.Set($"dynamo_version:{outboxMessage.MessageId}", 0);
 
             // DynamoDB has a limit of 400 KB per item. Transport Operations are likely to be larger
             // and could easily hit the 400 KB limit of an item when all operations would be serialized into
@@ -152,7 +160,8 @@ namespace NServiceBus.Persistence.DynamoDB
                         },
                         {"Dispatched", new AttributeValue {BOOL = false}},
                         {"DispatchedAt", new AttributeValue {NULL = true}},
-                        {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}} //TTL
+                        {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}}, //TTL
+                        {OutboxDataVersionAttributeName, new AttributeValue {N = "0"}},
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                     ExpressionAttributeNames = new Dictionary<string, string>
@@ -237,30 +246,47 @@ namespace NServiceBus.Persistence.DynamoDB
             CancellationToken cancellationToken = default)
         {
             var opsCount = context.Get<int>(OperationsCountContextProperty);
+            var currentVersion = context.Get<int>($"dynamo_version:{messageId}");
 
             var now = DateTime.UtcNow;
             var expirationTime = now.Add(configuration.TimeToLive);
             int epochSeconds = AWSSDKUtils.ConvertToUnixEpochSeconds(expirationTime);
 
-            var writeRequests = new List<WriteRequest>(opsCount + 1)
+            var updateItem = new UpdateItemRequest
             {
-                new()
+                Key = new Dictionary<string, AttributeValue>
                 {
-                    PutRequest = new PutRequest
-                    {
-                        Item = new Dictionary<string, AttributeValue>
-                        {
-                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
-                            {"TransportOperationsCount", new AttributeValue {N = "0"}},
-                            {"Dispatched", new AttributeValue {BOOL = true}},
-                            {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
-                            {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {N = epochSeconds.ToString()}}
-                        },
-                    }
-                }
+                    {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
+                    {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
+                },
+                ConditionExpression = "#version = :version",
+                UpdateExpression = "SET #operation_count = :operation_count, #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
+                ExpressionAttributeNames = new Dictionary<string, string>
+                {
+                    {"#operation_count", "TransportOperationsCount"},
+                    {"#dispatched", "Dispatched"},
+                    {"#dispatched_at", "DispatchedAt"},
+                    {"#ttl", configuration.Table.TimeToLiveAttributeName!},
+                    {"#version", OutboxDataVersionAttributeName},
+                },
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                {
+                    { ":operation_count", new AttributeValue { N = "0" } },
+                    { ":dispatched", new AttributeValue {BOOL = true} },
+                    { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
+                    { ":ttl", new AttributeValue {N = epochSeconds.ToString()} },
+                    { ":version", new AttributeValue {N = currentVersion.ToString()} }
+                },
+                TableName = configuration.Table.TableName,
+                ReturnValues = ReturnValue.NONE,
             };
 
+            // We first try to update the metadata record, if this fails we want to roll back the outbox message
+            // TODO should we even pass the cancellation token here?
+            await dynamoDbClient.UpdateItemAsync(updateItem, cancellationToken).ConfigureAwait(false);
+
+            // Next we do a best effort batch delete for the transport operation entries
+            var writeRequests = new List<WriteRequest>(opsCount);
             for (int i = 1; i <= opsCount; i++)
             {
                 writeRequests.Add(new WriteRequest
@@ -281,25 +307,139 @@ namespace NServiceBus.Persistence.DynamoDB
             // Setting the outbox record as dispatch is an idempotent operation that doesn't require transactionality
             // so using the cheaper API in terms of write operations is a sane choice.
             var writeRequestBatches = WriteRequestBatcher.Batch(writeRequests);
-            BatchWriteItemRequest? batchWriteItemRequest = null;
-            foreach (var writeRequestBatch in writeRequestBatches)
+            var operationCount = writeRequestBatches.Count;
+            var batchWriteTasks = new Task[operationCount];
+            for (var i = 0; i < operationCount; i++)
             {
-                batchWriteItemRequest ??= new BatchWriteItemRequest
-                {
-                    RequestItems = new Dictionary<string, List<WriteRequest>>
-                    {
-                        { configuration.Table.TableName, writeRequestBatch }
-                    },
-                };
-                batchWriteItemRequest.RequestItems[configuration.Table.TableName] = writeRequestBatch;
-                await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
+                batchWriteTasks[i] = WriteBatchWithRetries(writeRequestBatches[i], i + 1, operationCount, cancellationToken);
             }
+
+            await Task.WhenAll(batchWriteTasks).ConfigureAwait(false);
+        }
+
+        async Task WriteBatchWithRetries(List<WriteRequest> batch, int batchNumber, int totalBatches,
+            CancellationToken cancellationToken)
+        {
+            bool succeeded = true;
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                // 5 is just an arbitrary number for now
+                for (int i = 0; i < 5; i++)
+                {
+                    try
+                    {
+                        var response = await WriteBatch(batch, batchNumber, totalBatches, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (!response.UnprocessedItems.TryGetValue(configuration.Table.TableName, out var unprocessedBatch) ||
+                            unprocessedBatch is not { Count: > 0 })
+                        {
+                            succeeded = true;
+                            return;
+                        }
+
+                        batch = unprocessedBatch;
+                        succeeded = false;
+
+                        if (Logger.IsDebugEnabled)
+                        {
+                            Logger.Debug($"Retrying entries '{BatchWriteEntryLogMessage(batch)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}'.");
+                        }
+                        else
+                        {
+                            Logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}'.");
+                        }
+
+                        await BatchDelay(i, cancellationToken).ConfigureAwait(false);
+                    }
+                    // If none of the items can be processed due to insufficient provisioned throughput on all of the tables in the request,
+                    // then BatchWriteItem returns a ProvisionedThroughputExceededException.
+                    catch (ProvisionedThroughputExceededException provisionedThroughputExceededException)
+                        when (provisionedThroughputExceededException.Retryable is { Throttling: true })
+                    {
+                        succeeded = false;
+                        if (Logger.IsDebugEnabled)
+                        {
+                            Logger.Debug($"Retrying entries '{BatchWriteEntryLogMessage(batch)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' due to throttling.");
+                        }
+                        else
+                        {
+                            Logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' due to throttling.");
+                        }
+
+                        await BatchDelay(i, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
+                    {
+                        Logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{BatchWriteEntryLogMessage(batch)}' to table '{configuration.Table.TableName}'", ex);
+                        throw;
+                    }
+                }
+            }
+
+            if (!succeeded)
+            {
+                Logger.Warn($"Unable to delete transport operation entries '{BatchWriteEntryLogMessage(batch)}' for batch '{batchNumber}/{totalBatches}' in table '{configuration.Table.TableName}'.");
+            }
+        }
+
+        protected virtual Task BatchDelay(int attempt, CancellationToken cancellationToken = default) =>
+            Task.Delay(Math.Min(250, attempt * 250), cancellationToken);
+
+        async Task<BatchWriteItemResponse> WriteBatch(List<WriteRequest> batch, int batchNumber, int totalBatches,
+            CancellationToken cancellationToken)
+        {
+            string? logBatchEntries = null;
+            if (Logger.IsDebugEnabled)
+            {
+                logBatchEntries = BatchWriteEntryLogMessage(batch);
+                Logger.Debug(
+                    $"Writing batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.Table.TableName}'");
+            }
+
+            var batchWriteItemRequest = new BatchWriteItemRequest
+            {
+                RequestItems =
+                    new Dictionary<string, List<WriteRequest>> { { configuration.Table.TableName, batch } },
+            };
+
+            var result = await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (Logger.IsDebugEnabled)
+            {
+                Logger.Debug(
+                    $"Wrote batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.TableName}'");
+            }
+
+            return result;
+        }
+
+        string BatchWriteEntryLogMessage(List<WriteRequest> batch)
+        {
+            var stringBuilder = new StringBuilder();
+
+            foreach (var writeRequest in batch)
+            {
+                if (writeRequest.DeleteRequest is { } deleteRequest)
+                {
+                    stringBuilder.Append($"DELETE #PK {deleteRequest.Key[configuration.PartitionKeyName].S} / #SK {deleteRequest.Key[configuration.SortKeyName].S}, ");
+                }
+
+                if (writeRequest.PutRequest is { } putRequest)
+                {
+                    stringBuilder.Append($"PUT #PK {putRequest.Item[configuration.PartitionKeyName].S} / #SK {putRequest.Item[configuration.SortKeyName].S}, ");
+                }
+            }
+
+            return stringBuilder.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : stringBuilder.ToString();
         }
 
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly OutboxPersistenceConfiguration configuration;
         readonly string endpointIdentifier;
         readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = new();
+        static readonly ILog Logger = LogManager.GetLogger<OutboxPersister>();
 
         sealed class ReturnBuffer
         {
