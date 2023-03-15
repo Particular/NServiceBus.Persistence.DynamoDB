@@ -334,7 +334,6 @@ namespace NServiceBus.Persistence.DynamoDB
                         if (!response.UnprocessedItems.TryGetValue(configuration.Table.TableName, out var unprocessedBatch) ||
                             unprocessedBatch is not { Count: > 0 })
                         {
-                            succeeded = true;
                             return;
                         }
 
