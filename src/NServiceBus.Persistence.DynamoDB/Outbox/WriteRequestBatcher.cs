@@ -9,7 +9,8 @@ namespace NServiceBus.Persistence.DynamoDB
     // Currently placed into outbox folder but could be moved elsewhere once needed in more places.
     static class WriteRequestBatcher
     {
-        public static IReadOnlyCollection<List<WriteRequest>> Batch(IReadOnlyCollection<WriteRequest> writeRequests)
+        // We are returning mutable state here because the SDK requires materialized lists anyway.
+        public static List<List<WriteRequest>> Batch(IReadOnlyCollection<WriteRequest> writeRequests)
         {
             var allWriteRequests = new List<List<WriteRequest>>((int)Math.Ceiling(writeRequests.Count / (double)MaximumNumberOfWriteRequestsInABatch));
             List<WriteRequest>? currentBatch = null;
