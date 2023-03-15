@@ -30,8 +30,8 @@
             Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
             Guard.AgainstNull(nameof(sharedTableConfiguration), sharedTableConfiguration);
 
-            persistenceExtensions.Sagas().Table = sharedTableConfiguration with {};
-            persistenceExtensions.Outbox().Table = sharedTableConfiguration with {};
+            persistenceExtensions.Sagas().Table = sharedTableConfiguration with { };
+            persistenceExtensions.Outbox().Table = sharedTableConfiguration with { };
             return persistenceExtensions;
         }
 
