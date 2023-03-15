@@ -257,6 +257,7 @@ namespace NServiceBus.Persistence.DynamoDB
         {
             var opsCount = context.Get<int>(OperationsCountContextProperty);
             var currentVersion = context.Get<int>($"dynamo_version:{messageId}");
+            var nextVersion = currentVersion + 1;
 
             var now = DateTime.UtcNow;
             var expirationTime = now.Add(configuration.TimeToLive);
@@ -269,8 +270,8 @@ namespace NServiceBus.Persistence.DynamoDB
                     {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                     {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}"}}, //Sort key
                 },
-                ConditionExpression = "#version = :version",
-                UpdateExpression = "SET #operation_count = :operation_count, #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
+                ConditionExpression = "#version = :current_version",
+                UpdateExpression = "SET #operation_count = :operation_count, #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl, #version = :next_version",
                 ExpressionAttributeNames = new Dictionary<string, string>
                 {
                     {"#operation_count", "TransportOperationsCount"},
@@ -285,7 +286,8 @@ namespace NServiceBus.Persistence.DynamoDB
                     { ":dispatched", new AttributeValue {BOOL = true} },
                     { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
                     { ":ttl", new AttributeValue {N = epochSeconds.ToString()} },
-                    { ":version", new AttributeValue {N = currentVersion.ToString()} }
+                    { ":current_version", new AttributeValue {N = currentVersion.ToString()} },
+                    { ":next_version", new AttributeValue {N = nextVersion.ToString()} },
                 },
                 TableName = configuration.Table.TableName,
                 ReturnValues = ReturnValue.NONE,
