@@ -156,11 +156,11 @@ namespace NServiceBus.Persistence.DynamoDB
                         {
                             {
                                 configuration.Table.PartitionKeyName,
-                                new AttributeValue { S = $"OUTBOX#METADATA#{endpointIdentifier}#{outboxMessage.MessageId}" }
+                                new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}" }
                             },
                             {
                                 configuration.Table.SortKeyName,
-                                new AttributeValue { S = $"OUTBOX#METADATA#{outboxMessage.MessageId}#{0:D4}" }
+                                new AttributeValue { S = $"OUTBOX#METADATA#{outboxMessage.MessageId}" }
                             }, //Sort key
                             {
                                 "TransportOperationsCount",
@@ -189,7 +189,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{endpointIdentifier}#{outboxMessage.MessageId}"}},
+                            {configuration.Table.artitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                             {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{outboxMessage.MessageId}#{n:D4}"}}, //Sort key
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
@@ -266,8 +266,8 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 Key = new Dictionary<string, AttributeValue>
                 {
-                    {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{endpointIdentifier}#{messageId}"}},
-                    {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}#{0:D4}"}}, //Sort key
+                    {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
+                    {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}"}}, //Sort key
                 },
                 ConditionExpression = "#version = :version",
                 UpdateExpression = "SET #operation_count = :operation_count, #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
@@ -305,7 +305,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{endpointIdentifier}#{messageId}"}},
+                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                             {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{messageId}#{i:D4}"}}, //Sort key
                         }
                     }
