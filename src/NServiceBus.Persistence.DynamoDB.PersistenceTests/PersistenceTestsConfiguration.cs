@@ -70,11 +70,11 @@
                 Client,
                 new OutboxPersistenceConfiguration
                 {
-                    Table = SetupFixture.OutboxTable
+                    Table = SetupFixture.OutboxTable,
+                    TimeToLive = TimeSpan.FromSeconds(100)
                 },
                 "PersistenceTest");
 
-            //TODO define TTL value which was 100 sec
             CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(this);
 
             return Task.CompletedTask;

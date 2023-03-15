@@ -30,7 +30,7 @@
                 TableName =
                     $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
-                SortKeyName = Guid.NewGuid().ToString("N") + "SK"
+                SortKeyName = Guid.NewGuid().ToString("N") + "SK",
             };
 
             var installer = new Installer(DynamoDBClient);
