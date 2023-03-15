@@ -183,7 +183,7 @@ namespace NServiceBus.Persistence.DynamoDB
             foreach (var operation in outboxMessage.TransportOperations)
             {
                 var bodyStream = new ReadOnlyMemoryStream(operation.Body);
-                transactWriteItems[n] = new TransactWriteItem
+                transactWriteItems.Add(new TransactWriteItem
                 {
                     Put = new Put
                     {
@@ -220,7 +220,7 @@ namespace NServiceBus.Persistence.DynamoDB
                         },
                         TableName = configuration.Table.TableName
                     }
-                };
+                });
                 n++;
             }
 
