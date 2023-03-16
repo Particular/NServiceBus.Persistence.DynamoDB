@@ -32,7 +32,7 @@
             if (outboxConfiguration.Table.TimeToLiveAttributeName == null)
             {
                 throw new InvalidOperationException(
-                    $"The outbox persistence table requires a time-to-live attribute to be defined. Use the {nameof(OutboxPersistenceConfiguration)}.{nameof(OutboxPersistenceConfiguration.Table)}.{nameof(TableConfiguration.TimeToLiveAttributeName)} setting to specify the name of the time-to-live attribute.");
+                    $"The outbox persistence table requires a time-to-live attribute to be defined. Use the '{nameof(OutboxPersistenceConfiguration)}.{nameof(OutboxPersistenceConfiguration.Table)}.{nameof(TableConfiguration.TimeToLiveAttributeName)}' setting to specify the name of the time-to-live attribute.");
             }
         }
     }

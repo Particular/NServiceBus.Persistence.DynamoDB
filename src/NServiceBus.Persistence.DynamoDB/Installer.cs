@@ -17,7 +17,7 @@
             if (tableConfiguration.BillingMode == BillingMode.PROVISIONED && tableConfiguration.ProvisionedThroughput == null)
             {
                 throw new ArgumentException(
-                    $"The table is configured with provisioned billing mode but no throughput provision setting has been specified. Change billing mode to {BillingMode.PAY_PER_REQUEST} or add a {nameof(ProvisionedThroughput)} configuration");
+                    $"The table is configured with provisioned billing mode but no throughput provision setting has been specified. Change billing mode to '{BillingMode.PAY_PER_REQUEST}' or add a '{nameof(ProvisionedThroughput)}' configuration");
             }
 
             var createTableRequest = new CreateTableRequest
@@ -60,7 +60,7 @@
                 }
 
                 throw new Exception(
-                    $"The table {tableName} has attribute {ttlDescription.TimeToLiveDescription.AttributeName} configured for the time to live. The outbox configuration is configured to use {ttlAttributeName} which does not match. Adjust the outbox configuration to match the existing time to live column name or remove the existing time to live configuration on the table.");
+                    $"The table '{tableName}' has attribute '{ttlDescription.TimeToLiveDescription.AttributeName}' configured for the time to live. The outbox configuration is configured to use '{ttlAttributeName}' which does not match. Adjust the outbox configuration to match the existing time to live column name or remove the existing time to live configuration on the table.");
             }
 
             await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
