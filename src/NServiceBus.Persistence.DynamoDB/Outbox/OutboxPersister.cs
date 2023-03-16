@@ -319,114 +319,13 @@ namespace NServiceBus.Persistence.DynamoDB
             // Setting the outbox record as dispatch is an idempotent operation that doesn't require transactionality
             // so using the cheaper API in terms of write operations is a sane choice.
             var writeRequestBatches = WriteRequestBatcher.Batch(writeRequests);
-            var operationCount = writeRequestBatches.Count;
-            var batchWriteTasks = new Task[operationCount];
-            for (var i = 0; i < operationCount; i++)
-            {
-                batchWriteTasks[i] = WriteBatchWithRetries(writeRequestBatches[i], i + 1, operationCount, cancellationToken);
-            }
 
-            await Task.WhenAll(batchWriteTasks).ConfigureAwait(false);
-        }
-
-        async Task WriteBatchWithRetries(List<WriteRequest> batch, int batchNumber, int totalBatches,
-            CancellationToken cancellationToken)
-        {
-            bool succeeded = true;
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                // 5 is just an arbitrary number for now
-                for (int i = 0; i < 5; i++)
-                {
-                    try
-                    {
-                        var response = await WriteBatch(batch, batchNumber, totalBatches, cancellationToken)
-                            .ConfigureAwait(false);
-
-                        if (!response.UnprocessedItems.TryGetValue(configuration.Table.TableName, out var unprocessedBatch) ||
-                            unprocessedBatch is not { Count: > 0 })
-                        {
-                            return;
-                        }
-
-                        batch = unprocessedBatch;
-                        succeeded = false;
-
-                        if (Logger.IsDebugEnabled)
-                        {
-                            Logger.Debug($"Retrying entries '{BatchWriteEntryLogMessage(batch)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}'.");
-                        }
-                        else
-                        {
-                            Logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}'.");
-                        }
-
-                        await BatchDelay(i, cancellationToken).ConfigureAwait(false);
-                    }
-                    // If none of the items can be processed due to insufficient provisioned throughput on all of the tables in the request,
-                    // then BatchWriteItem returns a ProvisionedThroughputExceededException.
-                    catch (ProvisionedThroughputExceededException provisionedThroughputExceededException)
-                        when (provisionedThroughputExceededException.Retryable is { Throttling: true })
-                    {
-                        succeeded = false;
-                        if (Logger.IsDebugEnabled)
-                        {
-                            Logger.Debug($"Retrying entries '{BatchWriteEntryLogMessage(batch)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' due to throttling.");
-                        }
-                        else
-                        {
-                            Logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' due to throttling.");
-                        }
-
-                        await BatchDelay(i, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
-                    {
-                        Logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{BatchWriteEntryLogMessage(batch)}' to table '{configuration.Table.TableName}'", ex);
-                        throw;
-                    }
-                }
-            }
-
-            if (!succeeded)
-            {
-                Logger.Warn($"Unable to delete transport operation entries '{BatchWriteEntryLogMessage(batch)}' for batch '{batchNumber}/{totalBatches}' in table '{configuration.Table.TableName}'.");
-            }
-        }
-
-        protected virtual Task BatchDelay(int attempt, CancellationToken cancellationToken = default) =>
-            Task.Delay(Math.Min(250, attempt * 250), cancellationToken);
-
-        async Task<BatchWriteItemResponse> WriteBatch(List<WriteRequest> batch, int batchNumber, int totalBatches,
-            CancellationToken cancellationToken)
-        {
-            string? logBatchEntries = null;
-            if (Logger.IsDebugEnabled)
-            {
-                logBatchEntries = BatchWriteEntryLogMessage(batch);
-                Logger.Debug(
-                    $"Writing batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.Table.TableName}'");
-            }
-
-            var batchWriteItemRequest = new BatchWriteItemRequest
-            {
-                RequestItems =
-                    new Dictionary<string, List<WriteRequest>> { { configuration.Table.TableName, batch } },
-            };
-
-            var result = await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken)
+            await dynamoDbClient.BatchWriteItemWithRetries(writeRequestBatches, configuration.Table.TableName, Logger,
+                    CreateDebugBatchLogMessage!, configuration, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
-
-            if (Logger.IsDebugEnabled)
-            {
-                Logger.Debug(
-                    $"Wrote batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.TableName}'");
-            }
-
-            return result;
         }
 
-        string BatchWriteEntryLogMessage(List<WriteRequest> batch)
+        static string CreateDebugBatchLogMessage(IReadOnlyCollection<WriteRequest> batch, OutboxPersistenceConfiguration configuration)
         {
             var stringBuilder = new StringBuilder();
 
