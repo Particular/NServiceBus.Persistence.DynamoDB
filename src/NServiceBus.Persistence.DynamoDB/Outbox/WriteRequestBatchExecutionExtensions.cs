@@ -4,22 +4,23 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
-    using Logging;
+    using NServiceBus.Logging;
 
-    // Currently placed into outbox folder but could be moved elsewhere once needed in more places.
+    // While this class looks like it has some generic helper flavour it was deliberately kept as close
+    // as possible to the requirements of the outbox persister and can only be used in that context.
+    // Otherwise some significant refactoring would be required.
     static class WriteRequestBatchExecutionExtensions
     {
-        public static async Task BatchWriteItemWithRetries<TArgs>(this IAmazonDynamoDB dynamoDbClient,
-            List<List<WriteRequest>> writeRequestBatches, string tableName, ILog logger,
-            Func<IReadOnlyCollection<WriteRequest>, TArgs?, string>? debugBatchLogMessageFormatter = default, TArgs? formatterArgs = default,
+        public static async Task BatchWriteItemWithRetries(this IAmazonDynamoDB dynamoDbClient,
+            List<List<WriteRequest>> writeRequestBatches, OutboxPersistenceConfiguration configuration, ILog logger,
             Func<TimeSpan, CancellationToken, Task>? delayOnFailure = default,
             TimeSpan? retryDelay = default, CancellationToken cancellationToken = default)
         {
-            debugBatchLogMessageFormatter ??= (_, _) => string.Empty;
             delayOnFailure ??= DefaultDelay;
 
             var operationCount = writeRequestBatches.Count;
@@ -27,18 +28,16 @@ namespace NServiceBus.Persistence.DynamoDB
             for (var i = 0; i < operationCount; i++)
             {
                 batchWriteTasks[i] = dynamoDbClient.WriteBatchWithRetries(writeRequestBatches[i], i + 1, operationCount,
-                    tableName, logger, debugBatchLogMessageFormatter, formatterArgs, delayOnFailure, retryDelay,
+                    configuration, logger, delayOnFailure, retryDelay,
                     cancellationToken);
             }
             await Task.WhenAll(batchWriteTasks).ConfigureAwait(false);
         }
 
-        static async Task WriteBatchWithRetries<TArgs>(this IAmazonDynamoDB dynamoDbClient, List<WriteRequest> batch,
+        static async Task WriteBatchWithRetries(this IAmazonDynamoDB dynamoDbClient, List<WriteRequest> batch,
             int batchNumber, int totalBatches,
-            string tableName,
+            OutboxPersistenceConfiguration configuration,
             ILog logger,
-            Func<IReadOnlyCollection<WriteRequest>, TArgs?, string> debugBatchLogMessageFormatter,
-            TArgs? formatterArgs,
             Func<TimeSpan, CancellationToken, Task> delayOnFailure,
             TimeSpan? retryDelay,
             CancellationToken cancellationToken)
@@ -51,10 +50,10 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     try
                     {
-                        var response = await dynamoDbClient.WriteBatch(batch, batchNumber, totalBatches, tableName, logger, debugBatchLogMessageFormatter, formatterArgs, cancellationToken)
+                        var response = await dynamoDbClient.WriteBatch(batch, batchNumber, totalBatches, configuration, logger, cancellationToken)
                             .ConfigureAwait(false);
 
-                        if (!response.UnprocessedItems.TryGetValue(tableName, out var unprocessedBatch) ||
+                        if (!response.UnprocessedItems.TryGetValue(configuration.TableName, out var unprocessedBatch) ||
                             unprocessedBatch is not { Count: > 0 })
                         {
                             return;
@@ -65,11 +64,11 @@ namespace NServiceBus.Persistence.DynamoDB
 
                         if (logger.IsDebugEnabled)
                         {
-                            logger.Debug($"Retrying entries '{debugBatchLogMessageFormatter(batch, formatterArgs)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{tableName}'.");
+                            logger.Debug($"Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}'.");
                         }
                         else
                         {
-                            logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{tableName}'.");
+                            logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}'.");
                         }
 
                         await BatchDelay(i, retryDelay, delayOnFailure, cancellationToken).ConfigureAwait(false);
@@ -82,18 +81,18 @@ namespace NServiceBus.Persistence.DynamoDB
                         succeeded = false;
                         if (logger.IsDebugEnabled)
                         {
-                            logger.Debug($"Retrying entries '{debugBatchLogMessageFormatter(batch, formatterArgs)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{tableName}' due to throttling.");
+                            logger.Debug($"Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling.");
                         }
                         else
                         {
-                            logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{tableName}' due to throttling.");
+                            logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling.");
                         }
 
                         await BatchDelay(i, retryDelay, delayOnFailure, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
                     {
-                        logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{debugBatchLogMessageFormatter(batch, formatterArgs)}' to table '{tableName}'", ex);
+                        logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}'", ex);
                         throw;
                     }
                 }
@@ -101,27 +100,26 @@ namespace NServiceBus.Persistence.DynamoDB
 
             if (!succeeded)
             {
-                logger.Warn($"Unable to delete transport operation entries '{debugBatchLogMessageFormatter(batch, formatterArgs)}' for batch '{batchNumber}/{totalBatches}' in table '{tableName}'.");
+                logger.Warn($"All retry attempts for batch '{batchNumber}/{totalBatches}' with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}' exhausted.");
             }
         }
 
-        static async Task<BatchWriteItemResponse> WriteBatch<TArgs>(this IAmazonDynamoDB dynamoDbClient,
+        static async Task<BatchWriteItemResponse> WriteBatch(this IAmazonDynamoDB dynamoDbClient,
             List<WriteRequest> batch, int batchNumber, int totalBatches,
-            string tableName, ILog logger, Func<IReadOnlyCollection<WriteRequest>, TArgs?, string> debugBatchLogMessageFormatter,
-            TArgs? formatterArgs, CancellationToken cancellationToken)
+            OutboxPersistenceConfiguration configuration, ILog logger, CancellationToken cancellationToken)
         {
             string? logBatchEntries = null;
             if (logger.IsDebugEnabled)
             {
-                logBatchEntries = debugBatchLogMessageFormatter(batch, formatterArgs);
+                logBatchEntries = CreateBatchLogMessage(batch, configuration);
                 logger.Debug(
-                    $"Writing batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{tableName}'");
+                    $"Writing batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.TableName}'");
             }
 
             var batchWriteItemRequest = new BatchWriteItemRequest
             {
                 RequestItems =
-                    new Dictionary<string, List<WriteRequest>> { { tableName, batch } },
+                    new Dictionary<string, List<WriteRequest>> { { configuration.TableName, batch } },
             };
 
             var result = await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken)
@@ -130,10 +128,30 @@ namespace NServiceBus.Persistence.DynamoDB
             if (logger.IsDebugEnabled)
             {
                 logger.Debug(
-                    $"Wrote batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{tableName}'");
+                    $"Wrote batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.TableName}'");
             }
 
             return result;
+        }
+
+        static string CreateBatchLogMessage(IReadOnlyCollection<WriteRequest> batch, OutboxPersistenceConfiguration configuration)
+        {
+            var stringBuilder = new StringBuilder();
+
+            foreach (var writeRequest in batch)
+            {
+                if (writeRequest.DeleteRequest is { } deleteRequest)
+                {
+                    stringBuilder.Append($"DELETE #PK {deleteRequest.Key[configuration.PartitionKeyName].S} / #SK {deleteRequest.Key[configuration.SortKeyName].S}, ");
+                }
+
+                if (writeRequest.PutRequest is { } putRequest)
+                {
+                    stringBuilder.Append($"PUT #PK {putRequest.Item[configuration.PartitionKeyName].S} / #SK {putRequest.Item[configuration.SortKeyName].S}, ");
+                }
+            }
+
+            return stringBuilder.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : stringBuilder.ToString();
         }
 
         static Task BatchDelay(int attempt, TimeSpan? retryDelay, Func<TimeSpan, CancellationToken, Task> delay, CancellationToken cancellationToken)

@@ -7,7 +7,6 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
@@ -189,7 +188,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.Table.artitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
+                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                             {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{outboxMessage.MessageId}#{n:D4}"}}, //Sort key
                             {"Dispatched", new AttributeValue {BOOL = false}},
                             {"DispatchedAt", new AttributeValue {NULL = true}},
@@ -320,29 +319,9 @@ namespace NServiceBus.Persistence.DynamoDB
             // so using the cheaper API in terms of write operations is a sane choice.
             var writeRequestBatches = WriteRequestBatcher.Batch(writeRequests);
 
-            await dynamoDbClient.BatchWriteItemWithRetries(writeRequestBatches, configuration.Table.TableName, Logger,
-                    CreateDebugBatchLogMessage!, configuration, cancellationToken: cancellationToken)
+            await dynamoDbClient.BatchWriteItemWithRetries(writeRequestBatches, configuration, Logger,
+                    cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
-        }
-
-        static string CreateDebugBatchLogMessage(IReadOnlyCollection<WriteRequest> batch, OutboxPersistenceConfiguration configuration)
-        {
-            var stringBuilder = new StringBuilder();
-
-            foreach (var writeRequest in batch)
-            {
-                if (writeRequest.DeleteRequest is { } deleteRequest)
-                {
-                    stringBuilder.Append($"DELETE #PK {deleteRequest.Key[configuration.PartitionKeyName].S} / #SK {deleteRequest.Key[configuration.SortKeyName].S}, ");
-                }
-
-                if (writeRequest.PutRequest is { } putRequest)
-                {
-                    stringBuilder.Append($"PUT #PK {putRequest.Item[configuration.PartitionKeyName].S} / #SK {putRequest.Item[configuration.SortKeyName].S}, ");
-                }
-            }
-
-            return stringBuilder.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : stringBuilder.ToString();
         }
 
         readonly IAmazonDynamoDB dynamoDbClient;
