@@ -17,18 +17,17 @@
         {
             DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
-            OutboxTable = new TableConfiguration()
+            var tablePrefix = $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}";
+            OutboxTable = new TableConfiguration
             {
-                TableName =
-                    $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Outbox",
+                TableName = $"{tablePrefix}_Outbox",
                 TimeToLiveAttributeName = Guid.NewGuid().ToString("N") + "TTL",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK",
             };
-            SagaTable = new TableConfiguration()
+            SagaTable = new TableConfiguration
             {
-                TableName =
-                    $"{DateTime.UtcNow.Ticks}_{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}_Saga",
+                TableName = $"{tablePrefix}_Saga",
                 PartitionKeyName = Guid.NewGuid().ToString("N") + "PK",
                 SortKeyName = Guid.NewGuid().ToString("N") + "SK",
             };
