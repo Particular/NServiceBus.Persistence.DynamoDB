@@ -2,6 +2,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2.Model;
     using Logging;
@@ -60,8 +61,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             await client.BatchWriteItemWithRetries(batches, configuration, logger);
 
-            Assert.That(logger.InfoMessages, Is.Empty);
-            Approver.Verify(logger.DebugMessages);
+            Approver.Verify(logger);
         }
 
         [Test]
@@ -75,8 +75,168 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             await client.BatchWriteItemWithRetries(batches, configuration, logger);
 
-            Assert.That(logger.InfoMessages, Is.Empty);
-            Assert.That(logger.DebugMessages, Is.Empty);
+            Approver.Verify(logger);
+        }
+
+        [Test]
+        public async Task RetriesUnprocessedItemsInBatch()
+        {
+            var unprocessedWriteRequest1 = new WriteRequest();
+            var unprocessedWriteRequest2 = new WriteRequest();
+
+            var batches = new List<List<WriteRequest>>
+            {
+                new() { new WriteRequest(), unprocessedWriteRequest1, unprocessedWriteRequest2, new WriteRequest() }
+            };
+
+            int called = 0;
+            client.BatchWriteRequestResponse = _ =>
+            {
+                called++;
+                if (called == 1)
+                {
+                    return new BatchWriteItemResponse
+                    {
+                        UnprocessedItems = new Dictionary<string, List<WriteRequest>>
+                        {
+                            {
+                                configuration.TableName,
+                                new List<WriteRequest> { unprocessedWriteRequest1, unprocessedWriteRequest2 }
+                            }
+                        }
+                    };
+                }
+
+                return new BatchWriteItemResponse();
+            };
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, retryDelay: TimeSpan.FromMilliseconds(0));
+
+            Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(2));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 2));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+
+            var retriedBatch =
+                client.BatchWriteRequestsSent.Single(x => x.RequestItems[configuration.TableName].Count == 2);
+
+            Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EquivalentTo(new[] { unprocessedWriteRequest1, unprocessedWriteRequest2 }));
+        }
+
+        [Test]
+        public async Task RetriesUnprocessedItemsInBatchUpToFiveTimesWithDelay()
+        {
+            var unprocessedWriteRequest1 = new WriteRequest();
+            var unprocessedWriteRequest2 = new WriteRequest();
+
+            var batches = new List<List<WriteRequest>>
+            {
+                new() { new WriteRequest(), unprocessedWriteRequest1, unprocessedWriteRequest2, new WriteRequest() }
+            };
+
+            int called = 0;
+            client.BatchWriteRequestResponse = _ =>
+            {
+                called++;
+                if (called < 6)
+                {
+                    return new BatchWriteItemResponse
+                    {
+                        UnprocessedItems = new Dictionary<string, List<WriteRequest>>
+                        {
+                            {
+                                configuration.TableName,
+                                new List<WriteRequest> { unprocessedWriteRequest1, unprocessedWriteRequest2 }
+                            }
+                        }
+                    };
+                }
+
+                return new BatchWriteItemResponse();
+            };
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
+
+            Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(6));
+            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(5).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 2));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+
+            var retriedBatches =
+                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.TableName].Count == 2)
+                    .ToArray();
+
+            Assert.That(retriedBatches, Has.Length.EqualTo(5));
+
+            foreach (var batch in retriedBatches)
+            {
+                Assert.That(batch.RequestItems[configuration.TableName], Is.EquivalentTo(new[] { unprocessedWriteRequest1, unprocessedWriteRequest2 }));
+            }
+
+            Approver.Verify(logger);
+        }
+
+        [Test]
+        public async Task GivesUpRetryingUnprocessedItemsAfterFiveAttempts()
+        {
+            var unprocessedWriteRequest1 = new WriteRequest();
+            var unprocessedWriteRequest2 = new WriteRequest();
+
+            var batches = new List<List<WriteRequest>>
+            {
+                new() { new WriteRequest(), unprocessedWriteRequest1, unprocessedWriteRequest2, new WriteRequest() }
+            };
+
+            client.BatchWriteRequestResponse = _ => new BatchWriteItemResponse
+            {
+                UnprocessedItems = new Dictionary<string, List<WriteRequest>>
+                {
+                    {
+                        configuration.TableName,
+                        new List<WriteRequest> { unprocessedWriteRequest1, unprocessedWriteRequest2 }
+                    }
+                }
+            };
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
+
+            Approver.Verify(logger);
+        }
+
+        [Test]
+        public async Task OnThrottlingRetriesWholeBatch()
+        {
+            var batch = new List<WriteRequest> { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() };
+            var batches = new List<List<WriteRequest>>
+            {
+                batch
+            };
+
+            int called = 0;
+            client.BatchWriteRequestResponse = _ =>
+            {
+                called++;
+                if (called == 1)
+                {
+                    throw new ProvisionedThroughputExceededException("");
+                }
+
+                return new BatchWriteItemResponse();
+            };
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, retryDelay: TimeSpan.FromMilliseconds(0));
+
+            Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(2));
+            Assert.That(client.BatchWriteRequestsSent, Has.All.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+
+            var retriedBatches =
+                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.TableName].Count == 4)
+                    .ToArray();
+
+            Assert.That(retriedBatches, Has.Length.EqualTo(2));
+
+            foreach (var retriedBatch in retriedBatches)
+            {
+                Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EqualTo(batch));
+            }
         }
 
         class Logger : ILog
@@ -93,17 +253,17 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             public void InfoFormat(string format, params object[] args) => infoMessages.Add(string.Format(format, args));
 
-            public void Warn(string message) => throw new NotImplementedException();
+            public void Warn(string message) => warnMessages.Add(message);
 
-            public void Warn(string message, Exception exception) => throw new NotImplementedException();
+            public void Warn(string message, Exception exception) => warnMessages.Add($"{message}{exception.Message}");
 
-            public void WarnFormat(string format, params object[] args) => throw new NotImplementedException();
+            public void WarnFormat(string format, params object[] args) => warnMessages.Add(string.Format(format, args));
 
-            public void Error(string message) => throw new NotImplementedException();
+            public void Error(string message) => errorMessages.Add(message);
 
-            public void Error(string message, Exception exception) => throw new NotImplementedException();
+            public void Error(string message, Exception exception) => errorMessages.Add($"{message}{exception.Message}");
 
-            public void ErrorFormat(string format, params object[] args) => throw new NotImplementedException();
+            public void ErrorFormat(string format, params object[] args) => errorMessages.Add(string.Format(format, args));
 
             public void Fatal(string message) => throw new NotImplementedException();
 
@@ -119,9 +279,13 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             public IReadOnlyCollection<string> DebugMessages => debugMessages;
             public IReadOnlyCollection<string> InfoMessages => infoMessages;
+            public IReadOnlyCollection<string> WarnMessages => warnMessages;
+            public IReadOnlyCollection<string> ErrorMessages => errorMessages;
 
             List<string> debugMessages = new();
             List<string> infoMessages = new();
+            List<string> warnMessages = new();
+            List<string> errorMessages = new();
         }
 
         MockDynamoDBClient client;

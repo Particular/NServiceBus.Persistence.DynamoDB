@@ -43,64 +43,76 @@ namespace NServiceBus.Persistence.DynamoDB
             CancellationToken cancellationToken)
         {
             bool succeeded = true;
-            while (!cancellationToken.IsCancellationRequested)
+            // 5 is just an arbitrary number for now
+            const int maximumNumberOfRetries = 5;
+            for (int i = 0; i <= maximumNumberOfRetries; i++)
             {
-                // 5 is just an arbitrary number for now
-                for (int i = 0; i < 5; i++)
+                int attemptNumber = i + 1;
+                try
                 {
-                    try
+                    var response = await dynamoDbClient.WriteBatch(batch, batchNumber, totalBatches, configuration, logger, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!response.UnprocessedItems.TryGetValue(configuration.TableName, out var unprocessedBatch) ||
+                        unprocessedBatch is not { Count: > 0 })
                     {
-                        var response = await dynamoDbClient.WriteBatch(batch, batchNumber, totalBatches, configuration, logger, cancellationToken)
-                            .ConfigureAwait(false);
-
-                        if (!response.UnprocessedItems.TryGetValue(configuration.TableName, out var unprocessedBatch) ||
-                            unprocessedBatch is not { Count: > 0 })
-                        {
-                            return;
-                        }
-
-                        batch = unprocessedBatch;
-                        succeeded = false;
-
-                        if (logger.IsDebugEnabled)
-                        {
-                            logger.Debug($"Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}'.");
-                        }
-                        else
-                        {
-                            logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}'.");
-                        }
-
-                        await BatchDelay(i, retryDelay, delayOnFailure, cancellationToken).ConfigureAwait(false);
+                        return;
                     }
-                    // If none of the items can be processed due to insufficient provisioned throughput on all of the tables in the request,
-                    // then BatchWriteItem returns a ProvisionedThroughputExceededException.
-                    catch (ProvisionedThroughputExceededException provisionedThroughputExceededException)
-                        when (provisionedThroughputExceededException.Retryable is { Throttling: true })
+
+                    batch = unprocessedBatch;
+                    succeeded = false;
+
+                    if (i == maximumNumberOfRetries)
                     {
-                        succeeded = false;
-                        if (logger.IsDebugEnabled)
-                        {
-                            logger.Debug($"Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling.");
-                        }
-                        else
-                        {
-                            logger.Info($"Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling.");
-                        }
+                        continue;
+                    }
 
-                        await BatchDelay(i, retryDelay, delayOnFailure, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
+                    var delay = CalculateDelay(attemptNumber, retryDelay);
+                    if (logger.IsDebugEnabled)
                     {
-                        logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}'", ex);
-                        throw;
+                        logger.Debug($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' with a delay of '{delay}'.");
                     }
+                    else
+                    {
+                        logger.Info($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' with a delay of '{delay}'.");
+                    }
+
+                    await delayOnFailure(delay, cancellationToken).ConfigureAwait(false);
+                }
+                // If none of the items can be processed due to insufficient provisioned throughput on all of the tables in the request,
+                // then BatchWriteItem returns a ProvisionedThroughputExceededException.
+                catch (ProvisionedThroughputExceededException provisionedThroughputExceededException)
+                {
+                    succeeded = false;
+
+                    if (i == maximumNumberOfRetries)
+                    {
+                        continue;
+                    }
+
+                    var delay = CalculateDelay(attemptNumber, retryDelay);
+                    if (logger.IsDebugEnabled)
+                    {
+                        logger.Debug($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling  with a delay of '{delay}'.", provisionedThroughputExceededException);
+                    }
+                    else
+                    {
+                        logger.Info($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling with a delay of '{delay}'.", provisionedThroughputExceededException);
+                    }
+
+                    await delayOnFailure(delay, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
+                {
+                    logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}'", ex);
+                    throw;
                 }
             }
 
+
             if (!succeeded)
             {
-                logger.Warn($"All retry attempts for batch '{batchNumber}/{totalBatches}' with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}' exhausted.");
+                logger.Warn($"(5 / {maximumNumberOfRetries}) All retry attempts for batch '{batchNumber}/{totalBatches}' with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}' exhausted.");
             }
         }
 
@@ -154,13 +166,10 @@ namespace NServiceBus.Persistence.DynamoDB
             return stringBuilder.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : stringBuilder.ToString();
         }
 
-        static Task BatchDelay(int attempt, TimeSpan? retryDelay, Func<TimeSpan, CancellationToken, Task> delay, CancellationToken cancellationToken)
-            => delay(CalculateDelay(attempt, retryDelay), cancellationToken);
-
         static TimeSpan CalculateDelay(int attempt, TimeSpan? retryDelay)
         {
-            var delay = Convert.ToInt32(retryDelay.GetValueOrDefault(TimeSpan.FromMilliseconds(250)));
-            return TimeSpan.FromMilliseconds(Math.Min(delay, attempt * delay));
+            var delay = Convert.ToInt32(retryDelay.GetValueOrDefault(TimeSpan.FromMilliseconds(250)).TotalMilliseconds);
+            return TimeSpan.FromMilliseconds(attempt * delay);
         }
 
         static Task DefaultDelay(TimeSpan retryDelay, CancellationToken cancellationToken)
