@@ -5,6 +5,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using System.Linq;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2.Model;
+    using Amazon.Runtime;
     using Logging;
     using NUnit.Framework;
     using Particular.Approvals;
@@ -202,6 +203,75 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
+        public async Task RetriesUnprocessedItemsOnUnsuccessfulBatches()
+        {
+            logger.IsDebugEnabled = true;
+
+            string unprocessedWriteRequest1Key = Guid.NewGuid().ToString();
+            var unprocessedWriteRequest1 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>()
+            {
+                { configuration.PartitionKeyName, new("PK1") },
+                { configuration.SortKeyName, new("SK1") },
+                { "ShouldFail", new AttributeValue(unprocessedWriteRequest1Key) }
+            }));
+            string unprocessedWriteRequest2Key = Guid.NewGuid().ToString();
+            var unprocessedWriteRequest2 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>()
+            {
+                { configuration.PartitionKeyName, new("PK2") },
+                { configuration.SortKeyName, new("SK2") },
+                { "ShouldFail", new AttributeValue(unprocessedWriteRequest2Key) }
+            }));
+
+            var batches = new List<List<WriteRequest>>
+            {
+                new() { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() },
+                new() { new WriteRequest(), unprocessedWriteRequest1, new WriteRequest(), new WriteRequest() },
+                new() { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() },
+                new() { new WriteRequest(), unprocessedWriteRequest2, new WriteRequest(), new WriteRequest() },
+            };
+
+            var calledMap = new Dictionary<string, int>
+            {
+                {unprocessedWriteRequest1Key, 0 },
+                {unprocessedWriteRequest2Key, 0 },
+            };
+            client.BatchWriteRequestResponse = req =>
+            {
+                var shouldFail = req.RequestItems[configuration.TableName]
+                    .Where(x => x.DeleteRequest is { } del && del.Key.ContainsKey("ShouldFail"))
+                    .ToList();
+                if (shouldFail.Count > 0 && calledMap[shouldFail[0].DeleteRequest.Key["ShouldFail"].S]++ == 0)
+                {
+                    return new BatchWriteItemResponse
+                    {
+                        UnprocessedItems = new Dictionary<string, List<WriteRequest>>
+                        {
+                            { configuration.TableName, shouldFail }
+                        }
+                    };
+                }
+
+                return new BatchWriteItemResponse();
+            };
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
+
+            Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(6));
+            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(2).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 1));
+            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(4).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+
+            var retriedBatches =
+                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.TableName].Count == 1)
+                    .ToArray();
+
+            Assert.That(retriedBatches, Has.Length.EqualTo(2));
+            Assert.That(retriedBatches.ElementAt(0).RequestItems[configuration.TableName].Single(), Is.EqualTo(unprocessedWriteRequest1));
+            Assert.That(retriedBatches.ElementAt(1).RequestItems[configuration.TableName].Single(), Is.EqualTo(unprocessedWriteRequest2));
+
+            Approver.Verify(logger);
+        }
+
+        [Test]
         public async Task OnThrottlingRetriesWholeBatch()
         {
             var batch = new List<WriteRequest> { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() };
@@ -237,6 +307,86 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             {
                 Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EqualTo(batch));
             }
+        }
+
+        [Test]
+        public async Task OnThrottlingRetriesWholeUpToFiveTimesWithDelay()
+        {
+            var batch = new List<WriteRequest> { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() };
+            var batches = new List<List<WriteRequest>>
+            {
+                batch
+            };
+
+            int called = 0;
+            client.BatchWriteRequestResponse = _ =>
+            {
+                called++;
+                if (called < 6)
+                {
+                    throw new ProvisionedThroughputExceededException("");
+                }
+
+                return new BatchWriteItemResponse();
+            };
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
+
+            Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(6));
+            Assert.That(client.BatchWriteRequestsSent, Has.All.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+
+            var retriedBatches =
+                client.BatchWriteRequestsSent.Skip(1).Where(x => x.RequestItems[configuration.TableName].Count == 4)
+                    .ToArray();
+
+            Assert.That(retriedBatches, Has.Length.EqualTo(5));
+
+            foreach (var retriedBatch in retriedBatches)
+            {
+                Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EqualTo(batch));
+            }
+
+            Approver.Verify(logger);
+        }
+
+        [Test]
+        public async Task OnThrottlingGivesUpRetryingUnprocessedItemsAfterFiveAttempts()
+        {
+            var batches = new List<List<WriteRequest>>
+            {
+                new() { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() }
+            };
+
+            client.BatchWriteRequestResponse = _ => throw new ProvisionedThroughputExceededException("");
+
+            await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
+
+            Approver.Verify(logger);
+        }
+
+        [Test]
+        public void DoesNotRetryOnOtherExceptions()
+        {
+            // reusing the same attribute values for testing
+            var attributeValues = new Dictionary<string, AttributeValue>
+            {
+                [configuration.PartitionKeyName] = new("PK"),
+                [configuration.SortKeyName] = new("SK")
+            };
+
+            var batches = new List<List<WriteRequest>>
+            {
+                new() { new WriteRequest(new DeleteRequest(attributeValues)), new WriteRequest(new PutRequest(attributeValues)) },
+                new() { new WriteRequest(new PutRequest(attributeValues)), new WriteRequest(new DeleteRequest(attributeValues)), new WriteRequest(new PutRequest(attributeValues)) }
+            };
+
+            client.BatchWriteRequestResponse = _ => throw new AmazonServiceException("");
+
+            Assert.ThrowsAsync<AmazonServiceException>(async () =>
+                await client.BatchWriteItemWithRetries(batches, configuration, logger));
+
+            Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(2));
+            Approver.Verify(logger);
         }
 
         class Logger : ILog

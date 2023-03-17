@@ -1,0 +1,19 @@
+{
+  "IsDebugEnabled": false,
+  "IsInfoEnabled": false,
+  "IsWarnEnabled": false,
+  "IsErrorEnabled": false,
+  "IsFatalEnabled": false,
+  "DebugMessages": [],
+  "InfoMessages": [
+    "(1 / 5) Retrying entries that failed in batch '1/1' to table 'faketable' with a delay of '00:00:00.2000000'.",
+    "(2 / 5) Retrying entries that failed in batch '1/1' to table 'faketable' with a delay of '00:00:00.4000000'.",
+    "(3 / 5) Retrying entries that failed in batch '1/1' to table 'faketable' with a delay of '00:00:00.6000000'.",
+    "(4 / 5) Retrying entries that failed in batch '1/1' to table 'faketable' with a delay of '00:00:00.8000000'.",
+    "(5 / 5) Retrying entries that failed in batch '1/1' to table 'faketable' with a delay of '00:00:01'."
+  ],
+  "WarnMessages": [
+    "(5 / 5) All retry attempts for batch '1/1' with entries '' to table 'faketable' exhausted."
+  ],
+  "ErrorMessages": []
+}
