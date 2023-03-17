@@ -1,8 +1,6 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
-    using Amazon.DynamoDBv2.Model;
-    using Amazon.DynamoDBv2;
 
     /// <summary>
     /// The saga persistence configuration options.
@@ -10,29 +8,12 @@
     public class SagaPersistenceConfiguration
     {
         /// <summary>
-        /// The name of the table used to store saga data
+        /// The configuration of the table used by the outbox persistence.
         /// </summary>
-        public string TableName { get; set; } = DynamoDBPersistenceConfig.SharedTableName;
-
-        /// <summary>
-        /// The name of the partition key
-        /// </summary>
-        public string PartitionKeyName { get; set; } = DynamoDBPersistenceConfig.DefaultPartitionKeyName;
-
-        /// <summary>
-        /// The name of the sort key
-        /// </summary>
-        public string SortKeyName { get; set; } = DynamoDBPersistenceConfig.DefaultSortKeyName;
-
-        /// <summary>
-        /// The billing mode for this table
-        /// </summary>
-        public BillingMode BillingMode { get; set; } = DynamoDBPersistenceConfig.DefaultBillingMode;
-
-        /// <summary>
-        /// The provisioned throughput for this table if using <code>BillingMode.PROVISIONED</code>.
-        /// </summary>
-        public ProvisionedThroughput ProvisionedThroughput { get; set; }
+        public TableConfiguration Table { get; set; } = new TableConfiguration()
+        {
+            TimeToLiveAttributeName = null
+        };
 
         /// <summary>
         /// Enables pessimistic locking mode to avoid concurrent modifications to the same saga. Enable this mode to reduce retries due to optimistic concurrency control violations.
@@ -52,6 +33,6 @@
         /// <summary>
         /// How long the client should attempt to acquire a lock when using pessimistic locking before giving up.
         /// </summary>
-        public TimeSpan LeaseAcquistionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan LeaseAcquisitionTimeout { get; set; } = TimeSpan.FromSeconds(10);
     }
 }

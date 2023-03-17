@@ -9,11 +9,6 @@
     /// </summary>
     public static class DynamoDBPersistenceConfig
     {
-        internal const string SharedTableName = "NServiceBus.Storage";
-        internal const string DefaultPartitionKeyName = "PK";
-        internal const string DefaultSortKeyName = "SK";
-        internal static readonly BillingMode DefaultBillingMode = BillingMode.PAY_PER_REQUEST;
-
         /// <summary>
         /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient
         /// </summary>
@@ -28,15 +23,15 @@
         }
 
         /// <summary>
-        /// Sets the table name for the outbox and the saga storage
+        /// Uses the provided table configuration for both Saga and Outbox storage settings.
         /// </summary>
-        public static PersistenceExtensions<DynamoDBPersistence> TableName(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, string tableName)
+        public static PersistenceExtensions<DynamoDBPersistence> UseSharedTable(this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions, TableConfiguration sharedTableConfiguration)
         {
-            Guard.AgainstNullAndEmpty(nameof(tableName), tableName);
+            Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
+            Guard.AgainstNull(nameof(sharedTableConfiguration), sharedTableConfiguration);
 
-            persistenceExtensions.Outbox().TableName = tableName;
-            persistenceExtensions.Sagas().TableName = tableName;
-
+            persistenceExtensions.Sagas().Table = sharedTableConfiguration with { };
+            persistenceExtensions.Outbox().Table = sharedTableConfiguration with { };
             return persistenceExtensions;
         }
 

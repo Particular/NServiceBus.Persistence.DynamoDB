@@ -22,20 +22,21 @@
 
         public async Task Install(string identity, CancellationToken cancellationToken = default)
         {
+            TableConfiguration outboxTableConfiguration = null;
             if (settings.IsFeatureActive(typeof(OutboxStorage))
                && settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
                && outboxConfig.CreateTable)
             {
-                await installer.CreateOutboxTableIfNotExists(settings.Get<OutboxPersistenceConfiguration>(),
-                    cancellationToken).ConfigureAwait(false);
+                outboxTableConfiguration = outboxConfig.Table;
+                await installer.CreateTable(outboxTableConfiguration, cancellationToken).ConfigureAwait(false);
             }
 
             if (settings.IsFeatureActive(typeof(SagaStorage))
                 && settings.TryGet(out SagaPersistenceConfiguration sagaConfig)
-                && sagaConfig.CreateTable)
+                && sagaConfig.CreateTable
+                && outboxTableConfiguration?.TableName != sagaConfig.Table.TableName)
             {
-                await installer.CreateSagaTableIfNotExists(settings.Get<SagaPersistenceConfiguration>(), cancellationToken)
-                    .ConfigureAwait(false);
+                await installer.CreateTable(sagaConfig.Table, cancellationToken).ConfigureAwait(false);
             }
         }
     }

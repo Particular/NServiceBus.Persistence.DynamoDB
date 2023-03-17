@@ -1,4 +1,6 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿#nullable enable
+
+namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
@@ -11,79 +13,67 @@
     {
         public Installer(IAmazonDynamoDB client) => this.client = client;
 
-        public virtual async Task CreateOutboxTableIfNotExists(OutboxPersistenceConfiguration outboxConfiguration, CancellationToken cancellationToken = default)
+        public virtual async Task CreateTable(TableConfiguration tableConfiguration,
+            CancellationToken cancellationToken = default)
         {
+            if (tableConfiguration.BillingMode == BillingMode.PROVISIONED && tableConfiguration.ProvisionedThroughput == null)
+            {
+                throw new ArgumentException(
+                    $"The table is configured with provisioned billing mode but no throughput provision setting has been specified. Change billing mode to '{BillingMode.PAY_PER_REQUEST}' or add a '{nameof(ProvisionedThroughput)}' configuration");
+            }
+
             var createTableRequest = new CreateTableRequest
             {
-                TableName = outboxConfiguration.TableName,
+                TableName = tableConfiguration.TableName,
                 AttributeDefinitions = new List<AttributeDefinition>
                 {
-                    new() { AttributeName = outboxConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
-                    new() { AttributeName = outboxConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S },
+                    new() { AttributeName = tableConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
+                    new() { AttributeName = tableConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S },
                 },
                 KeySchema = new List<KeySchemaElement>
                 {
-                    new() { AttributeName = outboxConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
-                    new() { AttributeName = outboxConfiguration.SortKeyName, KeyType = KeyType.RANGE },
+                    new() { AttributeName = tableConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
+                    new() { AttributeName = tableConfiguration.SortKeyName, KeyType = KeyType.RANGE },
                 },
-                BillingMode = outboxConfiguration.BillingMode,
-                ProvisionedThroughput = outboxConfiguration.ProvisionedThroughput
+                BillingMode = tableConfiguration.BillingMode,
+                ProvisionedThroughput = tableConfiguration.ProvisionedThroughput
             };
 
             await CreateTable(createTableRequest, cancellationToken).ConfigureAwait(false);
-            await WaitForTableToBeActive(outboxConfiguration.TableName, cancellationToken).ConfigureAwait(false);
-            await ConfigureTimeToLive(outboxConfiguration, cancellationToken).ConfigureAwait(false);
+            await WaitForTableToBeActive(tableConfiguration.TableName, cancellationToken).ConfigureAwait(false);
+
+            if (tableConfiguration.TimeToLiveAttributeName != null)
+            {
+                await ConfigureTimeToLive(tableConfiguration.TableName, tableConfiguration.TimeToLiveAttributeName, cancellationToken).ConfigureAwait(false);
+            }
 
         }
 
-        async Task ConfigureTimeToLive(OutboxPersistenceConfiguration outboxConfiguration, CancellationToken cancellationToken)
+        async Task ConfigureTimeToLive(string tableName, string ttlAttributeName, CancellationToken cancellationToken)
         {
-            var ttlDescription = await client.DescribeTimeToLiveAsync(outboxConfiguration.TableName, cancellationToken).ConfigureAwait(false);
+            var ttlDescription = await client.DescribeTimeToLiveAsync(tableName, cancellationToken).ConfigureAwait(false);
 
             if (ttlDescription.TimeToLiveDescription.AttributeName != null)
             {
-                if (ttlDescription.TimeToLiveDescription.AttributeName == outboxConfiguration.TimeToLiveAttributeName)
+                if (ttlDescription.TimeToLiveDescription.AttributeName == ttlAttributeName)
                 {
                     // already contains TTL configuration
                     return;
                 }
 
                 throw new Exception(
-                    $"The table {outboxConfiguration.TableName} has attribute {ttlDescription.TimeToLiveDescription.AttributeName} configured for the time to live. The outbox configuration is configured to use {outboxConfiguration.TimeToLiveAttributeName} which does not match. Adjust the outbox configuration to match the existing time to live column name or remove the existing time to live configuration on the table.");
+                    $"The table '{tableName}' has attribute '{ttlDescription.TimeToLiveDescription.AttributeName}' configured for the time to live. The outbox configuration is configured to use '{ttlAttributeName}' which does not match. Adjust the outbox configuration to match the existing time to live column name or remove the existing time to live configuration on the table.");
             }
 
             await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
             {
-                TableName = outboxConfiguration.TableName,
+                TableName = tableName,
                 TimeToLiveSpecification = new TimeToLiveSpecification
                 {
-                    AttributeName = outboxConfiguration.TimeToLiveAttributeName,
+                    AttributeName = ttlAttributeName,
                     Enabled = true
                 }
             }, cancellationToken).ConfigureAwait(false);
-        }
-
-        public virtual async Task CreateSagaTableIfNotExists(SagaPersistenceConfiguration sagaConfiguration, CancellationToken cancellationToken = default)
-        {
-            var createTableRequest = new CreateTableRequest
-            {
-                TableName = sagaConfiguration.TableName,
-                AttributeDefinitions = new List<AttributeDefinition>
-                {
-                    new() { AttributeName = sagaConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
-                    new() { AttributeName = sagaConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S }
-                },
-                KeySchema = new List<KeySchemaElement>
-                {
-                    new() { AttributeName = sagaConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
-                    new() { AttributeName = sagaConfiguration.SortKeyName, KeyType = KeyType.RANGE },
-                },
-                BillingMode = sagaConfiguration.BillingMode,
-                ProvisionedThroughput = sagaConfiguration.ProvisionedThroughput,
-            };
-
-            await CreateTable(createTableRequest, cancellationToken).ConfigureAwait(false);
-            await WaitForTableToBeActive(sagaConfiguration.TableName, cancellationToken).ConfigureAwait(false);
         }
 
         async Task CreateTable(CreateTableRequest createTableRequest,

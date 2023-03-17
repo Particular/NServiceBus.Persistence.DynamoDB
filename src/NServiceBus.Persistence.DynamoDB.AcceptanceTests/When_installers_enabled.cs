@@ -1,5 +1,7 @@
 ﻿namespace NServiceBus.AcceptanceTests
 {
+    using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
@@ -8,7 +10,6 @@
     using NUnit.Framework;
     using Persistence.DynamoDB;
 
-    //TODO: should not create tables when saga+outbox enabled but configured to be disabled
     public class When_installers_enabled : NServiceBusAcceptanceTest
     {
         [Test]
@@ -20,8 +21,7 @@
                 .Done(c => c.EndpointsStarted)
                 .Run();
 
-            Assert.IsFalse(context.Installer.CreatedOutboxTable);
-            Assert.IsFalse(context.Installer.CreatedSagaTable);
+            Assert.IsEmpty(context.Installer.TablesCreated);
         }
 
         [Test]
@@ -32,8 +32,8 @@
                 .Done(c => c.EndpointsStarted)
                 .Run();
 
-            Assert.IsFalse(context.Installer.CreatedOutboxTable);
-            Assert.IsTrue(context.Installer.CreatedSagaTable);
+            Assert.Contains(context.SagaTableName, context.Installer.TablesCreated);
+            Assert.AreEqual(1, context.Installer.TablesCreated.Count, "should only create saga table");
         }
 
         [Test]
@@ -50,8 +50,8 @@
                 .Done(c => c.EndpointsStarted)
                 .Run();
 
-            Assert.IsTrue(context.Installer.CreatedOutboxTable);
-            Assert.IsFalse(context.Installer.CreatedSagaTable);
+            Assert.Contains(context.OutboxTableName, context.Installer.TablesCreated);
+            Assert.AreEqual(1, context.Installer.TablesCreated.Count, "should only create outbox table");
         }
 
         [Test]
@@ -69,12 +69,13 @@
                 .Done(c => c.EndpointsStarted)
                 .Run();
 
-            Assert.IsFalse(context.Installer.CreatedSagaTable);
-            Assert.IsFalse(context.Installer.CreatedOutboxTable);
+            Assert.IsEmpty(context.Installer.TablesCreated);
         }
 
         class Context : ScenarioContext
         {
+            public string OutboxTableName { get; } = Guid.NewGuid().ToString();
+            public string SagaTableName { get; } = Guid.NewGuid().ToString();
             public FakeInstaller Installer { get; } = new FakeInstaller();
         }
 
@@ -83,8 +84,15 @@
             public EndpointWithInstallers() =>
                 EndpointSetup<DefaultServer>((c, r) =>
                 {
+                    var testContext = r.ScenarioContext as Context;
+
+                    var persistence = c.UsePersistence<DynamoDBPersistence>();
+                    persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
+                    persistence.Outbox().Table.TableName = testContext.OutboxTableName;
+                    persistence.Sagas().Table.TableName = testContext.SagaTableName;
+
                     c.EnableInstallers();
-                    c.RegisterComponents(sc => sc.AddSingleton<Installer>(((Context)r.ScenarioContext).Installer));
+                    c.RegisterComponents(sc => sc.AddSingleton<Installer>(testContext.Installer));
                 });
 
             public class SomeSaga : Saga<SomeSaga.SomeSagaData>, IAmStartedByMessages<SomeSaga.SagaStartMessage>
@@ -92,7 +100,7 @@
                 protected override void ConfigureHowToFindSaga(SagaPropertyMapper<SomeSagaData> mapper) => mapper
                     .ConfigureMapping<SagaStartMessage>(m => m.SomeProperty).ToSaga(d => d.SomeProperty);
 
-                public Task Handle(SagaStartMessage message, IMessageHandlerContext context) => throw new System.NotImplementedException();
+                public Task Handle(SagaStartMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
 
                 public class SomeSagaData : ContainSagaData
                 {
@@ -108,24 +116,15 @@
 
         class FakeInstaller : Installer
         {
-            public bool CreatedOutboxTable { get; set; }
-            public bool CreatedSagaTable { get; set; }
+            public List<string> TablesCreated { get; } = new List<string>();
 
             public FakeInstaller() : base(null)
             {
             }
 
-            public override Task CreateOutboxTableIfNotExists(OutboxPersistenceConfiguration outboxConfiguration,
-                CancellationToken cancellationToken = default)
+            public override Task CreateTable(TableConfiguration tableConfiguration, CancellationToken cancellationToken = default)
             {
-                CreatedOutboxTable = true;
-                return Task.CompletedTask;
-            }
-
-            public override Task CreateSagaTableIfNotExists(SagaPersistenceConfiguration sagaConfiguration,
-                CancellationToken cancellationToken = default)
-            {
-                CreatedSagaTable = true;
+                TablesCreated.Add(tableConfiguration.TableName);
                 return Task.CompletedTask;
             }
         }
