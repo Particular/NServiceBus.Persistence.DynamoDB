@@ -53,7 +53,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     var response = await dynamoDbClient.WriteBatch(batch, batchNumber, totalBatches, configuration, logger, cancellationToken)
                         .ConfigureAwait(false);
 
-                    if (!response.UnprocessedItems.TryGetValue(configuration.TableName, out var unprocessedBatch) ||
+                    if (!response.UnprocessedItems.TryGetValue(configuration.Table.TableName, out var unprocessedBatch) ||
                         unprocessedBatch is not { Count: > 0 })
                     {
                         return;
@@ -70,11 +70,11 @@ namespace NServiceBus.Persistence.DynamoDB
                     var delay = CalculateDelay(attemptNumber, retryDelay);
                     if (logger.IsDebugEnabled)
                     {
-                        logger.Debug($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' with a delay of '{delay}'.");
+                        logger.Debug($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' with a delay of '{delay}'.");
                     }
                     else
                     {
-                        logger.Info($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' with a delay of '{delay}'.");
+                        logger.Info($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' with a delay of '{delay}'.");
                     }
 
                     await delayOnFailure(delay, cancellationToken).ConfigureAwait(false);
@@ -93,18 +93,18 @@ namespace NServiceBus.Persistence.DynamoDB
                     var delay = CalculateDelay(attemptNumber, retryDelay);
                     if (logger.IsDebugEnabled)
                     {
-                        logger.Debug($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling  with a delay of '{delay}'.", provisionedThroughputExceededException);
+                        logger.Debug($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries '{CreateBatchLogMessage(batch, configuration)}' that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' due to throttling  with a delay of '{delay}'.", provisionedThroughputExceededException);
                     }
                     else
                     {
-                        logger.Info($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.TableName}' due to throttling with a delay of '{delay}'.", provisionedThroughputExceededException);
+                        logger.Info($"({attemptNumber} / {maximumNumberOfRetries}) Retrying entries that failed in batch '{batchNumber}/{totalBatches}' to table '{configuration.Table.TableName}' due to throttling with a delay of '{delay}'.", provisionedThroughputExceededException);
                     }
 
                     await delayOnFailure(delay, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
                 {
-                    logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}'", ex);
+                    logger.Error($"Error while writing batch '{batchNumber}/{totalBatches}', with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.Table.TableName}'", ex);
                     throw;
                 }
             }
@@ -112,7 +112,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
             if (!succeeded)
             {
-                logger.Warn($"(5 / {maximumNumberOfRetries}) All retry attempts for batch '{batchNumber}/{totalBatches}' with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.TableName}' exhausted.");
+                logger.Warn($"(5 / {maximumNumberOfRetries}) All retry attempts for batch '{batchNumber}/{totalBatches}' with entries '{CreateBatchLogMessage(batch, configuration)}' to table '{configuration.Table.TableName}' exhausted.");
             }
         }
 
@@ -125,13 +125,13 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 logBatchEntries = CreateBatchLogMessage(batch, configuration);
                 logger.Debug(
-                    $"Writing batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.TableName}'");
+                    $"Writing batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.Table.TableName}'");
             }
 
             var batchWriteItemRequest = new BatchWriteItemRequest
             {
                 RequestItems =
-                    new Dictionary<string, List<WriteRequest>> { { configuration.TableName, batch } },
+                    new Dictionary<string, List<WriteRequest>> { { configuration.Table.TableName, batch } },
             };
 
             var result = await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken)
@@ -140,7 +140,7 @@ namespace NServiceBus.Persistence.DynamoDB
             if (logger.IsDebugEnabled)
             {
                 logger.Debug(
-                    $"Wrote batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.TableName}'");
+                    $"Wrote batch '{batchNumber}/{totalBatches}' with entries '{logBatchEntries}' to table '{configuration.Table.TableName}'");
             }
 
             return result;
@@ -154,12 +154,12 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 if (writeRequest.DeleteRequest is { } deleteRequest)
                 {
-                    stringBuilder.Append($"DELETE #PK {deleteRequest.Key[configuration.PartitionKeyName].S} / #SK {deleteRequest.Key[configuration.SortKeyName].S}, ");
+                    stringBuilder.Append($"DELETE #PK {deleteRequest.Key[configuration.Table.PartitionKeyName].S} / #SK {deleteRequest.Key[configuration.Table.SortKeyName].S}, ");
                 }
 
                 if (writeRequest.PutRequest is { } putRequest)
                 {
-                    stringBuilder.Append($"PUT #PK {putRequest.Item[configuration.PartitionKeyName].S} / #SK {putRequest.Item[configuration.SortKeyName].S}, ");
+                    stringBuilder.Append($"PUT #PK {putRequest.Item[configuration.Table.PartitionKeyName].S} / #SK {putRequest.Item[configuration.Table.SortKeyName].S}, ");
                 }
             }
 

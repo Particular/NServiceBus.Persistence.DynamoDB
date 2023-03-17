@@ -18,9 +18,12 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             configuration = new OutboxPersistenceConfiguration
             {
-                TableName = "faketable",
-                PartitionKeyName = "PK",
-                SortKeyName = "SK",
+                Table = new()
+                {
+                    TableName = "faketable",
+                    PartitionKeyName = "PK",
+                    SortKeyName = "SK",
+                }
             };
             logger = new Logger();
             client = new MockDynamoDBClient();
@@ -38,8 +41,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             await client.BatchWriteItemWithRetries(batches, configuration, logger);
 
             Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(2));
-            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 2));
-            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 3));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 2));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 3));
         }
 
         [Test]
@@ -50,8 +53,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             // reusing the same attribute values for testing
             var attributeValues = new Dictionary<string, AttributeValue>
             {
-                [configuration.PartitionKeyName] = new("PK"),
-                [configuration.SortKeyName] = new("SK")
+                [configuration.Table.PartitionKeyName] = new("PK"),
+                [configuration.Table.SortKeyName] = new("SK")
             };
 
             var batches = new List<List<WriteRequest>>
@@ -101,7 +104,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                         UnprocessedItems = new Dictionary<string, List<WriteRequest>>
                         {
                             {
-                                configuration.TableName,
+                                configuration.Table.TableName,
                                 new List<WriteRequest> { unprocessedWriteRequest1, unprocessedWriteRequest2 }
                             }
                         }
@@ -114,13 +117,13 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             await client.BatchWriteItemWithRetries(batches, configuration, logger, retryDelay: TimeSpan.FromMilliseconds(0));
 
             Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(2));
-            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 2));
-            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 2));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 4));
 
             var retriedBatch =
-                client.BatchWriteRequestsSent.Single(x => x.RequestItems[configuration.TableName].Count == 2);
+                client.BatchWriteRequestsSent.Single(x => x.RequestItems[configuration.Table.TableName].Count == 2);
 
-            Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EquivalentTo(new[] { unprocessedWriteRequest1, unprocessedWriteRequest2 }));
+            Assert.That(retriedBatch.RequestItems[configuration.Table.TableName], Is.EquivalentTo(new[] { unprocessedWriteRequest1, unprocessedWriteRequest2 }));
         }
 
         [Test]
@@ -145,7 +148,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                         UnprocessedItems = new Dictionary<string, List<WriteRequest>>
                         {
                             {
-                                configuration.TableName,
+                                configuration.Table.TableName,
                                 new List<WriteRequest> { unprocessedWriteRequest1, unprocessedWriteRequest2 }
                             }
                         }
@@ -158,18 +161,18 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
 
             Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(6));
-            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(5).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 2));
-            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(5).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 2));
+            Assert.That(client.BatchWriteRequestsSent, Has.One.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 4));
 
             var retriedBatches =
-                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.TableName].Count == 2)
+                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.Table.TableName].Count == 2)
                     .ToArray();
 
             Assert.That(retriedBatches, Has.Length.EqualTo(5));
 
             foreach (var batch in retriedBatches)
             {
-                Assert.That(batch.RequestItems[configuration.TableName], Is.EquivalentTo(new[] { unprocessedWriteRequest1, unprocessedWriteRequest2 }));
+                Assert.That(batch.RequestItems[configuration.Table.TableName], Is.EquivalentTo(new[] { unprocessedWriteRequest1, unprocessedWriteRequest2 }));
             }
 
             Approver.Verify(logger);
@@ -191,7 +194,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 UnprocessedItems = new Dictionary<string, List<WriteRequest>>
                 {
                     {
-                        configuration.TableName,
+                        configuration.Table.TableName,
                         new List<WriteRequest> { unprocessedWriteRequest1, unprocessedWriteRequest2 }
                     }
                 }
@@ -210,15 +213,15 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             string unprocessedWriteRequest1Key = Guid.NewGuid().ToString();
             var unprocessedWriteRequest1 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>()
             {
-                { configuration.PartitionKeyName, new("PK1") },
-                { configuration.SortKeyName, new("SK1") },
+                { configuration.Table.PartitionKeyName, new("PK1") },
+                { configuration.Table.SortKeyName, new("SK1") },
                 { "ShouldFail", new AttributeValue(unprocessedWriteRequest1Key) }
             }));
             string unprocessedWriteRequest2Key = Guid.NewGuid().ToString();
             var unprocessedWriteRequest2 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>()
             {
-                { configuration.PartitionKeyName, new("PK2") },
-                { configuration.SortKeyName, new("SK2") },
+                { configuration.Table.PartitionKeyName, new("PK2") },
+                { configuration.Table.SortKeyName, new("SK2") },
                 { "ShouldFail", new AttributeValue(unprocessedWriteRequest2Key) }
             }));
 
@@ -237,7 +240,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             };
             client.BatchWriteRequestResponse = req =>
             {
-                var shouldFail = req.RequestItems[configuration.TableName]
+                var shouldFail = req.RequestItems[configuration.Table.TableName]
                     .Where(x => x.DeleteRequest is { } del && del.Key.ContainsKey("ShouldFail"))
                     .ToList();
                 if (shouldFail.Count > 0 && calledMap[shouldFail[0].DeleteRequest.Key["ShouldFail"].S]++ == 0)
@@ -246,7 +249,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                     {
                         UnprocessedItems = new Dictionary<string, List<WriteRequest>>
                         {
-                            { configuration.TableName, shouldFail }
+                            { configuration.Table.TableName, shouldFail }
                         }
                     };
                 }
@@ -257,16 +260,16 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
 
             Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(6));
-            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(2).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 1));
-            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(4).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(2).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 1));
+            Assert.That(client.BatchWriteRequestsSent, Has.Exactly(4).Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 4));
 
             var retriedBatches =
-                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.TableName].Count == 1)
+                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.Table.TableName].Count == 1)
                     .ToArray();
 
             Assert.That(retriedBatches, Has.Length.EqualTo(2));
-            Assert.That(retriedBatches.ElementAt(0).RequestItems[configuration.TableName].Single(), Is.EqualTo(unprocessedWriteRequest1));
-            Assert.That(retriedBatches.ElementAt(1).RequestItems[configuration.TableName].Single(), Is.EqualTo(unprocessedWriteRequest2));
+            Assert.That(retriedBatches.ElementAt(0).RequestItems[configuration.Table.TableName].Single(), Is.EqualTo(unprocessedWriteRequest1));
+            Assert.That(retriedBatches.ElementAt(1).RequestItems[configuration.Table.TableName].Single(), Is.EqualTo(unprocessedWriteRequest2));
 
             Approver.Verify(logger);
         }
@@ -295,17 +298,17 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             await client.BatchWriteItemWithRetries(batches, configuration, logger, retryDelay: TimeSpan.FromMilliseconds(0));
 
             Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(2));
-            Assert.That(client.BatchWriteRequestsSent, Has.All.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+            Assert.That(client.BatchWriteRequestsSent, Has.All.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 4));
 
             var retriedBatches =
-                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.TableName].Count == 4)
+                client.BatchWriteRequestsSent.Where(x => x.RequestItems[configuration.Table.TableName].Count == 4)
                     .ToArray();
 
             Assert.That(retriedBatches, Has.Length.EqualTo(2));
 
             foreach (var retriedBatch in retriedBatches)
             {
-                Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EqualTo(batch));
+                Assert.That(retriedBatch.RequestItems[configuration.Table.TableName], Is.EqualTo(batch));
             }
         }
 
@@ -333,17 +336,17 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             await client.BatchWriteItemWithRetries(batches, configuration, logger, delayOnFailure: (_, _) => Task.CompletedTask, retryDelay: TimeSpan.FromMilliseconds(200));
 
             Assert.That(client.BatchWriteRequestsSent, Has.Count.EqualTo(6));
-            Assert.That(client.BatchWriteRequestsSent, Has.All.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.TableName].Count == 4));
+            Assert.That(client.BatchWriteRequestsSent, Has.All.Matches<BatchWriteItemRequest>(x => x.RequestItems[configuration.Table.TableName].Count == 4));
 
             var retriedBatches =
-                client.BatchWriteRequestsSent.Skip(1).Where(x => x.RequestItems[configuration.TableName].Count == 4)
+                client.BatchWriteRequestsSent.Skip(1).Where(x => x.RequestItems[configuration.Table.TableName].Count == 4)
                     .ToArray();
 
             Assert.That(retriedBatches, Has.Length.EqualTo(5));
 
             foreach (var retriedBatch in retriedBatches)
             {
-                Assert.That(retriedBatch.RequestItems[configuration.TableName], Is.EqualTo(batch));
+                Assert.That(retriedBatch.RequestItems[configuration.Table.TableName], Is.EqualTo(batch));
             }
 
             Approver.Verify(logger);
@@ -370,8 +373,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             // reusing the same attribute values for testing
             var attributeValues = new Dictionary<string, AttributeValue>
             {
-                [configuration.PartitionKeyName] = new("PK"),
-                [configuration.SortKeyName] = new("SK")
+                [configuration.Table.PartitionKeyName] = new("PK"),
+                [configuration.Table.SortKeyName] = new("SK")
             };
 
             var batches = new List<List<WriteRequest>>
