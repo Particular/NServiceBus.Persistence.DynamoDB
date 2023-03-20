@@ -67,7 +67,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     foundOutboxMetadataEntry = true;
                     var headerItem = response.Items[0];
-                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    // In case the metadata is not marked as dispatched we want to know the number of transport operations
+                    // in order to pre-populate the lists etc accordingly
+                    if (!headerItem["Dispatched"].BOOL)
+                    {
+                        numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    }
                     currentVersion = Convert.ToInt32(headerItem[OutboxDataVersionAttributeName].N);
                     responseItemsHasOutboxMetadataEntry = true;
                 }
@@ -270,10 +275,9 @@ namespace NServiceBus.Persistence.DynamoDB
                     {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}"}}, //Sort key
                 },
                 ConditionExpression = "#version = :current_version",
-                UpdateExpression = "SET #operation_count = :operation_count, #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl, #version = :next_version",
+                UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl, #version = :next_version",
                 ExpressionAttributeNames = new Dictionary<string, string>
                 {
-                    {"#operation_count", "TransportOperationsCount"},
                     {"#dispatched", "Dispatched"},
                     {"#dispatched_at", "DispatchedAt"},
                     {"#ttl", configuration.Table.TimeToLiveAttributeName!},
@@ -281,7 +285,6 @@ namespace NServiceBus.Persistence.DynamoDB
                 },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
-                    { ":operation_count", new AttributeValue { N = "0" } },
                     { ":dispatched", new AttributeValue {BOOL = true} },
                     { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
                     { ":ttl", new AttributeValue {N = epochSeconds.ToString()} },
