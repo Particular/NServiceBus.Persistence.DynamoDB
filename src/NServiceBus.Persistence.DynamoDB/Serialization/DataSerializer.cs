@@ -108,10 +108,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
                 if (attributeValue.B != null)
                 {
-                    jsonObject.Add(attributeName, new JsonObject
-                    {
-                        [MemoryStreamConverter.PropertyName] = Convert.ToBase64String(attributeValue.B.ToArray())
-                    });
+                    jsonObject.Add(MemoryStreamConverter.PropertyName, Convert.ToBase64String(attributeValue.B.ToArray()));
                     continue;
                 }
 
