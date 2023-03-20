@@ -10,7 +10,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     public class WriteRequestBatcherTests
     {
         [TestCaseSource(nameof(BatchingCases))]
-        public void CorrectNumberOfBatches(int numberOfEntries, int expectedNumberOfBatches, int lastBatchContainsNumberOfEntries)
+        public void Should_use_correct_number_of_batches(int numberOfEntries, int expectedNumberOfBatches, int lastBatchContainsNumberOfEntries)
         {
             var writeRequests = Enumerable.Range(0, numberOfEntries).Select(x => new WriteRequest()).ToArray();
 

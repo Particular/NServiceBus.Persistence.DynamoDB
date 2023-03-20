@@ -17,7 +17,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task SetAsDispatched_updates_metadata_as_a_dedicated_non_batched_update()
+        public async Task Should_update_metadata_as_a_dedicated_non_batched_update()
         {
             var contextBag = new ContextBag();
             contextBag.Set(OutboxPersister.OperationsCountContextProperty, 10);
@@ -29,7 +29,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void SetAsDispatched_does_not_execute_batched_operations_when_metadata_cannot_be_updated()
+        public void Should_not_execute_batched_operations_when_metadata_cannot_be_updated()
         {
             var contextBag = new ContextBag();
             contextBag.Set(OutboxPersister.OperationsCountContextProperty, 10);
@@ -42,7 +42,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task SetAsDispatched_does_execute_batched_operations()
+        public async Task Should_execute_batched_operations()
         {
             var contextBag = new ContextBag();
             contextBag.Set(OutboxPersister.OperationsCountContextProperty, 50);

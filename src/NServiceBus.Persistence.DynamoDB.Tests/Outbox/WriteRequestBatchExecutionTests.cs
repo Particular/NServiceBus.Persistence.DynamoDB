@@ -30,7 +30,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task ExecutesBatches()
+        public async Task Should_execute_batches()
         {
             var batches = new List<List<WriteRequest>>
             {
@@ -46,7 +46,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task LogsDetailsOnDebugLogging()
+        public async Task Should_log_details_when_debug_logging_is_enabled()
         {
             logger.IsDebugEnabled = true;
 
@@ -69,7 +69,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task DoesNotLogDetailsByDefault()
+        public async Task Should_not_log_details_by_default()
         {
             var batches = new List<List<WriteRequest>>
             {
@@ -83,7 +83,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task RetriesUnprocessedItemsInBatch()
+        public async Task Should_retry_unprocessed_items_in_batch()
         {
             var unprocessedWriteRequest1 = new WriteRequest();
             var unprocessedWriteRequest2 = new WriteRequest();
@@ -127,7 +127,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task RetriesUnprocessedItemsInBatchUpToFiveTimesWithDelay()
+        public async Task Should_retry_unprocessed_items_in_batch_up_to_five_times_with_delay()
         {
             var unprocessedWriteRequest1 = new WriteRequest();
             var unprocessedWriteRequest2 = new WriteRequest();
@@ -179,7 +179,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task GivesUpRetryingUnprocessedItemsAfterFiveAttempts()
+        public async Task Should_give_up_retrying_after_five_attempts()
         {
             var unprocessedWriteRequest1 = new WriteRequest();
             var unprocessedWriteRequest2 = new WriteRequest();
@@ -206,7 +206,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task RetriesUnprocessedItemsOnUnsuccessfulBatches()
+        public async Task Should_retry_unprocessed_items_from_failed_batches()
         {
             logger.IsDebugEnabled = true;
 
@@ -275,7 +275,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task OnThrottlingRetriesWholeBatch()
+        public async Task Should_retry_whole_batch_on_throttling()
         {
             var batch = new List<WriteRequest> { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() };
             var batches = new List<List<WriteRequest>>
@@ -313,7 +313,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task OnThrottlingRetriesWholeUpToFiveTimesWithDelay()
+        public async Task Should_retry_whole_batch_up_to_five_times_with_delay_on_throttling()
         {
             var batch = new List<WriteRequest> { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() };
             var batches = new List<List<WriteRequest>>
@@ -353,7 +353,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public async Task OnThrottlingGivesUpRetryingUnprocessedItemsAfterFiveAttempts()
+        public async Task Should_give_up_retries_after_five_attempts_on_throttling()
         {
             var batches = new List<List<WriteRequest>>
             {
@@ -368,7 +368,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void DoesNotRetryOnOtherExceptions()
+        public void Should_not_retry_on_other_exception()
         {
             // reusing the same attribute values for testing
             var attributeValues = new Dictionary<string, AttributeValue>
