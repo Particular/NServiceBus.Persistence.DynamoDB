@@ -20,8 +20,8 @@ namespace NServiceBus.Persistence.DynamoDB
 
     class OutboxPersister : IOutboxStorage
     {
-        const string OutboxDataVersionAttributeName = "___VERSION___";
-        const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
+        public const string OutboxDataVersionAttributeName = "___VERSION___";
+        public const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
 
         public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration, string endpointIdentifier)
         {

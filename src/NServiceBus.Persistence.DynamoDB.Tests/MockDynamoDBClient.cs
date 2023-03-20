@@ -18,8 +18,6 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
         public Func<BatchWriteItemRequest, BatchWriteItemResponse> BatchWriteRequestResponse = _ => new BatchWriteItemResponse();
 
-        public BatchWriteItemResponse BatchWriteItem(BatchWriteItemRequest request) => throw new NotImplementedException();
-
         public Task<BatchWriteItemResponse> BatchWriteItemAsync(Dictionary<string, List<WriteRequest>> requestItems, CancellationToken cancellationToken = default)
             => BatchWriteItemAsync(new BatchWriteItemRequest(requestItems), cancellationToken);
 
@@ -29,9 +27,20 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             return Task.FromResult(BatchWriteRequestResponse(request));
         }
 
-        public CreateBackupResponse CreateBackup(CreateBackupRequest request) => throw new NotImplementedException();
+        public List<UpdateItemRequest> UpdateItemRequestsSent { get; } = new();
+
+        public Func<UpdateItemRequest, UpdateItemResponse> UpdateItemRequestResponse = _ => new UpdateItemResponse();
+        public Task<UpdateItemResponse> UpdateItemAsync(UpdateItemRequest request, CancellationToken cancellationToken = default)
+        {
+            UpdateItemRequestsSent.Add(request);
+            return Task.FromResult(UpdateItemRequestResponse(request));
+        }
 
         #region NotImplemented
+
+        public BatchWriteItemResponse BatchWriteItem(BatchWriteItemRequest request) => throw new NotImplementedException();
+
+        public CreateBackupResponse CreateBackup(CreateBackupRequest request) => throw new NotImplementedException();
 
         public void Dispose() => throw new System.NotImplementedException();
 
@@ -370,7 +379,6 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             CancellationToken cancellationToken = new CancellationToken()) =>
             throw new System.NotImplementedException();
 
-        public Task<UpdateItemResponse> UpdateItemAsync(UpdateItemRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
         public UpdateTableResponse UpdateTable(string tableName, ProvisionedThroughput provisionedThroughput) => throw new NotImplementedException();
 
         public UpdateTableResponse UpdateTable(UpdateTableRequest request) => throw new NotImplementedException();
