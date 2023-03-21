@@ -50,17 +50,30 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             logger.IsDebugEnabled = true;
 
-            // reusing the same attribute values for testing
-            var attributeValues = new Dictionary<string, AttributeValue>
-            {
-                [configuration.Table.PartitionKeyName] = new("PK"),
-                [configuration.Table.SortKeyName] = new("SK")
-            };
-
             var batches = new List<List<WriteRequest>>
             {
-                new() { new WriteRequest(new DeleteRequest(attributeValues)), new WriteRequest(new PutRequest(attributeValues)) },
-                new() { new WriteRequest(new PutRequest(attributeValues)), new WriteRequest(new DeleteRequest(attributeValues)), new WriteRequest(new PutRequest(attributeValues)) }
+                new() { new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH1_1"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH1_1")
+                })), new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH1_2"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH1_2")
+                })) },
+                new() { new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH2_1"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH2_1")
+                })), new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH2_2"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH2_2")
+                })), new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH2_3"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH2_3")
+                })) }
             };
 
             await client.BatchWriteItemWithRetries(batches, configuration, logger);
@@ -181,12 +194,20 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public async Task Should_give_up_retrying_after_five_attempts()
         {
-            var unprocessedWriteRequest1 = new WriteRequest();
-            var unprocessedWriteRequest2 = new WriteRequest();
+            var unprocessedWriteRequest1 = new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+            {
+                [configuration.Table.PartitionKeyName] = new("PK_BATCH1_FAILED1"),
+                [configuration.Table.SortKeyName] = new("SK_BATCH1_FAILED1")
+            }));
+            var unprocessedWriteRequest2 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+            {
+                [configuration.Table.PartitionKeyName] = new("PK_BATCH1_FAILED2"),
+                [configuration.Table.SortKeyName] = new("SK_BATCH1_FAILED2")
+            }));
 
             var batches = new List<List<WriteRequest>>
             {
-                new() { new WriteRequest(), unprocessedWriteRequest1, unprocessedWriteRequest2, new WriteRequest() }
+                new() { new WriteRequest(new DeleteRequest()), unprocessedWriteRequest1, unprocessedWriteRequest2, new WriteRequest(new DeleteRequest()) }
             };
 
             client.BatchWriteRequestResponse = _ => new BatchWriteItemResponse
@@ -213,15 +234,15 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             string unprocessedWriteRequest1Key = Guid.NewGuid().ToString();
             var unprocessedWriteRequest1 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>()
             {
-                { configuration.Table.PartitionKeyName, new("PK1") },
-                { configuration.Table.SortKeyName, new("SK1") },
+                { configuration.Table.PartitionKeyName, new("PK_BATCH2_FAILED1") },
+                { configuration.Table.SortKeyName, new("SK_BATCH2_FAILED1") },
                 { "ShouldFail", new AttributeValue(unprocessedWriteRequest1Key) }
             }));
             string unprocessedWriteRequest2Key = Guid.NewGuid().ToString();
             var unprocessedWriteRequest2 = new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>()
             {
-                { configuration.Table.PartitionKeyName, new("PK2") },
-                { configuration.Table.SortKeyName, new("SK2") },
+                { configuration.Table.PartitionKeyName, new("PK_BATCH4_FAILED1") },
+                { configuration.Table.SortKeyName, new("SK_BATCH4_FAILED1") },
                 { "ShouldFail", new AttributeValue(unprocessedWriteRequest2Key) }
             }));
 
@@ -357,7 +378,23 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             var batches = new List<List<WriteRequest>>
             {
-                new() { new WriteRequest(), new WriteRequest(), new WriteRequest(), new WriteRequest() }
+                new() { new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_FAILED1"),
+                    [configuration.Table.SortKeyName] = new("SK_FAILED1")
+                })), new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_FAILED2"),
+                    [configuration.Table.SortKeyName] = new("SK_FAILED2")
+                })), new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_FAILED3"),
+                    [configuration.Table.SortKeyName] = new("SK_FAILED3")
+                })), new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_FAILED4"),
+                    [configuration.Table.SortKeyName] = new("SK_FAILED4")
+                })) }
             };
 
             client.BatchWriteRequestResponse = _ => throw new ProvisionedThroughputExceededException("");
@@ -370,17 +407,30 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_not_retry_on_other_exception()
         {
-            // reusing the same attribute values for testing
-            var attributeValues = new Dictionary<string, AttributeValue>
-            {
-                [configuration.Table.PartitionKeyName] = new("PK"),
-                [configuration.Table.SortKeyName] = new("SK")
-            };
-
             var batches = new List<List<WriteRequest>>
             {
-                new() { new WriteRequest(new DeleteRequest(attributeValues)), new WriteRequest(new PutRequest(attributeValues)) },
-                new() { new WriteRequest(new PutRequest(attributeValues)), new WriteRequest(new DeleteRequest(attributeValues)), new WriteRequest(new PutRequest(attributeValues)) }
+                new() { new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH1_FAILED1"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH1_FAILED1")
+                })), new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH1_FAILED2"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH1_FAILED2")
+                })) },
+                new() { new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH2_FAILED1"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH2_FAILED1")
+                })), new WriteRequest(new DeleteRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH2_FAILED2"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH2_FAILED2")
+                })), new WriteRequest(new PutRequest(new Dictionary<string, AttributeValue>
+                {
+                    [configuration.Table.PartitionKeyName] = new("PK_BATCH2_FAILED3"),
+                    [configuration.Table.SortKeyName] = new("SK_BATCH2_FAILED3")
+                })) }
             };
 
             client.BatchWriteRequestResponse = _ => throw new AmazonServiceException("");

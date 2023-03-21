@@ -13,7 +13,7 @@
     "(5 / 5) Retrying entries that failed in batch '1/1' to table 'faketable' with a delay of '00:00:01'."
   ],
   "WarnMessages": [
-    "(5 / 5) All retry attempts for batch '1/1' with entries '' to table 'faketable' exhausted."
+    "(5 / 5) All retry attempts for batch '1/1' with entries 'PUT #PK:PK_BATCH1_FAILED1 / #SK:SK_BATCH1_FAILED1, DELETE #PK:PK_BATCH1_FAILED2 / #SK:SK_BATCH1_FAILED2' to table 'faketable' exhausted."
   ],
   "ErrorMessages": []
 }
