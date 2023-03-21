@@ -13,23 +13,22 @@ namespace NServiceBus.Persistence.DynamoDB
         public static List<List<WriteRequest>> Batch(IReadOnlyCollection<WriteRequest> writeRequests)
         {
             var allWriteRequests = new List<List<WriteRequest>>((int)Math.Ceiling(writeRequests.Count / (double)MaximumNumberOfWriteRequestsInABatch));
-            List<WriteRequest>? currentBatch = null;
+            if (writeRequests.Count == 0)
+            {
+                return allWriteRequests;
+            }
+            var currentBatch = new List<WriteRequest>(MaximumNumberOfWriteRequestsInABatch);
+            allWriteRequests.Add(currentBatch);
             int index = 0;
             foreach (var writeRequest in writeRequests)
             {
-                currentBatch ??= new List<WriteRequest>(MaximumNumberOfWriteRequestsInABatch);
                 if (index != 0 && index % MaximumNumberOfWriteRequestsInABatch == 0)
                 {
-                    allWriteRequests.Add(currentBatch);
                     currentBatch = new List<WriteRequest>(MaximumNumberOfWriteRequestsInABatch);
+                    allWriteRequests.Add(currentBatch);
                 }
                 currentBatch.Add(writeRequest);
                 index++;
-            }
-
-            if (currentBatch?.Count > 0)
-            {
-                allWriteRequests.Add(currentBatch);
             }
             return allWriteRequests;
         }
