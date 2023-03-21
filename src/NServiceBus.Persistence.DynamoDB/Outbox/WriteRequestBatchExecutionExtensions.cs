@@ -165,6 +165,9 @@ namespace NServiceBus.Persistence.DynamoDB
             return stringBuilder?.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : string.Empty;
         }
 
+        // If you retry the batch operation immediately, the underlying read or write requests can still fail due to throttling on the individual tables.
+        // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.BatchOperations
+        // except that we are currently not using an exponential backoff.
         static TimeSpan CalculateDelay(int attempt, TimeSpan? retryDelay)
         {
             var delay = Convert.ToInt32(retryDelay.GetValueOrDefault(TimeSpan.FromMilliseconds(250)).TotalMilliseconds);
