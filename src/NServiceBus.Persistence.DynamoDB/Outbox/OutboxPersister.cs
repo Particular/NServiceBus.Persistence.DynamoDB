@@ -165,14 +165,14 @@ namespace NServiceBus.Persistence.DynamoDB
                             {
                                 configuration.Table.SortKeyName,
                                 new AttributeValue { S = $"OUTBOX#METADATA#{outboxMessage.MessageId}" }
-                            }, //Sort key
+                            },
                             {
                                 "TransportOperationsCount",
                                 new AttributeValue { N = outboxMessage.TransportOperations.Length.ToString() }
                             },
                             { "Dispatched", new AttributeValue { BOOL = false } },
                             { "DispatchedAt", new AttributeValue { NULL = true } },
-                            { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } }, //TTL
+                            { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } },
                             { OutboxDataVersionAttributeName, new AttributeValue { N = "0" } },
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
