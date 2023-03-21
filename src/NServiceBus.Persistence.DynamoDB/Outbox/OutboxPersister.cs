@@ -20,9 +20,6 @@ namespace NServiceBus.Persistence.DynamoDB
 
     class OutboxPersister : IOutboxStorage
     {
-        public const string OutboxDataVersionAttributeName = "___VERSION___";
-        public const string OperationsCountContextProperty = "___OUTBOX_OPERATION_COUNT___";
-
         public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration, string endpointIdentifier)
         {
             this.dynamoDbClient = dynamoDbClient;
@@ -55,7 +52,6 @@ namespace NServiceBus.Persistence.DynamoDB
             };
             QueryResponse? response = null;
             int numberOfTransportOperations = 0;
-            int currentVersion = 0;
             bool? foundOutboxMetadataEntry = null;
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
             do
@@ -73,7 +69,6 @@ namespace NServiceBus.Persistence.DynamoDB
                     {
                         numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
                     }
-                    currentVersion = Convert.ToInt32(headerItem[OutboxDataVersionAttributeName].N);
                     responseItemsHasOutboxMetadataEntry = true;
                 }
 
@@ -86,17 +81,16 @@ namespace NServiceBus.Persistence.DynamoDB
 
             return foundOutboxMetadataEntry == null ?
                 //TODO: Should we check the response code to throw if there is an error (other than 404)
-                null : DeserializeOutboxMessage(messageId, currentVersion, numberOfTransportOperations, transportOperationsAttributes, context);
+                null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage? DeserializeOutboxMessage(string messageId, int currentVersion,
+        OutboxMessage? DeserializeOutboxMessage(string messageId,
             int numberOfTransportOperations,
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {
             // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
             // potential partial deletes
-            contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
-            contextBag.Set($"dynamo_version:{messageId}", currentVersion);
+            contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
             var operations = numberOfTransportOperations == 0
                 ? Array.Empty<TransportOperation>()
@@ -143,8 +137,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         IReadOnlyCollection<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
         {
-            contextBag.Set(OperationsCountContextProperty, outboxMessage.TransportOperations.Length);
-            contextBag.Set($"dynamo_version:{outboxMessage.MessageId}", 0);
+            contextBag.Set($"dynamo_operations_count:{outboxMessage.MessageId}", outboxMessage.TransportOperations.Length);
 
             // DynamoDB has a limit of 400 KB per item. Transport Operations are likely to be larger
             // and could easily hit the 400 KB limit of an item when all operations would be serialized into
@@ -173,7 +166,6 @@ namespace NServiceBus.Persistence.DynamoDB
                             { "Dispatched", new AttributeValue { BOOL = false } },
                             { "DispatchedAt", new AttributeValue { NULL = true } },
                             { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } },
-                            { OutboxDataVersionAttributeName, new AttributeValue { N = "0" } },
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                         ExpressionAttributeNames =
@@ -257,9 +249,7 @@ namespace NServiceBus.Persistence.DynamoDB
         public async Task SetAsDispatched(string messageId, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            var opsCount = context.Get<int>(OperationsCountContextProperty);
-            var currentVersion = context.Get<int>($"dynamo_version:{messageId}");
-            var nextVersion = currentVersion + 1;
+            var opsCount = context.Get<int>($"dynamo_operations_count:{messageId}");
 
             var now = DateTime.UtcNow;
             var expirationTime = now.Add(configuration.TimeToLive);
@@ -272,22 +262,18 @@ namespace NServiceBus.Persistence.DynamoDB
                     {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
                     {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}"}}, //Sort key
                 },
-                ConditionExpression = "#version = :current_version",
-                UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl, #version = :next_version",
+                UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
                 ExpressionAttributeNames = new Dictionary<string, string>
                 {
                     {"#dispatched", "Dispatched"},
                     {"#dispatched_at", "DispatchedAt"},
                     {"#ttl", configuration.Table.TimeToLiveAttributeName!},
-                    {"#version", OutboxDataVersionAttributeName},
                 },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
                     { ":dispatched", new AttributeValue {BOOL = true} },
                     { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
                     { ":ttl", new AttributeValue {N = epochSeconds.ToString()} },
-                    { ":current_version", new AttributeValue {N = currentVersion.ToString()} },
-                    { ":next_version", new AttributeValue {N = nextVersion.ToString()} },
                 },
                 TableName = configuration.Table.TableName,
                 ReturnValues = ReturnValue.NONE,

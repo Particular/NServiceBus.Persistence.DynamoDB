@@ -20,8 +20,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         public async Task Should_update_metadata_as_a_dedicated_non_batched_update()
         {
             var contextBag = new ContextBag();
-            contextBag.Set(OutboxPersister.OperationsCountContextProperty, 10);
-            contextBag.Set("dynamo_version:someMessageId", 1);
+            contextBag.Set("dynamo_operations_count:someMessageId", 10);
 
             await persister.SetAsDispatched("someMessageId", contextBag);
 
@@ -32,8 +31,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         public void Should_not_execute_batched_operations_when_metadata_cannot_be_updated()
         {
             var contextBag = new ContextBag();
-            contextBag.Set(OutboxPersister.OperationsCountContextProperty, 10);
-            contextBag.Set("dynamo_version:someMessageId", 1);
+            contextBag.Set("dynamo_operations_count:someMessageId", 10);
 
             client.UpdateItemRequestResponse = _ => throw new AmazonClientException("");
 
@@ -45,8 +43,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         public async Task Should_execute_batched_operations()
         {
             var contextBag = new ContextBag();
-            contextBag.Set(OutboxPersister.OperationsCountContextProperty, 50);
-            contextBag.Set("dynamo_version:someMessageId", 1);
+            contextBag.Set("dynamo_operations_count:someMessageId", 50);
 
             await persister.SetAsDispatched("someMessageId", contextBag);
 
