@@ -294,7 +294,8 @@ namespace NServiceBus.Persistence.DynamoDB
             };
 
             // We first try to update the metadata record, if this fails we want to roll back the outbox message
-            // TODO should we even pass the cancellation token here?
+            // Passing in the cancellation token here even though it could lead to more phantom transport operation
+            // records.
             await dynamoDbClient.UpdateItemAsync(updateItem, cancellationToken).ConfigureAwait(false);
 
             // Next we do a best effort batch delete for the transport operation entries
