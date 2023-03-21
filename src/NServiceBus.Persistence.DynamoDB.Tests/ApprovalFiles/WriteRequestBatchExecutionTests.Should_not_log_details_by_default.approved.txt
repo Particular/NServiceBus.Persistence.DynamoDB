@@ -1,0 +1,11 @@
+{
+  "IsDebugEnabled": false,
+  "IsInfoEnabled": false,
+  "IsWarnEnabled": false,
+  "IsErrorEnabled": false,
+  "IsFatalEnabled": false,
+  "DebugMessages": [],
+  "InfoMessages": [],
+  "WarnMessages": [],
+  "ErrorMessages": []
+}

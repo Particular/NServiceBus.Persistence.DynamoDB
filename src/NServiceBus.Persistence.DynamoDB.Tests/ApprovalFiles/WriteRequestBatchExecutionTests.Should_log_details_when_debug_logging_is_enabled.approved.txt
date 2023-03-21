@@ -1,0 +1,16 @@
+{
+  "IsDebugEnabled": true,
+  "IsInfoEnabled": false,
+  "IsWarnEnabled": false,
+  "IsErrorEnabled": false,
+  "IsFatalEnabled": false,
+  "DebugMessages": [
+    "Writing batch '1/2' with entries 'DELETE #PK:PK_BATCH1_1 / #SK:SK_BATCH1_1, PUT #PK:PK_BATCH1_2 / #SK:SK_BATCH1_2' to table 'faketable'",
+    "Wrote batch '1/2' with entries 'DELETE #PK:PK_BATCH1_1 / #SK:SK_BATCH1_1, PUT #PK:PK_BATCH1_2 / #SK:SK_BATCH1_2' to table 'faketable'",
+    "Writing batch '2/2' with entries 'PUT #PK:PK_BATCH2_1 / #SK:SK_BATCH2_1, DELETE #PK:PK_BATCH2_2 / #SK:SK_BATCH2_2, PUT #PK:PK_BATCH2_3 / #SK:SK_BATCH2_3' to table 'faketable'",
+    "Wrote batch '2/2' with entries 'PUT #PK:PK_BATCH2_1 / #SK:SK_BATCH2_1, DELETE #PK:PK_BATCH2_2 / #SK:SK_BATCH2_2, PUT #PK:PK_BATCH2_3 / #SK:SK_BATCH2_3' to table 'faketable'"
+  ],
+  "InfoMessages": [],
+  "WarnMessages": [],
+  "ErrorMessages": []
+}

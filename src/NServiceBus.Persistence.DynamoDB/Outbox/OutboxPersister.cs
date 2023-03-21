@@ -13,14 +13,13 @@ namespace NServiceBus.Persistence.DynamoDB
     using Amazon.DynamoDBv2.Model;
     using Amazon.Util;
     using Extensibility;
+    using Logging;
     using Outbox;
     using Transport;
     using TransportOperation = Outbox.TransportOperation;
 
     class OutboxPersister : IOutboxStorage
     {
-        const string OperationsCountContextProperty = "NServiceBus.Persistence.DynamoDB.OutboxOperationsCount";
-
         public OutboxPersister(IAmazonDynamoDB dynamoDbClient, OutboxPersistenceConfiguration configuration, string endpointIdentifier)
         {
             this.dynamoDbClient = dynamoDbClient;
@@ -64,7 +63,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     foundOutboxMetadataEntry = true;
                     var headerItem = response.Items[0];
-                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    // In case the metadata is not marked as dispatched we want to know the number of transport operations
+                    // in order to pre-populate the lists etc accordingly
+                    if (!headerItem["Dispatched"].BOOL)
+                    {
+                        numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    }
                     responseItemsHasOutboxMetadataEntry = true;
                 }
 
@@ -80,12 +84,13 @@ namespace NServiceBus.Persistence.DynamoDB
                 null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage? DeserializeOutboxMessage(string messageId, int numberOfTransportOperations,
+        OutboxMessage? DeserializeOutboxMessage(string messageId,
+            int numberOfTransportOperations,
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {
             // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
             // potential partial deletes
-            contextBag.Set(OperationsCountContextProperty, numberOfTransportOperations);
+            contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
             var operations = numberOfTransportOperations == 0
                 ? Array.Empty<TransportOperation>()
@@ -130,52 +135,58 @@ namespace NServiceBus.Persistence.DynamoDB
             return dictionary;
         }
 
-        IEnumerable<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
+        IReadOnlyCollection<TransactWriteItem> Serialize(OutboxMessage outboxMessage, ContextBag contextBag)
         {
-            contextBag.Set(OperationsCountContextProperty, outboxMessage.TransportOperations.Length);
+            contextBag.Set($"dynamo_operations_count:{outboxMessage.MessageId}", outboxMessage.TransportOperations.Length);
 
             // DynamoDB has a limit of 400 KB per item. Transport Operations are likely to be larger
             // and could easily hit the 400 KB limit of an item when all operations would be serialized into
             // the same item. This is why multiple items are written for a single outbox record. With the transact
             // write items this can be done atomically.
-            yield return new TransactWriteItem()
+            var transactWriteItems = new List<TransactWriteItem>(outboxMessage.TransportOperations.Length + 1)
             {
-                Put = new Put
+                new TransactWriteItem()
                 {
-                    Item = new Dictionary<string, AttributeValue>
+                    Put = new Put
                     {
-                        {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
-                        {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#0"}}, //Sort key
+                        Item = new Dictionary<string, AttributeValue>
                         {
-                            "TransportOperationsCount",
-                            new AttributeValue {N = outboxMessage.TransportOperations.Length.ToString()}
+                            {
+                                configuration.Table.PartitionKeyName,
+                                new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}" }
+                            },
+                            {
+                                configuration.Table.SortKeyName,
+                                new AttributeValue { S = $"OUTBOX#METADATA#{outboxMessage.MessageId}" }
+                            },
+                            {
+                                "TransportOperationsCount",
+                                new AttributeValue { N = outboxMessage.TransportOperations.Length.ToString() }
+                            },
+                            { "Dispatched", new AttributeValue { BOOL = false } },
+                            { "DispatchedAt", new AttributeValue { NULL = true } },
+                            { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } },
                         },
-                        {"Dispatched", new AttributeValue {BOOL = false}},
-                        {"DispatchedAt", new AttributeValue {NULL = true}},
-                        {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}} //TTL
-                    },
-                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
-                    ExpressionAttributeNames = new Dictionary<string, string>
-                    {
-                        {"#SK", configuration.Table.SortKeyName}
-                    },
-                    TableName = configuration.Table.TableName,
+                        ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
+                        ExpressionAttributeNames =
+                            new Dictionary<string, string> { { "#SK", configuration.Table.SortKeyName } },
+                        TableName = configuration.Table.TableName,
+                    }
                 }
             };
+
             var n = 1;
             foreach (var operation in outboxMessage.TransportOperations)
             {
                 var bodyStream = new ReadOnlyMemoryStream(operation.Body);
-                yield return new TransactWriteItem
+                transactWriteItems.Add(new TransactWriteItem
                 {
                     Put = new Put
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
                             {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
-                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{outboxMessage.MessageId}#{n}"}}, //Sort key
-                            {"Dispatched", new AttributeValue {BOOL = false}},
-                            {"DispatchedAt", new AttributeValue {NULL = true}},
+                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{outboxMessage.MessageId}#{n:D4}"}}, //Sort key
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
                             {
                                 "Properties",
@@ -194,7 +205,7 @@ namespace NServiceBus.Persistence.DynamoDB
                                 }
                             },
                             {"Body", new AttributeValue {B = bodyStream}},
-                            {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}} //TTL
+                            {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}}
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                         ExpressionAttributeNames = new Dictionary<string, string>()
@@ -203,9 +214,11 @@ namespace NServiceBus.Persistence.DynamoDB
                         },
                         TableName = configuration.Table.TableName
                     }
-                };
+                });
                 n++;
             }
+
+            return transactWriteItems;
         }
 
         static Dictionary<string, AttributeValue> SerializeStringDictionary(Dictionary<string, string>? value)
@@ -236,31 +249,43 @@ namespace NServiceBus.Persistence.DynamoDB
         public async Task SetAsDispatched(string messageId, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            var opsCount = context.Get<int>(OperationsCountContextProperty);
+            var opsCount = context.Get<int>($"dynamo_operations_count:{messageId}");
 
             var now = DateTime.UtcNow;
             var expirationTime = now.Add(configuration.TimeToLive);
             int epochSeconds = AWSSDKUtils.ConvertToUnixEpochSeconds(expirationTime);
 
-            var writeRequests = new List<WriteRequest>(opsCount + 1)
+            var updateItem = new UpdateItemRequest
             {
-                new()
+                Key = new Dictionary<string, AttributeValue>
                 {
-                    PutRequest = new PutRequest
-                    {
-                        Item = new Dictionary<string, AttributeValue>
-                        {
-                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#0"}}, //Sort key
-                            {"TransportOperationsCount", new AttributeValue {N = "0"}},
-                            {"Dispatched", new AttributeValue {BOOL = true}},
-                            {"DispatchedAt", new AttributeValue {S = now.ToString("s")}},
-                            {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {N = epochSeconds.ToString()}}
-                        },
-                    }
-                }
+                    {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
+                    {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}"}}, //Sort key
+                },
+                UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
+                ExpressionAttributeNames = new Dictionary<string, string>
+                {
+                    {"#dispatched", "Dispatched"},
+                    {"#dispatched_at", "DispatchedAt"},
+                    {"#ttl", configuration.Table.TimeToLiveAttributeName!},
+                },
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                {
+                    { ":dispatched", new AttributeValue {BOOL = true} },
+                    { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
+                    { ":ttl", new AttributeValue {N = epochSeconds.ToString()} },
+                },
+                TableName = configuration.Table.TableName,
+                ReturnValues = ReturnValue.NONE,
             };
 
+            // We first try to update the metadata record, if this fails we want to roll back the outbox message
+            // Passing in the cancellation token here even though it could lead to more phantom transport operation
+            // records.
+            await dynamoDbClient.UpdateItemAsync(updateItem, cancellationToken).ConfigureAwait(false);
+
+            // Next we do a best effort batch delete for the transport operation entries
+            var writeRequests = new List<WriteRequest>(opsCount);
             for (int i = 1; i <= opsCount; i++)
             {
                 writeRequests.Add(new WriteRequest
@@ -270,7 +295,7 @@ namespace NServiceBus.Persistence.DynamoDB
                         Key = new Dictionary<string, AttributeValue>
                         {
                             {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#{messageId}#{i}"}}, //Sort key
+                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{messageId}#{i:D4}"}}, //Sort key
                         }
                     }
                 });
@@ -280,52 +305,18 @@ namespace NServiceBus.Persistence.DynamoDB
             // transactions come with a cost. They cost double the amount of write units compared to batch writes.
             // Setting the outbox record as dispatch is an idempotent operation that doesn't require transactionality
             // so using the cheaper API in terms of write operations is a sane choice.
-            // TODO: Cleanup this code
-            if (writeRequests.Count < 25)
-            {
-                var batchWriteItemRequest = new BatchWriteItemRequest
-                {
-                    RequestItems = new Dictionary<string, List<WriteRequest>>
-                    {
-                        { configuration.Table.TableName, writeRequests }
-                    },
-                };
-                await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                var maxWriteRequests = new List<WriteRequest>(25);
-                var batchWriteItemRequest = new BatchWriteItemRequest
-                {
-                    RequestItems = new Dictionary<string, List<WriteRequest>>
-                    {
-                        { configuration.Table.TableName, writeRequests }
-                    },
-                };
-                for (int i = 0; i < writeRequests.Count; i++)
-                {
-                    var request = writeRequests[i];
-                    if (i != 0 && i % 25 == 0)
-                    {
-                        batchWriteItemRequest.RequestItems[configuration.Table.TableName] = maxWriteRequests;
-                        await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
-                        maxWriteRequests.Clear();
-                    }
-                    maxWriteRequests.Add(request);
-                }
+            var writeRequestBatches = WriteRequestBatcher.Batch(writeRequests);
 
-                if (maxWriteRequests.Count > 0)
-                {
-                    batchWriteItemRequest.RequestItems[configuration.Table.TableName] = maxWriteRequests;
-                    await dynamoDbClient.BatchWriteItemAsync(batchWriteItemRequest, cancellationToken).ConfigureAwait(false);
-                }
-            }
+            await dynamoDbClient.BatchWriteItemWithRetries(writeRequestBatches, configuration, Logger,
+                    cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
         }
 
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly OutboxPersistenceConfiguration configuration;
         readonly string endpointIdentifier;
         readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = new();
+        static readonly ILog Logger = LogManager.GetLogger<OutboxPersister>();
 
         sealed class ReturnBuffer
         {
