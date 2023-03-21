@@ -148,22 +148,21 @@ namespace NServiceBus.Persistence.DynamoDB
 
         static string CreateBatchLogMessage(IReadOnlyCollection<WriteRequest> batch, OutboxPersistenceConfiguration configuration)
         {
-            var stringBuilder = new StringBuilder();
-
+            StringBuilder? stringBuilder = null;
             foreach (var writeRequest in batch)
             {
+                stringBuilder ??= new StringBuilder();
                 if (writeRequest.DeleteRequest is { } deleteRequest)
                 {
-                    stringBuilder.Append($"DELETE #PK {deleteRequest.Key[configuration.Table.PartitionKeyName].S} / #SK {deleteRequest.Key[configuration.Table.SortKeyName].S}, ");
+                    stringBuilder.Append($"DELETE #PK:{deleteRequest.Key[configuration.Table.PartitionKeyName].S} / #SK:{deleteRequest.Key[configuration.Table.SortKeyName].S}, ");
                 }
 
                 if (writeRequest.PutRequest is { } putRequest)
                 {
-                    stringBuilder.Append($"PUT #PK {putRequest.Item[configuration.Table.PartitionKeyName].S} / #SK {putRequest.Item[configuration.Table.SortKeyName].S}, ");
+                    stringBuilder.Append($"PUT #PK:{putRequest.Item[configuration.Table.PartitionKeyName].S} / #SK:{putRequest.Item[configuration.Table.SortKeyName].S}, ");
                 }
             }
-
-            return stringBuilder.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : stringBuilder.ToString();
+            return stringBuilder?.Length > 2 ? stringBuilder.ToString(0, stringBuilder.Length - 2) : string.Empty;
         }
 
         static TimeSpan CalculateDelay(int attempt, TimeSpan? retryDelay)
