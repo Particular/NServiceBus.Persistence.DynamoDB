@@ -195,8 +195,6 @@ namespace NServiceBus.Persistence.DynamoDB
                         {
                             {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
                             {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{outboxMessage.MessageId}#{n:D4}"}}, //Sort key
-                            {"Dispatched", new AttributeValue {BOOL = false}},
-                            {"DispatchedAt", new AttributeValue {NULL = true}},
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
                             {
                                 "Properties",
@@ -215,7 +213,7 @@ namespace NServiceBus.Persistence.DynamoDB
                                 }
                             },
                             {"Body", new AttributeValue {B = bodyStream}},
-                            {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}} //TTL
+                            {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}}
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                         ExpressionAttributeNames = new Dictionary<string, string>()
