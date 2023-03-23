@@ -1,8 +1,10 @@
+#nullable enable
 namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using Amazon.DynamoDBv2.Model;
@@ -15,39 +17,38 @@ namespace NServiceBus.Persistence.DynamoDB
         public static Dictionary<string, AttributeValue> Serialize<TValue>(TValue value)
         {
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, serializerOptions);
-            var attributeMapFromDocument = SerializeElementToAttributeMap(jsonDocument.RootElement);
+            var attributeMapFromDocument = SerializeToAttributeMap(jsonDocument);
             return attributeMapFromDocument;
         }
 
-        public static TValue Deserialize<TValue>(Dictionary<string, AttributeValue> attributeValues)
+        public static TValue? Deserialize<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = DeserializeElementToAttributeMap(attributeValues);
             return jsonObject.Deserialize<TValue>(serializerOptions);
         }
 
+        static Dictionary<string, AttributeValue> SerializeToAttributeMap(JsonDocument document)
+        {
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidOperationException("TBD");
+            }
+
+            return SerializeElementToAttributeMap(document.RootElement);
+        }
+
         static Dictionary<string, AttributeValue> SerializeElementToAttributeMap(JsonElement element)
         {
             var dictionary = new Dictionary<string, AttributeValue>();
-            if (element.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var property in element.EnumerateObject())
-                {
-                    AttributeValue serializeElement;
-                    if (property.NameEquals(MemoryStreamConverter.PropertyName))
-                    {
-                        serializeElement = new AttributeValue { B = new MemoryStream(property.Value.GetBytesFromBase64()) };
-                    }
-                    else
-                    {
-                        serializeElement = SerializeElement(property.Value);
-                    }
 
-                    if (serializeElement.NULL)
-                    {
-                        continue;
-                    }
-                    dictionary.Add(property.Name, serializeElement);
+            foreach (var property in element.EnumerateObject())
+            {
+                AttributeValue serializeElement = SerializeElement(property.Value);
+                if (serializeElement.NULL)
+                {
+                    continue;
                 }
+                dictionary.Add(property.Name, serializeElement);
             }
 
             return dictionary;
@@ -57,17 +58,12 @@ namespace NServiceBus.Persistence.DynamoDB
         {
             if (element.ValueKind == JsonValueKind.Object)
             {
-                return new AttributeValue { M = SerializeElementToAttributeMap(element) };
+                return SerializeElementToMap(element);
             }
 
             if (element.ValueKind == JsonValueKind.Array)
             {
-                var values = new List<AttributeValue>();
-                foreach (var innerElement in element.EnumerateArray())
-                {
-                    values.Add(SerializeElement(innerElement));
-                }
-                return new AttributeValue { L = values };
+                return SerializeElementToList(element);
             }
 
             if (element.ValueKind == JsonValueKind.False)
@@ -93,6 +89,35 @@ namespace NServiceBus.Persistence.DynamoDB
             return new AttributeValue(element.GetString());
         }
 
+        static AttributeValue SerializeElementToList(JsonElement element)
+        {
+            var values = new List<AttributeValue>();
+            foreach (var innerElement in element.EnumerateArray())
+            {
+                AttributeValue serializeElement = SerializeElement(innerElement);
+                values.Add(serializeElement);
+            }
+
+            // TODO: Can we make this better?
+            if (values.All(x => x.B is not null))
+            {
+                return new AttributeValue { BS = values.Select(x => x.B).ToList() };
+            }
+            return new AttributeValue { L = values };
+        }
+
+        static AttributeValue SerializeElementToMap(JsonElement element)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.NameEquals(MemoryStreamConverter.PropertyName))
+                {
+                    return new AttributeValue { B = new MemoryStream(property.Value.GetBytesFromBase64()) };
+                }
+            }
+            return new AttributeValue { M = SerializeElementToAttributeMap(element) };
+        }
+
         static JsonObject DeserializeElementToAttributeMap(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = new JsonObject();
@@ -108,7 +133,24 @@ namespace NServiceBus.Persistence.DynamoDB
 
                 if (attributeValue.B != null)
                 {
-                    jsonObject.Add(MemoryStreamConverter.PropertyName, Convert.ToBase64String(attributeValue.B.ToArray()));
+                    jsonObject.Add(attributeName, new JsonObject
+                    {
+                        [MemoryStreamConverter.PropertyName] = Convert.ToBase64String(attributeValue.B.ToArray())
+                    });
+                    continue;
+                }
+
+                if (attributeValue.BS is { Count: > 0 })
+                {
+                    var array = new JsonArray();
+                    foreach (var memoryStream in attributeValue.BS)
+                    {
+                        array.Add(new JsonObject
+                        {
+                            [MemoryStreamConverter.PropertyName] = Convert.ToBase64String(memoryStream.ToArray())
+                        });
+                    }
+                    jsonObject.Add(attributeName, array);
                     continue;
                 }
 
