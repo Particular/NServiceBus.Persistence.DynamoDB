@@ -2,11 +2,9 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
-    using Amazon.DynamoDBv2.DocumentModel;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
     using Sagas;
@@ -185,12 +183,9 @@
 
         TSagaData Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
         {
-            var document = Document.FromAttributeMap(attributeValues);
-            var sagaDataAsJson = document.ToJson();
-            // All this is super allocation heavy. But for a first version that is OK
-            var sagaData = JsonSerializer.Deserialize<TSagaData>(sagaDataAsJson);
+            var sagaData = DataSerializer.Deserialize<TSagaData>(attributeValues);
             var currentVersion = int.Parse(attributeValues[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N);
-            context.Set($"dynamo_version:{sagaData!.Id}", currentVersion);
+            context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
             return sagaData;
         }
 
@@ -259,24 +254,21 @@
 
         Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
         {
-            // All this is super allocation heavy. But for a first version that is OK
-            var sagaDataJson = JsonSerializer.Serialize(sagaData, sagaData.GetType());
-            var doc = Document.FromJson(sagaDataJson);
-            var map = doc.ToAttributeMap();
-            map.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
-            map.Add(configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
-            map.Add(SagaMetadataAttributeName, new AttributeValue
+            var sagaDataMap = DataSerializer.Serialize(sagaData, sagaData.GetType());
+            sagaDataMap.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
+            sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
+            sagaDataMap.Add(SagaMetadataAttributeName, new AttributeValue
             {
                 M = new Dictionary<string, AttributeValue>()
                 {
                     { SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() } },
                     { "TYPE", new AttributeValue { S = sagaData.GetType().FullName } },
-                    { "SCHEMA_VERSION", new AttributeValue { N = "1"} }
+                    { "SCHEMA_VERSION", new AttributeValue { S = "1.0.0" } }
                 }
             });
             // release lease on save
-            map.Add(SagaLeaseAttributeName, new AttributeValue { N = "-1" });
-            return map;
+            sagaDataMap.Add(SagaLeaseAttributeName, new AttributeValue { N = "-1" });
+            return sagaDataMap;
         }
 
         public Task Complete(IContainSagaData sagaData, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
