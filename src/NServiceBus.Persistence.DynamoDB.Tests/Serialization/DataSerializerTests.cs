@@ -115,6 +115,39 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
+        public void Should_roundtrip_numbers()
+        {
+            var classNumbers = new ClassNumbers
+            {
+                Int = 1,
+                NullableInt = 1,
+                Double = 1.5,
+                Float = 1.5f,
+            };
+
+            var attributes = DataSerializer.Serialize(classNumbers);
+
+            var deserialized = DataSerializer.Deserialize<ClassNumbers>(attributes);
+
+            Assert.AreEqual(classNumbers.Int, deserialized.Int);
+            Assert.AreEqual(classNumbers.NullableInt, deserialized.NullableInt);
+            Assert.AreEqual(classNumbers.Double, deserialized.Double);
+            Assert.AreEqual(classNumbers.Float, deserialized.Float);
+            Assert.That(attributes[nameof(ClassNumbers.Int)].N, Is.EqualTo("1"));
+            Assert.That(attributes[nameof(ClassNumbers.NullableInt)].N, Is.EqualTo("1"));
+            Assert.That(attributes[nameof(ClassNumbers.Double)].N, Is.EqualTo("1.5"));
+            Assert.That(attributes[nameof(ClassNumbers.Float)].N, Is.EqualTo("1.5"));
+        }
+
+        class ClassNumbers
+        {
+            public int Int { get; set; }
+            public int? NullableInt { get; set; }
+            public double Double { get; set; }
+            public float Float { get; set; }
+        }
+
+        [Test]
         public void Should_roundtrip_list_of_numbers()
         {
             var classWithListOfNumbers = new ClassWithListOfNumbers
@@ -126,6 +159,10 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Doubles = new List<double>
                 {
                     1.5, 2.5
+                },
+                Floats = new List<float>
+                {
+                    1.5f, 2.5f
                 }
             };
 
@@ -135,14 +172,17 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             CollectionAssert.AreEquivalent(classWithListOfNumbers.Ints, deserialized.Ints);
             CollectionAssert.AreEquivalent(classWithListOfNumbers.Doubles, deserialized.Doubles);
+            CollectionAssert.AreEquivalent(classWithListOfNumbers.Floats, deserialized.Floats);
             Assert.That(attributes[nameof(ClassWithListOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithListOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithListOfNumbers.Floats)].NS, Has.Count.EqualTo(2));
         }
 
         class ClassWithListOfNumbers
         {
             public List<int> Ints { get; set; }
             public List<double> Doubles { get; set; }
+            public List<float> Floats { get; set; }
         }
     }
 }

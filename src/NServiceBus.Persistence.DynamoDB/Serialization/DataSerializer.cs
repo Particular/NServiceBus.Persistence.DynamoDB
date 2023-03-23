@@ -199,7 +199,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
                 if (attributeValue.N != null)
                 {
-                    jsonObject.Add(attributeName, attributeValue.N);
+                    jsonObject.Add(attributeName, JsonNode.Parse(attributeValue.N));
                     continue;
                 }
 
