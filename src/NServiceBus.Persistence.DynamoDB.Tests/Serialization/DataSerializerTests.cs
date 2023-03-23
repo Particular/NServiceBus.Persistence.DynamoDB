@@ -1,5 +1,6 @@
 namespace NServiceBus.Persistence.DynamoDB.Tests
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
@@ -8,6 +9,49 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     [TestFixture]
     public class DataSerializerTests
     {
+        [Test]
+        public void Should_roundtrip_basic_poco()
+        {
+            var basicPoco = new BasicPoco
+            {
+                Id = Guid.NewGuid(),
+                SomeString = "Hello World 1"
+            };
+
+            var attributes = DataSerializer.Serialize(basicPoco);
+
+            var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
+
+            Assert.AreEqual(basicPoco.Id, deserialized.Id);
+            Assert.AreEqual(basicPoco.SomeString, deserialized.SomeString);
+            Assert.That(attributes[nameof(BasicPoco.Id)].S, Is.Not.Null);
+            Assert.That(attributes[nameof(BasicPoco.SomeString)].S, Is.Not.Null);
+        }
+
+        [Test]
+        public void Should_skip_null_values_on_basic_poco()
+        {
+            var basicPoco = new BasicPoco
+            {
+                Id = Guid.NewGuid(),
+            };
+
+            var attributes = DataSerializer.Serialize(basicPoco);
+
+            var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
+
+            Assert.AreEqual(basicPoco.Id, deserialized.Id);
+            Assert.AreEqual(basicPoco.SomeString, deserialized.SomeString);
+            Assert.That(attributes[nameof(BasicPoco.Id)].S, Is.Not.Null);
+            Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.SomeString)));
+        }
+
+        class BasicPoco
+        {
+            public Guid Id { get; set; }
+            public string SomeString { get; set; }
+        }
+
         [Test]
         public void Should_roundtrip_streams()
         {

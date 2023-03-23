@@ -21,6 +21,13 @@ namespace NServiceBus.Persistence.DynamoDB
             return attributeMapFromDocument;
         }
 
+        public static Dictionary<string, AttributeValue> Serialize(object value, Type type)
+        {
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, serializerOptions);
+            var attributeMapFromDocument = SerializeToAttributeMap(jsonDocument);
+            return attributeMapFromDocument;
+        }
+
         public static TValue? Deserialize<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = DeserializeElementToAttributeMap(attributeValues);
