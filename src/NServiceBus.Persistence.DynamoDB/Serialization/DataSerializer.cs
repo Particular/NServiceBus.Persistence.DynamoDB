@@ -99,6 +99,15 @@ namespace NServiceBus.Persistence.DynamoDB
             }
 
             // TODO: Can we make this better?
+            // TODO: What happens with mixed values?
+            if (values.All(x => x.N is not null))
+            {
+                return new AttributeValue { NS = values.Select(x => x.N).ToList() };
+            }
+            if (values.All(x => x.S is not null))
+            {
+                return new AttributeValue { SS = values.Select(x => x.S).ToList() };
+            }
             if (values.All(x => x.B is not null))
             {
                 return new AttributeValue { BS = values.Select(x => x.B).ToList() };
@@ -149,6 +158,28 @@ namespace NServiceBus.Persistence.DynamoDB
                         {
                             [MemoryStreamConverter.PropertyName] = Convert.ToBase64String(memoryStream.ToArray())
                         });
+                    }
+                    jsonObject.Add(attributeName, array);
+                    continue;
+                }
+
+                if (attributeValue.SS is { Count: > 0 })
+                {
+                    var array = new JsonArray();
+                    foreach (var stringValue in attributeValue.SS)
+                    {
+                        array.Add(stringValue);
+                    }
+                    jsonObject.Add(attributeName, array);
+                    continue;
+                }
+
+                if (attributeValue.NS is { Count: > 0 })
+                {
+                    var array = new JsonArray();
+                    foreach (var numberValue in attributeValue.NS)
+                    {
+                        array.Add(JsonNode.Parse(numberValue));
                     }
                     jsonObject.Add(attributeName, array);
                     continue;
