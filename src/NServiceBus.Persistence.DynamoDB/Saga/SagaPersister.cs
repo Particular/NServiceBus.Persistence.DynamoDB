@@ -1,4 +1,6 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿#nullable enable
+
+namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
@@ -31,7 +33,7 @@
             this.dynamoDbClient = dynamoDbClient;
         }
 
-        public async Task<TSagaData> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
+        public async Task<TSagaData?> Get<TSagaData>(Guid sagaId, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default) where TSagaData : class, IContainSagaData
         {
             if (configuration.UsePessimisticLocking)
             {
@@ -56,7 +58,7 @@
             }
         }
 
-        async Task<TSagaData> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
+        async Task<TSagaData?> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
             ISynchronizedStorageSession synchronizedStorageSession, CancellationToken cancellationToken)
             where TSagaData : class, IContainSagaData
         {
@@ -188,7 +190,7 @@
             // All this is super allocation heavy. But for a first version that is OK
             var sagaData = JsonSerializer.Deserialize<TSagaData>(sagaDataAsJson);
             var currentVersion = int.Parse(attributeValues[SagaDataVersionAttributeName].N);
-            context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
+            context.Set($"dynamo_version:{sagaData!.Id}", currentVersion);
             return sagaData;
         }
 
@@ -291,7 +293,7 @@
             return Task.CompletedTask;
         }
 
-        public Task<TSagaData> Get<TSagaData>(string propertyName, object propertyValue, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
+        public Task<TSagaData?> Get<TSagaData>(string propertyName, object propertyValue, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
             where TSagaData : class, IContainSagaData
         {
             // Saga ID needs to be calculated the same way as in SagaIdGenerator does
