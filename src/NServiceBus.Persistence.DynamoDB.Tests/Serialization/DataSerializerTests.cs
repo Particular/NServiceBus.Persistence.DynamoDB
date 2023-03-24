@@ -3,6 +3,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Numerics;
     using System.Text;
     using NUnit.Framework;
 
@@ -14,18 +15,22 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             var basicPoco = new BasicPoco
             {
-                Id = Guid.NewGuid(),
-                SomeString = "Hello World 1"
+                Guid = Guid.NewGuid(),
+                String = "Hello World 1",
+                Boolean = true,
             };
 
             var attributes = DataSerializer.Serialize(basicPoco);
 
             var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
 
-            Assert.AreEqual(basicPoco.Id, deserialized.Id);
-            Assert.AreEqual(basicPoco.SomeString, deserialized.SomeString);
-            Assert.That(attributes[nameof(BasicPoco.Id)].S, Is.Not.Null);
-            Assert.That(attributes[nameof(BasicPoco.SomeString)].S, Is.Not.Null);
+            Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
+            Assert.AreEqual(basicPoco.String, deserialized.String);
+            Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
+
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.Not.Null);
+            Assert.That(attributes[nameof(BasicPoco.String)].S, Is.Not.Null);
+            Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.True);
         }
 
         [Test]
@@ -33,23 +38,24 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             var basicPoco = new BasicPoco
             {
-                Id = Guid.NewGuid(),
+                Guid = Guid.NewGuid(),
             };
 
             var attributes = DataSerializer.Serialize(basicPoco);
 
             var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
 
-            Assert.AreEqual(basicPoco.Id, deserialized.Id);
-            Assert.AreEqual(basicPoco.SomeString, deserialized.SomeString);
-            Assert.That(attributes[nameof(BasicPoco.Id)].S, Is.Not.Null);
-            Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.SomeString)));
+            Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
+            Assert.AreEqual(basicPoco.String, deserialized.String);
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.Not.Null);
+            Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)));
         }
 
         class BasicPoco
         {
-            public Guid Id { get; set; }
-            public string SomeString { get; set; }
+            public string String { get; set; }
+            public Guid Guid { get; set; }
+            public bool Boolean { get; set; }
         }
 
         [Test]
@@ -163,10 +169,14 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             var classNumbers = new ClassNumbers
             {
-                Int = 1,
-                NullableInt = 1,
-                Double = 1.5,
-                Float = 1.5f,
+                Byte = byte.MaxValue,
+                Long = long.MaxValue,
+                Int = int.MaxValue,
+                Short = short.MaxValue,
+                Ushort = ushort.MaxValue,
+                Double = double.MaxValue,
+                Float = float.MaxValue,
+                BigInt = BigInteger.MinusOne
             };
 
             var attributes = DataSerializer.Serialize(classNumbers);
@@ -174,21 +184,24 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             var deserialized = DataSerializer.Deserialize<ClassNumbers>(attributes);
 
             Assert.AreEqual(classNumbers.Int, deserialized.Int);
-            Assert.AreEqual(classNumbers.NullableInt, deserialized.NullableInt);
             Assert.AreEqual(classNumbers.Double, deserialized.Double);
             Assert.AreEqual(classNumbers.Float, deserialized.Float);
-            Assert.That(attributes[nameof(ClassNumbers.Int)].N, Is.EqualTo("1"));
-            Assert.That(attributes[nameof(ClassNumbers.NullableInt)].N, Is.EqualTo("1"));
-            Assert.That(attributes[nameof(ClassNumbers.Double)].N, Is.EqualTo("1.5"));
-            Assert.That(attributes[nameof(ClassNumbers.Float)].N, Is.EqualTo("1.5"));
+
+            Assert.That(attributes[nameof(ClassNumbers.Int)].N, Is.EqualTo("2147483647"));
+            Assert.That(attributes[nameof(ClassNumbers.Double)].N, Is.EqualTo("1.7976931348623157E+308"));
+            Assert.That(attributes[nameof(ClassNumbers.Float)].N, Is.EqualTo("3.4028235E+38"));
         }
 
         class ClassNumbers
         {
+            public byte Byte { get; set; }
+            public short Short { get; set; }
+            public ushort Ushort { get; set; }
             public int Int { get; set; }
-            public int? NullableInt { get; set; }
             public double Double { get; set; }
+            public long Long { get; set; }
             public float Float { get; set; }
+            public BigInteger BigInt { get; set; }
         }
 
         [Test]
