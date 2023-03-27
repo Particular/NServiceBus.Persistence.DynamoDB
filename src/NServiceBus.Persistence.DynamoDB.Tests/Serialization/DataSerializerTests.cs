@@ -2,10 +2,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.IO;
-    using System.Numerics;
     using System.Text;
+    using System.Text.Json;
     using NUnit.Framework;
 
     [TestFixture]
@@ -310,6 +309,25 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             public List<ulong> ULongs { get; set; }
             public List<uint> UInts { get; set; }
             public List<sbyte> SBytes { get; set; }
+        }
+
+        [Test]
+        public void Should_detect_cyclic_references()
+        {
+            var reference = new ClassWithCyclicReference();
+
+            var classWithCyclicReference = new ClassWithCyclicReference();
+
+            reference.References = new List<ClassWithCyclicReference> { classWithCyclicReference };
+
+            classWithCyclicReference.References = new List<ClassWithCyclicReference> { reference };
+
+            Assert.Throws<JsonException>(() => DataSerializer.Serialize(classWithCyclicReference));
+        }
+
+        class ClassWithCyclicReference
+        {
+            public List<ClassWithCyclicReference> References { get; set; }
         }
     }
 }
