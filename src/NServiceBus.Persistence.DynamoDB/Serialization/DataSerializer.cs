@@ -11,7 +11,7 @@ namespace NServiceBus.Persistence.DynamoDB
     static class DataSerializer
     {
         static readonly JsonSerializerOptions serializerOptions =
-            new JsonSerializerOptions { Converters = { new MemoryStreamConverter() } };
+            new JsonSerializerOptions { Converters = { new MemoryStreamConverter(), new HashSetMemoryStreamConverter(), new HashSetStringConverter(), new HashSetOfNumberConverter() } };
 
         public static Dictionary<string, AttributeValue> Serialize<TValue>(TValue value)
         {
@@ -98,54 +98,10 @@ namespace NServiceBus.Persistence.DynamoDB
         static AttributeValue SerializeElementToList(JsonElement element)
         {
             var values = new List<AttributeValue>();
-            bool probablyNumberSet = false, probablyStringSet = false, probablyBinarySet = false;
             foreach (var innerElement in element.EnumerateArray())
             {
                 AttributeValue serializeElement = SerializeElement(innerElement);
-                if (serializeElement.N is not null)
-                {
-                    probablyNumberSet = true;
-                }
-                else if (serializeElement.S is not null)
-                {
-                    probablyStringSet = true;
-                }
-                else if (serializeElement.B is not null)
-                {
-                    probablyBinarySet = true;
-                }
                 values.Add(serializeElement);
-            }
-
-            if (probablyNumberSet && !probablyStringSet && !probablyBinarySet)
-            {
-                var numbersAsString = new List<string>(values.Count);
-                for (int index = 0; index < values.Count; index++)
-                {
-                    AttributeValue? value = values[index];
-                    numbersAsString.Add(value.N);
-                }
-                return new AttributeValue { NS = numbersAsString };
-            }
-            if (!probablyNumberSet && probablyStringSet && !probablyBinarySet)
-            {
-                var strings = new List<string>(values.Count);
-                for (int index = 0; index < values.Count; index++)
-                {
-                    AttributeValue? value = values[index];
-                    strings.Add(value.S);
-                }
-                return new AttributeValue { SS = strings };
-            }
-            if (!probablyNumberSet && !probablyStringSet && probablyBinarySet)
-            {
-                var memoryStreams = new List<MemoryStream>(values.Count);
-                for (int index = 0; index < values.Count; index++)
-                {
-                    AttributeValue? value = values[index];
-                    memoryStreams.Add(value.B);
-                }
-                return new AttributeValue { BS = memoryStreams };
             }
             return new AttributeValue { L = values };
         }
@@ -154,6 +110,45 @@ namespace NServiceBus.Persistence.DynamoDB
         {
             foreach (var property in element.EnumerateObject())
             {
+                if (property.NameEquals(HashSetMemoryStreamConverter.PropertyName))
+                {
+                    List<MemoryStream?>? streams = null;
+                    foreach (var innerElement in property.Value.EnumerateArray())
+                    {
+                        streams ??= new List<MemoryStream?>(property.Value.GetArrayLength());
+                        foreach (var streamElement in innerElement.EnumerateObject())
+                        {
+                            streams.Add(new MemoryStream(streamElement.Value.GetBytesFromBase64()));
+                        }
+                    }
+
+                    return new AttributeValue { BS = streams };
+                }
+
+                if (property.NameEquals(HashSetOfNumberConverter.PropertyName))
+                {
+                    List<string?>? strings = null;
+                    foreach (var innerElement in property.Value.EnumerateArray())
+                    {
+                        strings ??= new List<string?>(property.Value.GetArrayLength());
+                        strings.Add(innerElement.ToString());
+                    }
+
+                    return new AttributeValue { NS = strings };
+                }
+
+                if (property.NameEquals(HashSetStringConverter.PropertyName))
+                {
+                    List<string?>? strings = null;
+                    foreach (var innerElement in property.Value.EnumerateArray())
+                    {
+                        strings ??= new List<string?>(property.Value.GetArrayLength());
+                        strings.Add(innerElement.GetString());
+                    }
+
+                    return new AttributeValue { SS = strings };
+                }
+
                 if (property.NameEquals(MemoryStreamConverter.PropertyName))
                 {
                     return new AttributeValue { B = new MemoryStream(property.Value.GetBytesFromBase64()) };
@@ -198,38 +193,41 @@ namespace NServiceBus.Persistence.DynamoDB
 
             if (attributeValue.BS is { Count: > 0 })
             {
-                var array = new JsonArray();
+                var memoryStreamHashSet = new JsonObject();
+                var streamHashSetContent = new JsonArray();
                 foreach (var memoryStream in attributeValue.BS)
                 {
-                    array.Add(new JsonObject
+                    streamHashSetContent.Add(new JsonObject
                     {
                         [MemoryStreamConverter.PropertyName] = Convert.ToBase64String(memoryStream.ToArray())
                     });
                 }
-
-                return array;
+                memoryStreamHashSet.Add(HashSetMemoryStreamConverter.PropertyName, streamHashSetContent);
+                return memoryStreamHashSet;
             }
 
             if (attributeValue.SS is { Count: > 0 })
             {
-                var array = new JsonArray();
+                var stringHashSet = new JsonObject();
+                var stringHashSetContent = new JsonArray();
                 foreach (var stringValue in attributeValue.SS)
                 {
-                    array.Add(stringValue);
+                    stringHashSetContent.Add(stringValue);
                 }
-
-                return array;
+                stringHashSet.Add(HashSetStringConverter.PropertyName, stringHashSetContent);
+                return stringHashSet;
             }
 
             if (attributeValue.NS is { Count: > 0 })
             {
-                var array = new JsonArray();
+                var numberHashSet = new JsonObject();
+                var numberHashSetContent = new JsonArray();
                 foreach (var numberValue in attributeValue.NS)
                 {
-                    array.Add(JsonNode.Parse(numberValue));
+                    numberHashSetContent.Add(JsonNode.Parse(numberValue));
                 }
-
-                return array;
+                numberHashSet.Add(HashSetOfNumberConverter.PropertyName, numberHashSetContent);
+                return numberHashSet;
             }
 
             if (attributeValue.IsBOOLSet)

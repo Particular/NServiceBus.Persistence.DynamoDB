@@ -3,6 +3,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using System.Text.Json;
     using NUnit.Framework;
@@ -172,11 +173,11 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void Should_roundtrip_list_streams()
+        public void Should_roundtrip_hashset_streams()
         {
-            var classWithListOfMemoryStream = new ClassWithListOfMemoryStream
+            var classWithListOfMemoryStream = new ClassWithHashSetOfMemoryStream
             {
-                Streams = new List<MemoryStream>
+                Streams = new HashSet<MemoryStream>
                 {
                     new(Encoding.UTF8.GetBytes("Hello World 1")),
                     new(Encoding.UTF8.GetBytes("Hello World 2")),
@@ -185,16 +186,16 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = DataSerializer.Serialize(classWithListOfMemoryStream);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithListOfMemoryStream>(attributes);
+            var deserialized = DataSerializer.Deserialize<ClassWithHashSetOfMemoryStream>(attributes);
 
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.Streams[0].ToArray(), deserialized.Streams[0].ToArray());
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.Streams[1].ToArray(), deserialized.Streams[1].ToArray());
-            Assert.That(attributes[nameof(ClassWithListOfMemoryStream.Streams)].BS, Has.Count.EqualTo(2));
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.Streams.ElementAt(0).ToArray(), deserialized.Streams.ElementAt(0).ToArray());
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.Streams.ElementAt(1).ToArray(), deserialized.Streams.ElementAt(1).ToArray());
+            Assert.That(attributes[nameof(ClassWithHashSetOfMemoryStream.Streams)].BS, Has.Count.EqualTo(2));
         }
 
-        class ClassWithListOfMemoryStream
+        class ClassWithHashSetOfMemoryStream
         {
-            public List<MemoryStream> Streams { get; set; }
+            public HashSet<MemoryStream> Streams { get; set; }
         }
 
         [Test]
@@ -232,9 +233,34 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
+        public void Should_roundtrip_hashset_of_strings()
+        {
+            var classWithHashsetOStrings = new ClassWithHashSetOStrings
+            {
+                Strings = new HashSet<string>
+                {
+                    "Hello World 1",
+                    "Hello World 2"
+                }
+            };
+
+            var attributes = DataSerializer.Serialize(classWithHashsetOStrings);
+
+            var deserialized = DataSerializer.Deserialize<ClassWithHashSetOStrings>(attributes);
+
+            CollectionAssert.AreEquivalent(classWithHashsetOStrings.Strings, deserialized.Strings);
+            Assert.That(attributes[nameof(ClassWithHashSetOStrings.Strings)].SS, Has.Count.EqualTo(2));
+        }
+
+        class ClassWithHashSetOStrings
+        {
+            public HashSet<string> Strings { get; set; }
+        }
+
+        [Test]
         public void Should_roundtrip_list_of_strings()
         {
-            var classWithListOStrings = new ClassWithListOStrings
+            var classWithListOStrings = new ClasWithListOfString
             {
                 Strings = new List<string>
                 {
@@ -245,13 +271,14 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = DataSerializer.Serialize(classWithListOStrings);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithListOStrings>(attributes);
+            var deserialized = DataSerializer.Deserialize<ClasWithListOfString>(attributes);
 
             CollectionAssert.AreEquivalent(classWithListOStrings.Strings, deserialized.Strings);
-            Assert.That(attributes[nameof(ClassWithListOStrings.Strings)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClasWithListOfString.Strings)].L, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClasWithListOfString.Strings)].SS, Has.Count.Zero);
         }
 
-        class ClassWithListOStrings
+        class ClasWithListOfString
         {
             public List<string> Strings { get; set; }
         }
@@ -316,91 +343,91 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void Should_roundtrip_enumerable_of_numbers()
+        public void Should_roundtrip_hashset_of_numbers()
         {
-            var classWithListOfNumbers = new ClassWithListOfNumbers
+            var classWithHashSetOfNumbers = new ClassWithHashSetOfNumbers
             {
-                Ints = new List<int>
+                Ints = new HashSet<int>
                 {
                     int.MinValue, int.MaxValue
                 },
-                Doubles = new List<double>
+                Doubles = new HashSet<double>
                 {
                     double.MinValue, double.MaxValue
                 },
-                Floats = new List<float>
+                Floats = new HashSet<float>
                 {
                     float.MinValue, float.MaxValue
                 },
-                Bytes = new List<byte>
+                Bytes = new HashSet<byte>
                 {
                     byte.MinValue, byte.MaxValue
                 },
-                Shorts = new List<short>
+                Shorts = new HashSet<short>
                 {
                     short.MinValue, short.MaxValue
                 },
-                UShorts = new List<ushort>
+                UShorts = new HashSet<ushort>
                 {
                     ushort.MinValue, ushort.MaxValue
                 },
-                Longs = new List<long>
+                Longs = new HashSet<long>
                 {
                     long.MinValue, long.MaxValue
                 },
-                ULongs = new List<ulong>
+                ULongs = new HashSet<ulong>
                 {
                     ulong.MinValue, ulong.MaxValue
                 },
-                UInts = new List<uint>
+                UInts = new HashSet<uint>
                 {
                     uint.MinValue, uint.MaxValue
                 },
-                SBytes = new List<sbyte>
+                SBytes = new HashSet<sbyte>
                 {
                     sbyte.MinValue, sbyte.MaxValue
                 }
             };
 
-            var attributes = DataSerializer.Serialize(classWithListOfNumbers);
+            var attributes = DataSerializer.Serialize(classWithHashSetOfNumbers);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithListOfNumbers>(attributes);
+            var deserialized = DataSerializer.Deserialize<ClassWithHashSetOfNumbers>(attributes);
 
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.Ints, deserialized.Ints);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.Doubles, deserialized.Doubles);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.Floats, deserialized.Floats);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.Bytes, deserialized.Bytes);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.Shorts, deserialized.Shorts);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.UShorts, deserialized.UShorts);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.Longs, deserialized.Longs);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.ULongs, deserialized.ULongs);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.UInts, deserialized.UInts);
-            CollectionAssert.AreEquivalent(classWithListOfNumbers.SBytes, deserialized.SBytes);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Floats, deserialized.Floats);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Bytes, deserialized.Bytes);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Shorts, deserialized.Shorts);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UShorts, deserialized.UShorts);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Longs, deserialized.Longs);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.ULongs, deserialized.ULongs);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UInts, deserialized.UInts);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.SBytes, deserialized.SBytes);
 
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.Floats)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.Bytes)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.Shorts)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.UShorts)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.Longs)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.ULongs)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.UInts)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithListOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Floats)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Bytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Shorts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.UShorts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Longs)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.ULongs)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.UInts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
         }
 
-        class ClassWithListOfNumbers
+        class ClassWithHashSetOfNumbers
         {
-            public List<int> Ints { get; set; }
-            public List<double> Doubles { get; set; }
-            public List<float> Floats { get; set; }
-            public List<byte> Bytes { get; set; }
-            public List<short> Shorts { get; set; }
-            public List<ushort> UShorts { get; set; }
-            public List<long> Longs { get; set; }
-            public List<ulong> ULongs { get; set; }
-            public List<uint> UInts { get; set; }
-            public List<sbyte> SBytes { get; set; }
+            public HashSet<int> Ints { get; set; }
+            public HashSet<double> Doubles { get; set; }
+            public HashSet<float> Floats { get; set; }
+            public HashSet<byte> Bytes { get; set; }
+            public HashSet<short> Shorts { get; set; }
+            public HashSet<ushort> UShorts { get; set; }
+            public HashSet<long> Longs { get; set; }
+            public HashSet<ulong> ULongs { get; set; }
+            public HashSet<uint> UInts { get; set; }
+            public HashSet<sbyte> SBytes { get; set; }
         }
 
         [Test]
