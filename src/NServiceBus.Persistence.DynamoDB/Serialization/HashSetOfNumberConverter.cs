@@ -52,7 +52,50 @@ namespace NServiceBus.Persistence.DynamoDB
                 return new HashSetValueConverter<sbyte>(options);
             }
 
-            // TODO: add more factories
+            if (valueType == typeof(ushort))
+            {
+                return new HashSetValueConverter<ushort>(options);
+            }
+
+            if (valueType == typeof(uint))
+            {
+                return new HashSetValueConverter<uint>(options);
+            }
+
+            if (valueType == typeof(ulong))
+            {
+                return new HashSetValueConverter<ulong>(options);
+            }
+
+            if (valueType == typeof(long))
+            {
+                return new HashSetValueConverter<long>(options);
+            }
+
+            if (valueType == typeof(short))
+            {
+                return new HashSetValueConverter<short>(options);
+            }
+
+            if (valueType == typeof(int))
+            {
+                return new HashSetValueConverter<int>(options);
+            }
+
+            if (valueType == typeof(double))
+            {
+                return new HashSetValueConverter<double>(options);
+            }
+
+            if (valueType == typeof(decimal))
+            {
+                return new HashSetValueConverter<decimal>(options);
+            }
+
+            if (valueType == typeof(float))
+            {
+                return new HashSetValueConverter<float>(options);
+            }
 
             throw new InvalidOperationException($"Converter not supported for type '{valueType}'");
         }
