@@ -3,7 +3,6 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
-    using System.Reflection;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
@@ -23,7 +22,18 @@ namespace NServiceBus.Persistence.DynamoDB
                 return false;
             }
 
-            return IsNumericType(typeToConvert.GetGenericArguments()[0]);
+            var innerTypeToConvert = typeToConvert.GetGenericArguments()[0];
+            return innerTypeToConvert == typeof(byte) ||
+                   innerTypeToConvert == typeof(sbyte) ||
+                   innerTypeToConvert == typeof(ushort) ||
+                   innerTypeToConvert == typeof(uint) ||
+                   innerTypeToConvert == typeof(ulong) ||
+                   innerTypeToConvert == typeof(long) ||
+                   innerTypeToConvert == typeof(short) ||
+                   innerTypeToConvert == typeof(int) ||
+                   innerTypeToConvert == typeof(double) ||
+                   innerTypeToConvert == typeof(decimal) ||
+                   innerTypeToConvert == typeof(float);
         }
 
         public override JsonConverter CreateConverter(
@@ -32,22 +42,26 @@ namespace NServiceBus.Persistence.DynamoDB
         {
             Type valueType = type.GetGenericArguments()[0];
 
-            var converter = (JsonConverter)Activator.CreateInstance(
-                typeof(HashSetValueConverter<>).MakeGenericType(
-                    new Type[] { valueType }),
-                BindingFlags.Instance | BindingFlags.Public,
-                binder: null,
-                args: new object[] { options },
-                culture: null)!;
+            if (valueType == typeof(byte))
+            {
+                return new HashSetValueConverter<byte>(options);
+            }
 
-            return converter;
+            if (valueType == typeof(sbyte))
+            {
+                return new HashSetValueConverter<sbyte>(options);
+            }
+
+            // TODO: add more factories
+
+            throw new InvalidOperationException($"Converter not supported for type '{valueType}'");
         }
 
-        static bool IsNumericType(Type type) =>
-            Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.UInt16 or TypeCode.UInt32
-                or TypeCode.UInt64
-                or TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or TypeCode.Decimal or TypeCode.Double
-                or TypeCode.Single;
+        // static bool IsNumericType(Type type) =>
+        //     Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.UInt16 or TypeCode.UInt32
+        //         or TypeCode.UInt64
+        //         or TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or TypeCode.Decimal or TypeCode.Double
+        //         or TypeCode.Single;
 
 
         sealed class HashSetValueConverter<TValue> :
