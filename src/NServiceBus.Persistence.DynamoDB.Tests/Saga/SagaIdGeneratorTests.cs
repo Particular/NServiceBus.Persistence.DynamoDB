@@ -6,8 +6,6 @@ using Extensibility;
 using NUnit.Framework;
 using Sagas;
 
-//TODO add test for supported data types?
-
 [TestFixture]
 public class SagaIdGeneratorTests
 {
@@ -15,7 +13,7 @@ public class SagaIdGeneratorTests
     public void Should_generate_deterministic_id()
     {
         var generator = new SagaIdGenerator();
-        var sagaMetadata = CreateSagaMetadata();
+        var sagaMetadata = CreateSagaMetadata<SagaTypeA, SagaDataTypeA>();
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("correlation property name", "correlation property value"),
@@ -31,7 +29,7 @@ public class SagaIdGeneratorTests
     public void Should_generate_different_ids_for_correlation_property_values()
     {
         var generator = new SagaIdGenerator();
-        var sagaMetadata = CreateSagaMetadata();
+        var sagaMetadata = CreateSagaMetadata<SagaTypeA, SagaDataTypeA>();
 
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
@@ -41,30 +39,44 @@ public class SagaIdGeneratorTests
             new SagaCorrelationProperty("correlation property name", "B"),
             sagaMetadata, new ContextBag()));
 
-        Assert.AreNotEqual(id1, id2, "the same input should result in the same id");
+        Assert.AreNotEqual(id1, id2, "a different correlation property value should result in a different id");
     }
 
     [Test]
-    public void Should_generate_different_ids_for_saga_type()
+    public void Should_not_generate_different_ids_for_saga_types()
     {
         var generator = new SagaIdGenerator();
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("correlation property name", "A"),
-            CreateSagaMetadata("sagaA"), new ContextBag()));
+            CreateSagaMetadata<SagaTypeA, SagaDataTypeA>(), new ContextBag()));
         var id2 = generator.Generate(new SagaIdGeneratorContext(
-            new SagaCorrelationProperty("correlation property name", "B"),
-            CreateSagaMetadata("sagaB"), new ContextBag()));
+            new SagaCorrelationProperty("correlation property name", "A"),
+            CreateSagaMetadata<SagaTypeB, SagaDataTypeA>(), new ContextBag()));
 
-        Assert.AreNotEqual(id1, id2, "the same input should result in the same id");
+        Assert.AreEqual(id1, id2, "a different saga types should not result in a different id");
     }
 
-    //TODO: Do we really need to include the correlation property?
     [Test]
-    public void Should_ignore_correlation_property_name()
+    public void Should_generate_different_ids_for_saga_data_types()
     {
         var generator = new SagaIdGenerator();
-        var sagaMetadata = CreateSagaMetadata();
+
+        var id1 = generator.Generate(new SagaIdGeneratorContext(
+            new SagaCorrelationProperty("correlation property name", "A"),
+            CreateSagaMetadata<SagaTypeA, SagaDataTypeA>(), new ContextBag()));
+        var id2 = generator.Generate(new SagaIdGeneratorContext(
+            new SagaCorrelationProperty("correlation property name", "A"),
+            CreateSagaMetadata<SagaTypeA, SagaDataTypeB>(), new ContextBag()));
+
+        Assert.AreNotEqual(id1, id2, "a different saga data types value should result in a different id");
+    }
+
+    [Test]
+    public void Should_generate_different_ids_for_correlation_property_name()
+    {
+        var generator = new SagaIdGenerator();
+        var sagaMetadata = CreateSagaMetadata<SagaTypeA, SagaDataTypeA>();
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("property A", "correlation property value"),
@@ -73,15 +85,15 @@ public class SagaIdGeneratorTests
             new SagaCorrelationProperty("property B", "correlation property value"),
             sagaMetadata, new ContextBag()));
 
-        Assert.AreEqual(id1, id2, "the same input should result in the same id");
+        Assert.AreNotEqual(id1, id2, "a different correlation property should result in a different id");
     }
 
-    static SagaMetadata CreateSagaMetadata(string sagaName = null)
+    static SagaMetadata CreateSagaMetadata<TSagaType, TSagaDataType>()
     {
-        sagaName ??= "MyNamespace.MySaga";
-        return new SagaMetadata(sagaName, typeof(object), $"{sagaName}+MySagaData",
-            typeof(object),
-            new SagaMetadata.CorrelationPropertyMetadata("MyCorrelationProperty", typeof(string)),
+        var sagaType = typeof(TSagaType);
+        var sagaDataType = typeof(TSagaDataType);
+        return new SagaMetadata(sagaType.FullName, sagaType, sagaDataType.FullName, sagaDataType,
+            null,
             new[]
             {
                 (SagaMessage)Activator.CreateInstance(typeof(SagaMessage),
@@ -90,4 +102,9 @@ public class SagaIdGeneratorTests
             },
             Array.Empty<SagaFinderDefinition>());
     }
+
+    class SagaTypeA { }
+    class SagaTypeB { }
+    class SagaDataTypeA { }
+    class SagaDataTypeB { }
 }
