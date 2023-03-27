@@ -1,5 +1,4 @@
-﻿#nullable enable
-namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
