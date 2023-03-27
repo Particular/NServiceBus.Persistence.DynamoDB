@@ -13,9 +13,10 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_roundtrip_basic_poco()
         {
+            var basicPocoId = Guid.NewGuid();
             var basicPoco = new BasicPoco
             {
-                Guid = Guid.NewGuid(),
+                Guid = basicPocoId,
                 String = "Hello World 1",
                 Boolean = true,
             };
@@ -28,17 +29,18 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.AreEqual(basicPoco.String, deserialized.String);
             Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
 
-            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.Not.Null);
-            Assert.That(attributes[nameof(BasicPoco.String)].S, Is.Not.Null);
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()));
+            Assert.That(attributes[nameof(BasicPoco.String)].S, Is.EqualTo("Hello World 1"));
             Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.True);
         }
 
         [Test]
         public void Should_skip_null_values_on_basic_poco()
         {
+            var basicPocoId = Guid.NewGuid();
             var basicPoco = new BasicPoco
             {
-                Guid = Guid.NewGuid(),
+                Guid = basicPocoId,
             };
 
             var attributes = DataSerializer.Serialize(basicPoco);
@@ -46,12 +48,102 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
 
             Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
-            Assert.AreEqual(basicPoco.String, deserialized.String);
-            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.Not.Null);
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()));
             Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)));
         }
 
         class BasicPoco
+        {
+            public string String { get; set; }
+            public Guid Guid { get; set; }
+            public bool Boolean { get; set; }
+        }
+
+        [Test]
+        public void Should_roundtrip_nested_poco()
+        {
+            var nestedPocoId = Guid.NewGuid();
+            var nestedPoco = new NestedPoco
+            {
+                Guid = nestedPocoId,
+                String = "Hello World 1",
+                Boolean = true,
+                SubPoco = new SubPoco
+                {
+                    Guid = Guid.NewGuid(),
+                    String = "Hello World 2",
+                    Boolean = false,
+                    SubSubPoco = new SubSubPoco
+                    {
+                        Guid = Guid.NewGuid(),
+                        String = "Hello World 3",
+                        Boolean = true,
+                    }
+                }
+            };
+
+            var attributes = DataSerializer.Serialize(nestedPoco);
+
+            var deserialized = DataSerializer.Deserialize<NestedPoco>(attributes);
+
+            Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
+            Assert.AreEqual(nestedPoco.String, deserialized.String);
+            Assert.AreEqual(nestedPoco.Boolean, deserialized.Boolean);
+
+            Assert.That(nestedPoco.SubPoco, Is.Not.Null);
+            Assert.AreEqual(nestedPoco.SubPoco.Guid, deserialized.SubPoco.Guid);
+            Assert.AreEqual(nestedPoco.SubPoco.String, deserialized.SubPoco.String);
+            Assert.AreEqual(nestedPoco.SubPoco.Boolean, deserialized.SubPoco.Boolean);
+
+            Assert.That(nestedPoco.SubPoco.SubSubPoco, Is.Not.Null);
+            Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Guid, deserialized.SubPoco.SubSubPoco.Guid);
+            Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.String, deserialized.SubPoco.SubSubPoco.String);
+            Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Boolean, deserialized.SubPoco.SubSubPoco.Boolean);
+
+            Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.EqualTo(nestedPocoId.ToString()));
+            Assert.That(attributes[nameof(NestedPoco.String)].S, Is.EqualTo("Hello World 1"));
+            Assert.That(attributes[nameof(NestedPoco.Boolean)].BOOL, Is.True);
+        }
+
+        [Test]
+        public void Should_skip_null_values_on_nested_poco()
+        {
+            var nestedPoco = new NestedPoco
+            {
+                Guid = Guid.NewGuid(),
+            };
+
+            var attributes = DataSerializer.Serialize(nestedPoco);
+
+            var deserialized = DataSerializer.Deserialize<NestedPoco>(attributes);
+
+            Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
+            Assert.That(nestedPoco.SubPoco, Is.Null);
+            Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.Not.Null);
+
+            Assert.That(attributes, Does.Not.ContainKey(nameof(NestedPoco.String)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(NestedPoco.SubPoco)));
+        }
+
+        class NestedPoco
+        {
+            public string String { get; set; }
+            public Guid Guid { get; set; }
+            public bool Boolean { get; set; }
+
+            public SubPoco SubPoco { get; set; }
+        }
+
+        class SubPoco
+        {
+            public string String { get; set; }
+            public Guid Guid { get; set; }
+            public bool Boolean { get; set; }
+
+            public SubSubPoco SubSubPoco { get; set; }
+        }
+
+        class SubSubPoco
         {
             public string String { get; set; }
             public Guid Guid { get; set; }
