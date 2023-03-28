@@ -31,7 +31,7 @@ namespace NServiceBus.Persistence.DynamoDB
         {
             public SetConverter(JsonSerializerOptions options)
             {
-                streamConverter = (JsonConverter<MemoryStream>)options.GetConverter(typeof(MemoryStream));
+                var streamConverter = (JsonConverter<MemoryStream>)options.GetConverter(typeof(MemoryStream));
                 memoryStreamOptions = new JsonSerializerOptions { Converters = { streamConverter } };
             }
 
@@ -77,16 +77,9 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                writer.WriteStartArray();
-                foreach (var stream in value)
-                {
-                    streamConverter.Write(writer, stream, options);
-                }
-                writer.WriteEndArray();
+                JsonSerializer.Serialize(writer, value, memoryStreamOptions);
                 writer.WriteEndObject();
             }
-
-            readonly JsonConverter<MemoryStream> streamConverter;
             readonly JsonSerializerOptions memoryStreamOptions;
         }
     }

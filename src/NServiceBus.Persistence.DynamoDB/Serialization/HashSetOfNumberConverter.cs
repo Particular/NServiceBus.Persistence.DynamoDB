@@ -44,7 +44,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     .MakeGenericType(new Type[] { type, valueType }),
                 BindingFlags.Instance | BindingFlags.Public,
                 binder: null,
-                args: new[] { options },
+                args: null,
                 culture: null)!;
             return converter;
 
@@ -53,11 +53,6 @@ namespace NServiceBus.Persistence.DynamoDB
             where TSet : ISet<TValue>
             where TValue : struct
         {
-            public SetConverter(JsonSerializerOptions options) =>
-                // For performance, use the existing converter.
-                valueConverter = (JsonConverter<TValue>)options
-                    .GetConverter(typeof(TValue));
-
             public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
@@ -99,16 +94,10 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                writer.WriteStartArray();
-                foreach (TValue s in value)
-                {
-                    valueConverter.Write(writer, s, options);
-                }
-                writer.WriteEndArray();
+                // Deliberately not passing the options to use the default json serialization behavior
+                JsonSerializer.Serialize(writer, value);
                 writer.WriteEndObject();
             }
-
-            readonly JsonConverter<TValue> valueConverter;
         }
     }
 }

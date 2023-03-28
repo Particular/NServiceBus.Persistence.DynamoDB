@@ -69,12 +69,8 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                writer.WriteStartArray();
-                foreach (string s in value)
-                {
-                    writer.WriteStringValue(s);
-                }
-                writer.WriteEndArray();
+                // Deliberately not passing the options to use the default json serialization behavior
+                JsonSerializer.Serialize(writer, value);
                 writer.WriteEndObject();
             }
         }
