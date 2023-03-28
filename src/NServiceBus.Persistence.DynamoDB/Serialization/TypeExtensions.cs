@@ -1,3 +1,4 @@
+#nullable enable
 namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
@@ -21,12 +22,11 @@ namespace NServiceBus.Persistence.DynamoDB
                 return true;
             }
 
-            Type baseType = givenType.BaseType;
+            Type? baseType = givenType.BaseType;
             if (baseType == null)
             {
                 return false;
             }
-
             return IsAssignableToGenericType(baseType, genericType);
         }
     }
