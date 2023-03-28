@@ -3,6 +3,7 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Reflection;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
@@ -17,7 +18,7 @@ namespace NServiceBus.Persistence.DynamoDB
                 return false;
             }
 
-            if (typeToConvert.GetGenericTypeDefinition() != typeof(HashSet<>))
+            if (!typeToConvert.IsAssignableToGenericType(typeof(ISet<>)))
             {
                 return false;
             }
@@ -36,91 +37,29 @@ namespace NServiceBus.Persistence.DynamoDB
                    innerTypeToConvert == typeof(float);
         }
 
-        public override JsonConverter CreateConverter(
-            Type type,
-            JsonSerializerOptions options)
+        public override JsonConverter CreateConverter(Type type, JsonSerializerOptions options)
         {
             Type valueType = type.GetGenericArguments()[0];
+            var converter = (JsonConverter)Activator.CreateInstance(
+                typeof(SetConverter<,>)
+                    .MakeGenericType(new Type[] { type, valueType }),
+                BindingFlags.Instance | BindingFlags.Public,
+                binder: null,
+                args: new[] { options },
+                culture: null)!;
+            return converter;
 
-            if (valueType == typeof(byte))
-            {
-                return new HashSetValueConverter<byte>(options);
-            }
-
-            if (valueType == typeof(sbyte))
-            {
-                return new HashSetValueConverter<sbyte>(options);
-            }
-
-            if (valueType == typeof(ushort))
-            {
-                return new HashSetValueConverter<ushort>(options);
-            }
-
-            if (valueType == typeof(uint))
-            {
-                return new HashSetValueConverter<uint>(options);
-            }
-
-            if (valueType == typeof(ulong))
-            {
-                return new HashSetValueConverter<ulong>(options);
-            }
-
-            if (valueType == typeof(long))
-            {
-                return new HashSetValueConverter<long>(options);
-            }
-
-            if (valueType == typeof(short))
-            {
-                return new HashSetValueConverter<short>(options);
-            }
-
-            if (valueType == typeof(int))
-            {
-                return new HashSetValueConverter<int>(options);
-            }
-
-            if (valueType == typeof(double))
-            {
-                return new HashSetValueConverter<double>(options);
-            }
-
-            if (valueType == typeof(decimal))
-            {
-                return new HashSetValueConverter<decimal>(options);
-            }
-
-            if (valueType == typeof(float))
-            {
-                return new HashSetValueConverter<float>(options);
-            }
-
-            throw new InvalidOperationException($"Converter not supported for type '{valueType}'");
         }
-
-        // static bool IsNumericType(Type type) =>
-        //     Type.GetTypeCode(type) is TypeCode.Byte or TypeCode.SByte or TypeCode.UInt16 or TypeCode.UInt32
-        //         or TypeCode.UInt64
-        //         or TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or TypeCode.Decimal or TypeCode.Double
-        //         or TypeCode.Single;
-
-
-        sealed class HashSetValueConverter<TValue> :
-            JsonConverter<HashSet<TValue>> where TValue : struct
+        sealed class SetConverter<TSet, TValue> : JsonConverter<TSet>
+            where TSet : ISet<TValue>
+            where TValue : struct
         {
-            public HashSetValueConverter(JsonSerializerOptions options)
-            {
+            public SetConverter(JsonSerializerOptions options) =>
                 // For performance, use the existing converter.
                 valueConverter = (JsonConverter<TValue>)options
                     .GetConverter(typeof(TValue));
 
-                // Cache the key and value types.
-                valueType = typeof(TValue);
-            }
-
-            public override HashSet<TValue>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
                 {
@@ -145,15 +84,8 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                reader.Read();
-
-                var hashset = new HashSet<TValue>();
-                while (reader.TokenType != JsonTokenType.EndArray)
-                {
-                    hashset.Add(valueConverter.Read(ref reader, valueType, options));
-
-                    reader.Read();
-                }
+                // Deliberately not passing the options to use the default json serialization behavior
+                var set = JsonSerializer.Deserialize<TSet>(ref reader);
 
                 reader.Read();
 
@@ -161,10 +93,10 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     throw new JsonException();
                 }
-                return hashset;
+                return set;
             }
 
-            public override void Write(Utf8JsonWriter writer, HashSet<TValue> value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, TSet value, JsonSerializerOptions options)
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
@@ -178,7 +110,6 @@ namespace NServiceBus.Persistence.DynamoDB
             }
 
             readonly JsonConverter<TValue> valueConverter;
-            readonly Type valueType;
         }
     }
 }

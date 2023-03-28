@@ -183,7 +183,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                     new(Encoding.UTF8.GetBytes("Hello World 1")),
                     new(Encoding.UTF8.GetBytes("Hello World 2")),
                 },
-                ImmutableHashSetOfStreams = new HashSet<MemoryStream>()
+                ImmutableHashSetOfStreams = new HashSet<MemoryStream>
                 {
                     new(Encoding.UTF8.GetBytes("Hello World 1")),
                     new(Encoding.UTF8.GetBytes("Hello World 2")),
@@ -197,8 +197,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams.ElementAt(0).ToArray(), deserialized.HashSetOfMemoryStreams.ElementAt(0).ToArray());
             CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams.ElementAt(1).ToArray(), deserialized.HashSetOfMemoryStreams.ElementAt(1).ToArray());
 
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(0).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(0).ToArray());
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(1).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(1).ToArray());
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(0).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(1).ToArray());
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(1).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(0).ToArray());
 
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.EqualTo(2));
@@ -391,55 +391,59 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void Should_roundtrip_hashset_of_numbers()
+        public void Should_roundtrip_set_of_numbers()
         {
-            var classWithHashSetOfNumbers = new ClassWithHashSetOfNumbers
+            var classWithHashSetOfNumbers = new ClassWithSetOfNumbers
             {
                 Ints = new HashSet<int>
                 {
                     int.MinValue, int.MaxValue
                 },
-                Doubles = new HashSet<double>
+                Doubles = new SortedSet<double>
                 {
                     double.MinValue, double.MaxValue
                 },
                 Floats = new HashSet<float>
                 {
                     float.MinValue, float.MaxValue
-                },
+                }.ToImmutableHashSet(),
                 Bytes = new HashSet<byte>
                 {
                     byte.MinValue, byte.MaxValue
-                },
+                }.ToImmutableSortedSet(),
                 Shorts = new HashSet<short>
                 {
                     short.MinValue, short.MaxValue
                 },
-                UShorts = new HashSet<ushort>
+                UShorts = new SortedSet<ushort>
                 {
                     ushort.MinValue, ushort.MaxValue
                 },
                 Longs = new HashSet<long>
                 {
                     long.MinValue, long.MaxValue
-                },
+                }.ToImmutableHashSet(),
                 ULongs = new HashSet<ulong>
                 {
                     ulong.MinValue, ulong.MaxValue
-                },
+                }.ToImmutableSortedSet(),
                 UInts = new HashSet<uint>
                 {
                     uint.MinValue, uint.MaxValue
                 },
-                SBytes = new HashSet<sbyte>
+                SBytes = new SortedSet<sbyte>
                 {
                     sbyte.MinValue, sbyte.MaxValue
-                }
+                },
+                Decimals = new HashSet<decimal>
+                {
+                    decimal.MinValue, decimal.MaxValue
+                }.ToImmutableHashSet()
             };
 
             var attributes = DataSerializer.Serialize(classWithHashSetOfNumbers);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithHashSetOfNumbers>(attributes);
+            var deserialized = DataSerializer.Deserialize<ClassWithSetOfNumbers>(attributes);
 
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
@@ -451,31 +455,34 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.ULongs, deserialized.ULongs);
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UInts, deserialized.UInts);
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.SBytes, deserialized.SBytes);
+            CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Decimals, deserialized.Decimals);
 
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Floats)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Bytes)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Shorts)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.UShorts)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.Longs)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.ULongs)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.UInts)].NS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithHashSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UShorts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.EqualTo(2));
         }
 
-        class ClassWithHashSetOfNumbers
+        class ClassWithSetOfNumbers
         {
             public HashSet<int> Ints { get; set; }
-            public HashSet<double> Doubles { get; set; }
-            public HashSet<float> Floats { get; set; }
-            public HashSet<byte> Bytes { get; set; }
+            public SortedSet<double> Doubles { get; set; }
+            public ImmutableHashSet<float> Floats { get; set; }
+            public ImmutableSortedSet<byte> Bytes { get; set; }
             public HashSet<short> Shorts { get; set; }
-            public HashSet<ushort> UShorts { get; set; }
-            public HashSet<long> Longs { get; set; }
-            public HashSet<ulong> ULongs { get; set; }
+            public SortedSet<ushort> UShorts { get; set; }
+            public ImmutableHashSet<long> Longs { get; set; }
+            public ImmutableSortedSet<ulong> ULongs { get; set; }
             public HashSet<uint> UInts { get; set; }
-            public HashSet<sbyte> SBytes { get; set; }
+            public SortedSet<sbyte> SBytes { get; set; }
+            public ImmutableHashSet<decimal> Decimals { get; set; }
         }
 
         [Test]
