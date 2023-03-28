@@ -325,6 +325,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].SS, Has.Count.Zero);
         }
 
+        // Not testing all possible enumeration types since this path goes directly through the default
+        // JSON serialization behavior
         class ClasWithListOfString
         {
             public List<string> ListStrings { get; set; }
@@ -346,6 +348,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Ushort = ushort.MaxValue,
                 Double = double.MaxValue,
                 Float = float.MaxValue,
+                Decimal = decimal.MaxValue,
             };
 
             var attributes = DataSerializer.Serialize(classNumbers);
@@ -362,6 +365,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.AreEqual(classNumbers.UInt, deserialized.UInt);
             Assert.AreEqual(classNumbers.SByte, deserialized.SByte);
             Assert.AreEqual(classNumbers.Byte, deserialized.Byte);
+            Assert.AreEqual(classNumbers.Decimal, deserialized.Decimal);
 
             Assert.That(attributes[nameof(ClassNumbers.Int)].N, Is.EqualTo("2147483647"));
             Assert.That(attributes[nameof(ClassNumbers.Double)].N, Does.EndWith("E+308"));
@@ -373,6 +377,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassNumbers.UInt)].N, Is.EqualTo("4294967295"));
             Assert.That(attributes[nameof(ClassNumbers.SByte)].N, Is.EqualTo("127"));
             Assert.That(attributes[nameof(ClassNumbers.Byte)].N, Is.EqualTo("255"));
+            Assert.That(attributes[nameof(ClassNumbers.Decimal)].N, Is.EqualTo("79228162514264337593543950335"));
         }
 
         // BigInt is not supported by System.Text.Json
@@ -388,6 +393,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             public float Float { get; set; }
             public uint UInt { get; set; }
             public sbyte SByte { get; set; }
+            public decimal Decimal { get; set; }
         }
 
         [Test]
