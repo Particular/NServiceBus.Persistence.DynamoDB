@@ -383,7 +383,6 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassNumbers.Decimal)].N, Is.EqualTo("79228162514264337593543950335"));
         }
 
-        // BigInt is not supported by System.Text.Json
         class ClassNumbers
         {
             public byte Byte { get; set; }
