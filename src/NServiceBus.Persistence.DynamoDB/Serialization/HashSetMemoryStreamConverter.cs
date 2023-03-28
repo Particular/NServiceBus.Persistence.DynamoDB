@@ -6,6 +6,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.IO;
     using System.Reflection;
     using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
     sealed class HashSetMemoryStreamConverter : JsonConverterFactory
@@ -80,7 +81,48 @@ namespace NServiceBus.Persistence.DynamoDB
                 JsonSerializer.Serialize(writer, value, memoryStreamOptions);
                 writer.WriteEndObject();
             }
+
             readonly JsonSerializerOptions memoryStreamOptions;
+        }
+
+        public static bool TryExtract(JsonProperty property, out List<MemoryStream?>? memoryStreams)
+        {
+            memoryStreams = null;
+            if (!property.NameEquals(PropertyName))
+            {
+                return false;
+            }
+
+            foreach (var innerElement in property.Value.EnumerateArray())
+            {
+                memoryStreams ??= new List<MemoryStream?>(property.Value.GetArrayLength());
+                foreach (var streamElement in innerElement.EnumerateObject())
+                {
+                    memoryStreams.Add(new MemoryStream(streamElement.Value.GetBytesFromBase64()));
+                }
+            }
+
+            memoryStreams ??= new List<MemoryStream?>(0);
+            return true;
+        }
+
+        public static bool TryConvert(List<MemoryStream> memoryStreams, out JsonObject? jsonObject)
+        {
+            jsonObject = null;
+            if (memoryStreams is not { Count: > 0 })
+            {
+                return false;
+            }
+
+            jsonObject = new JsonObject();
+            var streamHashSetContent = new JsonArray();
+            foreach (var memoryStream in memoryStreams)
+            {
+                _ = MemoryStreamConverter.TryConvert(memoryStream, out var memoryStreamJsonObject);
+                streamHashSetContent.Add(memoryStreamJsonObject);
+            }
+            jsonObject.Add(PropertyName, streamHashSetContent);
+            return true;
         }
     }
 }

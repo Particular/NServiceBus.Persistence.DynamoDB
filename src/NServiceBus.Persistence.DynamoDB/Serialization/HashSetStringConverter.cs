@@ -5,6 +5,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Collections.Generic;
     using System.Reflection;
     using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
     sealed class HashSetStringConverter : JsonConverterFactory
@@ -73,6 +74,42 @@ namespace NServiceBus.Persistence.DynamoDB
                 JsonSerializer.Serialize(writer, value);
                 writer.WriteEndObject();
             }
+        }
+
+        public static bool TryExtract(JsonProperty property, out List<string?>? strings)
+        {
+            strings = null;
+            if (!property.NameEquals(PropertyName))
+            {
+                return false;
+            }
+
+            foreach (var innerElement in property.Value.EnumerateArray())
+            {
+                strings ??= new List<string?>(property.Value.GetArrayLength());
+                strings.Add(innerElement.GetString());
+            }
+
+            strings ??= new List<string?>(0);
+            return true;
+        }
+
+        public static bool TryConvert(List<string> strings, out JsonObject? jsonObject)
+        {
+            jsonObject = null;
+            if (strings is not { Count: > 0 })
+            {
+                return false;
+            }
+
+            jsonObject = new JsonObject();
+            var stringHashSetContent = new JsonArray();
+            foreach (var stringValue in strings)
+            {
+                stringHashSetContent.Add(stringValue);
+            }
+            jsonObject.Add(PropertyName, stringHashSetContent);
+            return true;
         }
     }
 }

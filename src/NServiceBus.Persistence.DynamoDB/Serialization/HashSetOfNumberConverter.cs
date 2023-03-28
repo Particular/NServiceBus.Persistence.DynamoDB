@@ -5,6 +5,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Collections.Generic;
     using System.Reflection;
     using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
     sealed class HashSetOfNumberConverter : JsonConverterFactory
@@ -98,6 +99,41 @@ namespace NServiceBus.Persistence.DynamoDB
                 JsonSerializer.Serialize(writer, value);
                 writer.WriteEndObject();
             }
+        }
+
+        public static bool TryExtract(JsonProperty property, out List<string?>? numbersAsStrings)
+        {
+            numbersAsStrings = null;
+            if (!property.NameEquals(PropertyName))
+            {
+                return false;
+            }
+
+            foreach (var innerElement in property.Value.EnumerateArray())
+            {
+                numbersAsStrings ??= new List<string?>(property.Value.GetArrayLength());
+                numbersAsStrings.Add(innerElement.ToString());
+            }
+            numbersAsStrings ??= new List<string?>(0);
+            return true;
+        }
+
+        public static bool TrConvert(List<string> numbersAsStrings, out JsonObject? jsonObject)
+        {
+            jsonObject = null;
+            if (numbersAsStrings is not { Count: > 0 })
+            {
+                return false;
+            }
+
+            jsonObject = new JsonObject();
+            var numberHashSetContent = new JsonArray();
+            foreach (var numberValue in numbersAsStrings)
+            {
+                numberHashSetContent.Add(JsonNode.Parse(numberValue));
+            }
+            jsonObject.Add(PropertyName, numberHashSetContent);
+            return true;
         }
     }
 }

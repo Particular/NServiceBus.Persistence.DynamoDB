@@ -5,6 +5,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System;
     using System.IO;
     using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
     sealed class MemoryStreamConverter : JsonConverter<MemoryStream>
@@ -52,6 +53,32 @@ namespace NServiceBus.Persistence.DynamoDB
             writer.WriteStartObject();
             writer.WriteBase64String(PropertyName, value.ToArray());
             writer.WriteEndObject();
+        }
+
+        public static bool TryExtract(JsonProperty property, out MemoryStream? memoryStream)
+        {
+            memoryStream = null;
+            if (!property.NameEquals(PropertyName))
+            {
+                return false;
+            }
+            memoryStream = new MemoryStream(property.Value.GetBytesFromBase64());
+            return true;
+        }
+
+        public static bool TryConvert(MemoryStream? memoryStream, out JsonObject? jsonObject)
+        {
+            jsonObject = null;
+            if (memoryStream is null)
+            {
+                return false;
+            }
+
+            jsonObject = new JsonObject
+            {
+                [PropertyName] = Convert.ToBase64String(memoryStream.ToArray())
+            };
+            return true;
         }
     }
 }
