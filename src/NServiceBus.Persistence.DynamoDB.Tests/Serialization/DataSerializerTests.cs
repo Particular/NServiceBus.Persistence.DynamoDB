@@ -2,6 +2,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -233,28 +234,53 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void Should_roundtrip_hashset_of_strings()
+        public void Should_roundtrip_set_of_strings()
         {
-            var classWithHashsetOStrings = new ClassWithHashSetOStrings
+            var classWithSetOfString = new ClassWithSetOStrings
             {
-                Strings = new HashSet<string>
+                HashSetOfString = new HashSet<string>
                 {
                     "Hello World 1",
                     "Hello World 2"
-                }
+                },
+                SortedSetOfString = new SortedSet<string>
+                {
+                    "Hello World 1",
+                    "Hello World 2"
+                },
+                ImmutableHashSetOfString = new HashSet<string>
+                {
+                    "Hello World 1",
+                    "Hello World 2"
+                }.ToImmutableHashSet(),
+                ImmutableSortedSetOfString = new SortedSet<string>
+                {
+                    "Hello World 1",
+                    "Hello World 2"
+                }.ToImmutableSortedSet(),
             };
 
-            var attributes = DataSerializer.Serialize(classWithHashsetOStrings);
+            var attributes = DataSerializer.Serialize(classWithSetOfString);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithHashSetOStrings>(attributes);
+            var deserialized = DataSerializer.Deserialize<ClassWithSetOStrings>(attributes);
 
-            CollectionAssert.AreEquivalent(classWithHashsetOStrings.Strings, deserialized.Strings);
-            Assert.That(attributes[nameof(ClassWithHashSetOStrings.Strings)].SS, Has.Count.EqualTo(2));
+            CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
+            CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
+            CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableHashSetOfString, deserialized.ImmutableHashSetOfString);
+            CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableSortedSetOfString, deserialized.ImmutableSortedSetOfString);
+
+            Assert.That(attributes[nameof(ClassWithSetOStrings.HashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOStrings.SortedSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
         }
 
-        class ClassWithHashSetOStrings
+        class ClassWithSetOStrings
         {
-            public HashSet<string> Strings { get; set; }
+            public HashSet<string> HashSetOfString { get; set; }
+            public SortedSet<string> SortedSetOfString { get; set; }
+            public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; }
+            public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; }
         }
 
         [Test]
@@ -262,7 +288,12 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             var classWithListOStrings = new ClasWithListOfString
             {
-                Strings = new List<string>
+                ListStrings = new List<string>
+                {
+                    "Hello World 1",
+                    "Hello World 2"
+                },
+                ArrayStrings = new[]
                 {
                     "Hello World 1",
                     "Hello World 2"
@@ -273,14 +304,19 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var deserialized = DataSerializer.Deserialize<ClasWithListOfString>(attributes);
 
-            CollectionAssert.AreEquivalent(classWithListOStrings.Strings, deserialized.Strings);
-            Assert.That(attributes[nameof(ClasWithListOfString.Strings)].L, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClasWithListOfString.Strings)].SS, Has.Count.Zero);
+            CollectionAssert.AreEquivalent(classWithListOStrings.ListStrings, deserialized.ListStrings);
+            CollectionAssert.AreEquivalent(classWithListOStrings.ArrayStrings, deserialized.ArrayStrings);
+
+            Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].L, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].L, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].SS, Has.Count.Zero);
         }
 
         class ClasWithListOfString
         {
-            public List<string> Strings { get; set; }
+            public List<string> ListStrings { get; set; }
+            public string[] ArrayStrings { get; set; }
         }
 
         [Test]

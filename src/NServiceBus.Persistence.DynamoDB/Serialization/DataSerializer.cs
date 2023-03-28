@@ -74,17 +74,17 @@ namespace NServiceBus.Persistence.DynamoDB
 
             if (element.ValueKind == JsonValueKind.False)
             {
-                return new AttributeValue { BOOL = false };
+                return FalseAttributeValue;
             }
 
             if (element.ValueKind == JsonValueKind.True)
             {
-                return new AttributeValue { BOOL = true };
+                return TrueAttributeValue;
             }
 
             if (element.ValueKind == JsonValueKind.Null)
             {
-                return new AttributeValue { NULL = true };
+                return NullAttributeValue;
             }
 
             if (element.ValueKind == JsonValueKind.Number)
@@ -257,5 +257,9 @@ namespace NServiceBus.Persistence.DynamoDB
             }
             return array;
         }
+
+        static readonly AttributeValue NullAttributeValue = new AttributeValue { NULL = true };
+        static readonly AttributeValue TrueAttributeValue = new AttributeValue { BOOL = true };
+        static readonly AttributeValue FalseAttributeValue = new AttributeValue { BOOL = false };
     }
 }
