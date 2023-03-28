@@ -132,7 +132,6 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             public string String { get; set; }
             public Guid Guid { get; set; }
             public bool Boolean { get; set; }
-
             public SubPoco SubPoco { get; set; }
         }
 
@@ -141,7 +140,6 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             public string String { get; set; }
             public Guid Guid { get; set; }
             public bool Boolean { get; set; }
-
             public SubSubPoco SubSubPoco { get; set; }
         }
 
@@ -285,6 +283,11 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassWithSetOStrings.SortedSetOfString)].SS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
+
+            Assert.That(attributes[nameof(ClassWithSetOStrings.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOStrings.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableSortedSetOfString)].L, Has.Count.Zero);
         }
 
         class ClassWithSetOStrings
@@ -474,6 +477,18 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.EqualTo(2));
+
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UShorts)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
         }
 
         class ClassWithSetOfNumbers
