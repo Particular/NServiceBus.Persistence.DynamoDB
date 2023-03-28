@@ -18,23 +18,22 @@ namespace NServiceBus.Persistence.DynamoDB
                 return false;
             }
 
-            if (!typeToConvert.IsAssignableToGenericType(typeof(ISet<>)))
-            {
-                return false;
-            }
-
             var innerTypeToConvert = typeToConvert.GetGenericArguments()[0];
-            return innerTypeToConvert == typeof(byte) ||
-                   innerTypeToConvert == typeof(sbyte) ||
-                   innerTypeToConvert == typeof(ushort) ||
-                   innerTypeToConvert == typeof(uint) ||
-                   innerTypeToConvert == typeof(ulong) ||
-                   innerTypeToConvert == typeof(long) ||
-                   innerTypeToConvert == typeof(short) ||
-                   innerTypeToConvert == typeof(int) ||
-                   innerTypeToConvert == typeof(double) ||
-                   innerTypeToConvert == typeof(decimal) ||
-                   innerTypeToConvert == typeof(float);
+            var isNumberTypeSupported = innerTypeToConvert == typeof(byte) ||
+                                        innerTypeToConvert == typeof(sbyte) ||
+                                        innerTypeToConvert == typeof(ushort) ||
+                                        innerTypeToConvert == typeof(uint) ||
+                                        innerTypeToConvert == typeof(ulong) ||
+                                        innerTypeToConvert == typeof(long) ||
+                                        innerTypeToConvert == typeof(short) ||
+                                        innerTypeToConvert == typeof(int) ||
+                                        innerTypeToConvert == typeof(double) ||
+                                        innerTypeToConvert == typeof(decimal) ||
+                                        innerTypeToConvert == typeof(float);
+
+            return isNumberTypeSupported &&
+                   // This check is fairly expensive so we do it only once we know it is a number type that is supported
+                   typeToConvert.IsAssignableToGenericType(typeof(ISet<>));
         }
 
         public override JsonConverter CreateConverter(Type type, JsonSerializerOptions options)
