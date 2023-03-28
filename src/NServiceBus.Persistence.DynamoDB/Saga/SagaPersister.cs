@@ -181,9 +181,13 @@
             }
         }
 
-        TSagaData Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
+        TSagaData? Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
         {
             var sagaData = DataSerializer.Deserialize<TSagaData>(attributeValues);
+            if (sagaData is null)
+            {
+                return default;
+            }
             var currentVersion = int.Parse(attributeValues[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N);
             context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
             return sagaData;
