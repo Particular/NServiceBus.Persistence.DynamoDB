@@ -192,11 +192,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var deserialized = DataSerializer.Deserialize<ClassWithSetOfMemoryStream>(attributes);
 
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams.ElementAt(0).ToArray(), deserialized.HashSetOfMemoryStreams.ElementAt(0).ToArray());
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams.ElementAt(1).ToArray(), deserialized.HashSetOfMemoryStreams.ElementAt(1).ToArray());
-
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(0).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(1).ToArray());
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(1).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(0).ToArray());
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
 
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.EqualTo(2));
