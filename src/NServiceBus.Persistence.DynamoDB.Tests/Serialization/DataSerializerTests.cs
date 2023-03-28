@@ -174,29 +174,41 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void Should_roundtrip_hashset_streams()
+        public void Should_roundtrip_sets_streams()
         {
-            var classWithListOfMemoryStream = new ClassWithHashSetOfMemoryStream
+            var classWithListOfMemoryStream = new ClassWithSetOfMemoryStream
             {
-                Streams = new HashSet<MemoryStream>
+                HashSetOfMemoryStreams = new HashSet<MemoryStream>
                 {
                     new(Encoding.UTF8.GetBytes("Hello World 1")),
                     new(Encoding.UTF8.GetBytes("Hello World 2")),
-                }
+                },
+                ImmutableHashSetOfStreams = new HashSet<MemoryStream>()
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                }.ToImmutableHashSet()
             };
 
             var attributes = DataSerializer.Serialize(classWithListOfMemoryStream);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithHashSetOfMemoryStream>(attributes);
+            var deserialized = DataSerializer.Deserialize<ClassWithSetOfMemoryStream>(attributes);
 
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.Streams.ElementAt(0).ToArray(), deserialized.Streams.ElementAt(0).ToArray());
-            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.Streams.ElementAt(1).ToArray(), deserialized.Streams.ElementAt(1).ToArray());
-            Assert.That(attributes[nameof(ClassWithHashSetOfMemoryStream.Streams)].BS, Has.Count.EqualTo(2));
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams.ElementAt(0).ToArray(), deserialized.HashSetOfMemoryStreams.ElementAt(0).ToArray());
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams.ElementAt(1).ToArray(), deserialized.HashSetOfMemoryStreams.ElementAt(1).ToArray());
+
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(0).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(0).ToArray());
+            CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams.ElementAt(1).ToArray(), deserialized.ImmutableHashSetOfStreams.ElementAt(1).ToArray());
+
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.EqualTo(2));
         }
 
-        class ClassWithHashSetOfMemoryStream
+        // Sorted sets don't really make sense here
+        class ClassWithSetOfMemoryStream
         {
-            public HashSet<MemoryStream> Streams { get; set; }
+            public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; }
+            public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; }
         }
 
         [Test]
