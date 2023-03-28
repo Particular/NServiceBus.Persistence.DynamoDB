@@ -1,4 +1,6 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿#nullable enable
+
+namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
@@ -13,8 +15,9 @@
 
     class SagaPersister : ISagaPersister
     {
-        const string SagaDataVersionAttributeName = "___VERSION___";
-        const string SagaLeaseAttributeName = "___LEASE_TIMEOUT___";
+        const string SagaMetadataAttributeName = "NSERVICEBUS.METADATA";
+        const string SagaDataVersionAttributeName = "VERSION";
+        const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
 
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
@@ -97,7 +100,7 @@
                         var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
                             .ConfigureAwait(false);
                         // we need to find out if the saga already exists or not
-                        if (response.Attributes.ContainsKey(SagaDataVersionAttributeName))
+                        if (response.Attributes.ContainsKey(SagaMetadataAttributeName) && response.Attributes[SagaMetadataAttributeName].M.ContainsKey(SagaDataVersionAttributeName))
                         {
                             // the saga exists
                             var sagaData = Deserialize<TSagaData>(response.Attributes, context);
@@ -113,18 +116,19 @@
                                     { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                                 },
                                 UpdateExpression = "SET #lease = :released_lease",
-                                ConditionExpression = "#lease = :current_lease AND #version = :current_version", // only if the lock is still the same that we acquired.
+                                ConditionExpression = "#lease = :current_lease AND #metadata.#version = :current_version", // only if the lock is still the same that we acquired.
                                 ExpressionAttributeNames =
                                     new Dictionary<string, string>
                                     {
-                                    { "#lease", SagaLeaseAttributeName },
-                                    { "#version", SagaDataVersionAttributeName }
+                                        { "#metadata", SagaMetadataAttributeName },
+                                        { "#lease", SagaLeaseAttributeName },
+                                        { "#version", SagaDataVersionAttributeName }
                                     },
                                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                                 {
                                     { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
                                     { ":released_lease", new AttributeValue { N = "-1" } },
-                                    { ":current_version", response.Attributes[SagaDataVersionAttributeName] }
+                                    { ":current_version", response.Attributes[SagaMetadataAttributeName].M[SagaDataVersionAttributeName] }
                                 },
                                 ReturnValues = ReturnValue.NONE,
                                 TableName = configuration.Table.TableName
@@ -145,15 +149,15 @@
                                     { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
                                     { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                                 },
-                                ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#version)", // only if the lock is still the same that we acquired.
+                                ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
                                 ExpressionAttributeNames = new Dictionary<string, string>
                                 {
+                                    { "#metadata", SagaMetadataAttributeName },
                                     { "#lease", SagaLeaseAttributeName },
-                                    { "#version", SagaDataVersionAttributeName }
                                 },
                                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                                 {
-                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
+                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } }
                                 },
                                 ReturnValues = ReturnValue.NONE,
                                 TableName = configuration.Table.TableName
@@ -187,7 +191,7 @@
             var sagaDataAsJson = document.ToJson();
             // All this is super allocation heavy. But for a first version that is OK
             var sagaData = JsonSerializer.Deserialize<TSagaData>(sagaDataAsJson);
-            var currentVersion = int.Parse(attributeValues[SagaDataVersionAttributeName].N);
+            var currentVersion = int.Parse(attributeValues[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N);
             context.Set($"dynamo_version:{sagaData!.Id}", currentVersion);
             return sagaData;
         }
@@ -201,10 +205,11 @@
                     Item = Serialize(sagaData, 0),
                     // fail if a saga (not just the lock) already exists
                     // SaveSaga could overwrite an existing lock if the caller didn't acquire a lock before calling Save but Core is guaranteed to acquire the lock first. In such a case, optimistic concurrency would fail the commit from the lock-holder which is ok because Save is generally not guaranteed to be fully pessimistic locking and other persisters only apply optimistic concurrency guarantees on this operation.
-                    ConditionExpression = "attribute_not_exists(#version)",
+                    ConditionExpression = "attribute_not_exists(#metadata.#version)",
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        {"#version", SagaDataVersionAttributeName}
+                        { "#metadata", SagaMetadataAttributeName },
+                        { "#version", SagaDataVersionAttributeName }
                     },
                     TableName = configuration.Table.TableName,
                 }
@@ -227,14 +232,15 @@
                 Put = new Put
                 {
                     Item = Serialize(sagaData, nextVersion),
-                    ConditionExpression = "#v = :cv", // fail if modified in the meantime
+                    ConditionExpression = "#metadata.#version = :current_version", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        { "#v", SagaDataVersionAttributeName }
+                        { "#metadata", SagaMetadataAttributeName },
+                        { "#version", SagaDataVersionAttributeName }
                     },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
-                        { ":cv", new AttributeValue { N = currentVersion.ToString() } }
+                        { ":current_version", new AttributeValue { N = currentVersion.ToString() } }
                     },
                     TableName = configuration.Table.TableName
                 }
@@ -255,11 +261,17 @@
             var map = doc.ToAttributeMap();
             map.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
             map.Add(configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
-            // Version should probably be properly moved into metadata to not clash with existing things
-            map.Add(SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() });
+            map.Add(SagaMetadataAttributeName, new AttributeValue
+            {
+                M = new Dictionary<string, AttributeValue>()
+                {
+                    { SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() } },
+                    { "TYPE", new AttributeValue { S = sagaData.GetType().FullName } },
+                    { "SCHEMA_VERSION", new AttributeValue { N = "1"} }
+                }
+            });
             // release lease on save
             map.Add(SagaLeaseAttributeName, new AttributeValue { N = "-1" });
-            // According to the best practices we should also add Type information probably here
             return map;
         }
 
@@ -269,21 +281,22 @@
 
             session.DynamoDBPersistenceSession().Add(new TransactWriteItem
             {
-                Delete = new Delete()
+                Delete = new Delete
                 {
                     Key = new Dictionary<string, AttributeValue>
                     {
                         {configuration.Table.PartitionKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
                     },
-                    ConditionExpression = "#v = :cv", // fail if modified in the meantime
+                    ConditionExpression = "#metadata.#version = :current_version", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        { "#v", SagaDataVersionAttributeName }
+                        { "#metadata", SagaMetadataAttributeName },
+                        { "#version", SagaDataVersionAttributeName }
                     },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
-                        { ":cv", new AttributeValue { N = currentVersion.ToString() } }
+                        { ":current_version", new AttributeValue { N = currentVersion.ToString() } }
                     },
                     TableName = configuration.Table.TableName,
                 }
