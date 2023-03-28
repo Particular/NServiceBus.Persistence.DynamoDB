@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace NServiceBus
+﻿namespace NServiceBus
 {
     using System.Collections.Generic;
     using Amazon.DynamoDBv2.Model;

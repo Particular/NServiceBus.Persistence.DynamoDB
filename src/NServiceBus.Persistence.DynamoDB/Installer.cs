@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
