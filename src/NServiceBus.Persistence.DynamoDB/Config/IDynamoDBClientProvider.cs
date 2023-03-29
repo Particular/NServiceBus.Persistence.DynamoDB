@@ -11,7 +11,7 @@
     public interface IDynamoDBClientProvider
     {
         /// <summary>
-        /// The CosmosClient to use.
+        /// The DynamoDB client to use.
         /// </summary>
         IAmazonDynamoDB Client { get; }
     }
