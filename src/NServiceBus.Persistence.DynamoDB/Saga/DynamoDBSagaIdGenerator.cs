@@ -15,7 +15,6 @@
         {
             // assumes single correlated sagas since v6 doesn't allow more than one corr prop
             // will still have to use a GUID since moving to a string id will have to wait since its a breaking change
-            // TODO: Check whether that is actually a good idea
             var serializedPropertyValue = Convert.ToString(correlationPropertyValue, CultureInfo.InvariantCulture);
             return DeterministicGuid($"{sagaEntityType.FullName}_{correlationPropertyName}_{serializedPropertyValue}");
         }
