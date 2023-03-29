@@ -2,30 +2,35 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using Amazon.DynamoDBv2.Model;
 
-    static class DataSerializer
+    static class Mapper
     {
         static readonly JsonSerializerOptions serializerOptions =
             new() { Converters = { new MemoryStreamConverter(), new HashSetMemoryStreamConverter(), new HashSetStringConverter(), new HashSetOfNumberConverter() } };
 
-        public static Dictionary<string, AttributeValue> Serialize<TValue>(TValue value)
+        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value)
             where TValue : class
-            => Serialize(value, typeof(TValue));
+            => ToMap(value, typeof(TValue));
 
-        public static Dictionary<string, AttributeValue> Serialize(object value, Type type)
+        public static Dictionary<string, AttributeValue> ToMap(object value, Type type)
         {
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, serializerOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
-                throw new InvalidOperationException($"Unable to serialize the given type '{type}' because the json kind is not of type 'JsonValueKind.Object'.");
+                ThrowInvalidOperationExceptionForInvalidRoot(type);
             }
             return ToAttributeMap(jsonDocument.RootElement);
         }
 
-        public static TValue? Deserialize<TValue>(Dictionary<string, AttributeValue> attributeValues)
+        [DoesNotReturn]
+        static void ThrowInvalidOperationExceptionForInvalidRoot(Type type)
+            => throw new InvalidOperationException($"Unable to serialize the given type '{type}' because the json kind is not of type 'JsonValueKind.Object'.");
+
+        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = ToNode(attributeValues);
             return jsonObject.Deserialize<TValue>(serializerOptions);
@@ -42,8 +47,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 JsonValueKind.Number => new AttributeValue { N = element.ToString() },
                 JsonValueKind.Undefined => NullAttributeValue,
                 JsonValueKind.String => new AttributeValue(element.GetString()),
-                _ => throw new InvalidOperationException($"ValueKind '{element.ValueKind}' could not be mapped."),
+                _ => ThrowInvalidOperationExceptionForInvalidValueKind(element.ValueKind),
             };
+
+        [DoesNotReturn]
+        static AttributeValue ThrowInvalidOperationExceptionForInvalidValueKind(JsonValueKind valueKind)
+            => throw new InvalidOperationException($"ValueKind '{valueKind}' could not be mapped.");
 
         static Dictionary<string, AttributeValue> ToAttributeMap(JsonElement element)
         {
@@ -116,8 +125,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
                 { SS.Count: > 0 } => HashSetStringConverter.ToNode(attributeValue.SS),
                 { NS.Count: > 0 } => HashSetOfNumberConverter.ToNode(attributeValue.NS),
-                _ => throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement")
+                _ => ThrowInvalidOperationExceptionForNonMappableAttribute()
             };
+
+        [DoesNotReturn]
+        static JsonNode ThrowInvalidOperationExceptionForNonMappableAttribute()
+            => throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement");
 
         static JsonNode ToNode(Dictionary<string, AttributeValue> attributeValues)
         {

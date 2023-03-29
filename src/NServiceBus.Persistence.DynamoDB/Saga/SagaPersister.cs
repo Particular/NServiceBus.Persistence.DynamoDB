@@ -183,7 +183,7 @@
 
         TSagaData? Deserialize<TSagaData>(Dictionary<string, AttributeValue> attributeValues, ContextBag context) where TSagaData : class, IContainSagaData
         {
-            var sagaData = DataSerializer.Deserialize<TSagaData>(attributeValues);
+            var sagaData = Mapper.ToObject<TSagaData>(attributeValues);
             if (sagaData is null)
             {
                 return default;
@@ -258,7 +258,7 @@
 
         Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
         {
-            var sagaDataMap = DataSerializer.Serialize(sagaData, sagaData.GetType());
+            var sagaDataMap = Mapper.ToMap(sagaData, sagaData.GetType());
             sagaDataMap.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
             sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             sagaDataMap.Add(SagaMetadataAttributeName, new AttributeValue

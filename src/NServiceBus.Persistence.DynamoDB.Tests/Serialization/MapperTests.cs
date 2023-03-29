@@ -9,7 +9,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using NUnit.Framework;
 
     [TestFixture]
-    public class DataSerializerTests
+    public class MapperTests
     {
         [Test]
         public void Should_roundtrip_basic_poco()
@@ -22,9 +22,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Boolean = true,
             };
 
-            var attributes = DataSerializer.Serialize(basicPoco);
+            var attributes = Mapper.ToMap(basicPoco);
 
-            var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
+            var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
             Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
             Assert.AreEqual(basicPoco.String, deserialized.String);
@@ -44,9 +44,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Guid = basicPocoId,
             };
 
-            var attributes = DataSerializer.Serialize(basicPoco);
+            var attributes = Mapper.ToMap(basicPoco);
 
-            var deserialized = DataSerializer.Deserialize<BasicPoco>(attributes);
+            var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
             Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
             Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()));
@@ -83,9 +83,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 }
             };
 
-            var attributes = DataSerializer.Serialize(nestedPoco);
+            var attributes = Mapper.ToMap(nestedPoco);
 
-            var deserialized = DataSerializer.Deserialize<NestedPoco>(attributes);
+            var deserialized = Mapper.ToObject<NestedPoco>(attributes);
 
             Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
             Assert.AreEqual(nestedPoco.String, deserialized.String);
@@ -114,9 +114,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Guid = Guid.NewGuid(),
             };
 
-            var attributes = DataSerializer.Serialize(nestedPoco);
+            var attributes = Mapper.ToMap(nestedPoco);
 
-            var deserialized = DataSerializer.Deserialize<NestedPoco>(attributes);
+            var deserialized = Mapper.ToObject<NestedPoco>(attributes);
 
             Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
             Assert.That(nestedPoco.SubPoco, Is.Null);
@@ -157,9 +157,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World"))
             };
 
-            var attributes = DataSerializer.Serialize(classWithMemoryStream);
+            var attributes = Mapper.ToMap(classWithMemoryStream);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithMemoryStream>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithMemoryStream>(attributes);
 
             CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
             Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.Not.Null);
@@ -187,9 +187,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 }.ToImmutableHashSet()
             };
 
-            var attributes = DataSerializer.Serialize(classWithListOfMemoryStream);
+            var attributes = Mapper.ToMap(classWithListOfMemoryStream);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithSetOfMemoryStream>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithSetOfMemoryStream>(attributes);
 
             CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
             CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
@@ -217,9 +217,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 }
             };
 
-            var attributes = DataSerializer.Serialize(classWithMemoryStream);
+            var attributes = Mapper.ToMap(classWithMemoryStream);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithNestedMemoryStream>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithNestedMemoryStream>(attributes);
 
             CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
             CollectionAssert.AreEquivalent(classWithMemoryStream.Nested.SomeStream.ToArray(), deserialized.Nested.SomeStream.ToArray());
@@ -266,9 +266,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 }.ToImmutableSortedSet(),
             };
 
-            var attributes = DataSerializer.Serialize(classWithSetOfString);
+            var attributes = Mapper.ToMap(classWithSetOfString);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithSetOStrings>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithSetOStrings>(attributes);
 
             CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
             CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
@@ -311,9 +311,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 }
             };
 
-            var attributes = DataSerializer.Serialize(classWithListOStrings);
+            var attributes = Mapper.ToMap(classWithListOStrings);
 
-            var deserialized = DataSerializer.Deserialize<ClasWithListOfString>(attributes);
+            var deserialized = Mapper.ToObject<ClasWithListOfString>(attributes);
 
             CollectionAssert.AreEquivalent(classWithListOStrings.ListStrings, deserialized.ListStrings);
             CollectionAssert.AreEquivalent(classWithListOStrings.ArrayStrings, deserialized.ArrayStrings);
@@ -350,9 +350,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Decimal = decimal.MaxValue,
             };
 
-            var attributes = DataSerializer.Serialize(classNumbers);
+            var attributes = Mapper.ToMap(classNumbers);
 
-            var deserialized = DataSerializer.Deserialize<ClassNumbers>(attributes);
+            var deserialized = Mapper.ToObject<ClassNumbers>(attributes);
 
             Assert.AreEqual(classNumbers.Int, deserialized.Int);
             Assert.AreEqual(classNumbers.Double, deserialized.Double);
@@ -445,9 +445,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 }.ToImmutableHashSet()
             };
 
-            var attributes = DataSerializer.Serialize(classWithHashSetOfNumbers);
+            var attributes = Mapper.ToMap(classWithHashSetOfNumbers);
 
-            var deserialized = DataSerializer.Deserialize<ClassWithSetOfNumbers>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithSetOfNumbers>(attributes);
 
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
             CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
@@ -512,7 +512,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             classWithCyclicReference.References = new List<ClassWithCyclicReference> { reference };
 
-            Assert.Throws<JsonException>(() => DataSerializer.Serialize(classWithCyclicReference));
+            Assert.Throws<JsonException>(() => Mapper.ToMap(classWithCyclicReference));
         }
 
         class ClassWithCyclicReference
