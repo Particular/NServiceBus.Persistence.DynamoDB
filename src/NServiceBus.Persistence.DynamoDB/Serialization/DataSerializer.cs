@@ -12,7 +12,7 @@ namespace NServiceBus.Persistence.DynamoDB
             new() { Converters = { new MemoryStreamConverter(), new HashSetMemoryStreamConverter(), new HashSetStringConverter(), new HashSetOfNumberConverter() } };
 
         public static Dictionary<string, AttributeValue> Serialize<TValue>(TValue value)
-            where TValue : notnull
+            where TValue : class
             => Serialize(value, typeof(TValue));
 
         public static Dictionary<string, AttributeValue> Serialize(object value, Type type)
