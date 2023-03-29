@@ -9,7 +9,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
     sealed class HashSetOfNumberConverter : JsonConverterFactory
     {
-        public const string PropertyName = "HashSetNumberContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
+        const string PropertyName = "HashSetNumberContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
 
         public override bool CanConvert(Type typeToConvert)
         {

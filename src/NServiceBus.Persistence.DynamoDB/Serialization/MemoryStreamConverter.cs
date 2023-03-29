@@ -8,7 +8,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
     sealed class MemoryStreamConverter : JsonConverter<MemoryStream>
     {
-        public const string PropertyName = "MemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
+        const string PropertyName = "MemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
 
         public override MemoryStream Read(ref Utf8JsonReader reader, Type typeToConvert,
             JsonSerializerOptions options)

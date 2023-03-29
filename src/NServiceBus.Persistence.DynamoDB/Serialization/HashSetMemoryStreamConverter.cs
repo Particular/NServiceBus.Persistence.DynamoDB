@@ -10,7 +10,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
     sealed class HashSetMemoryStreamConverter : JsonConverterFactory
     {
-        public const string PropertyName = "HashSetMemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
+        const string PropertyName = "HashSetMemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
 
         public override bool CanConvert(Type typeToConvert)
             => typeToConvert.IsGenericType && typeof(ISet<MemoryStream>).IsAssignableFrom(typeToConvert);
