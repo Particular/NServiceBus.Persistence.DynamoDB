@@ -93,22 +93,16 @@ namespace NServiceBus.Persistence.DynamoDB
             return true;
         }
 
-        public static bool TryConvert(List<string> strings, out JsonObject? jsonObject)
+        public static JsonNode ToNode(List<string> strings)
         {
-            jsonObject = null;
-            if (strings is not { Count: > 0 })
-            {
-                return false;
-            }
-
-            jsonObject = new JsonObject();
+            var jsonObject = new JsonObject();
             var stringHashSetContent = new JsonArray();
             foreach (var stringValue in strings)
             {
                 stringHashSetContent.Add(stringValue);
             }
             jsonObject.Add(PropertyName, stringHashSetContent);
-            return true;
+            return jsonObject;
         }
     }
 }

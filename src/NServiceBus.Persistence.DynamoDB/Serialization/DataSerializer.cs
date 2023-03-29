@@ -31,40 +31,19 @@ namespace NServiceBus.Persistence.DynamoDB
             return jsonObject.Deserialize<TValue>(serializerOptions);
         }
 
-        static AttributeValue ToAttribute(JsonElement element)
-        {
-            if (element.ValueKind == JsonValueKind.Object)
+        static AttributeValue ToAttribute(JsonElement element) =>
+            element.ValueKind switch
             {
-                return ToMapAttribute(element);
-            }
-
-            if (element.ValueKind == JsonValueKind.Array)
-            {
-                return ToListAttribute(element);
-            }
-
-            if (element.ValueKind == JsonValueKind.False)
-            {
-                return FalseAttributeValue;
-            }
-
-            if (element.ValueKind == JsonValueKind.True)
-            {
-                return TrueAttributeValue;
-            }
-
-            if (element.ValueKind == JsonValueKind.Null)
-            {
-                return NullAttributeValue;
-            }
-
-            if (element.ValueKind == JsonValueKind.Number)
-            {
-                return new AttributeValue { N = element.ToString() };
-            }
-
-            return new AttributeValue(element.GetString());
-        }
+                JsonValueKind.Object => ToMapAttribute(element),
+                JsonValueKind.Array => ToListAttribute(element),
+                JsonValueKind.False => FalseAttributeValue,
+                JsonValueKind.True => TrueAttributeValue,
+                JsonValueKind.Null => NullAttributeValue,
+                JsonValueKind.Number => new AttributeValue { N = element.ToString() },
+                JsonValueKind.Undefined => NullAttributeValue,
+                JsonValueKind.String => new AttributeValue(element.GetString()),
+                _ => throw new InvalidOperationException($"ValueKind '{element.ValueKind}' could not be mapped."),
+            };
 
         static Dictionary<string, AttributeValue> ToAttributeMap(JsonElement element)
         {
@@ -122,62 +101,23 @@ namespace NServiceBus.Persistence.DynamoDB
             return new AttributeValue { M = ToAttributeMap(element) };
         }
 
-        static JsonNode? ToNode(AttributeValue attributeValue)
-        {
-            // check the simple cases first
-            if (attributeValue.IsBOOLSet)
+        static JsonNode? ToNode(AttributeValue attributeValue) =>
+            attributeValue switch
             {
-                return attributeValue.BOOL;
-            }
-
-            if (attributeValue.NULL)
-            {
-                return default;
-            }
-
-            if (attributeValue.N is not null)
-            {
-                return JsonNode.Parse(attributeValue.N);
-            }
-
-            if (attributeValue.S is not null)
-            {
-                return attributeValue.S;
-            }
-
-            if (attributeValue.IsMSet)
-            {
-                return ToNode(attributeValue.M);
-            }
-
-            if (attributeValue.IsLSet)
-            {
-                return ToNode(attributeValue.L);
-            }
-
-            // check the more complex cases last
-            if (MemoryStreamConverter.TryConvert(attributeValue.B, out var memoryStream))
-            {
-                return memoryStream;
-            }
-
-            if (HashSetMemoryStreamConverter.TryConvert(attributeValue.BS, out var memoryStreams))
-            {
-                return memoryStreams;
-            }
-
-            if (HashSetStringConverter.TryConvert(attributeValue.SS, out var stringHashSet))
-            {
-                return stringHashSet;
-            }
-
-            if (HashSetOfNumberConverter.TrConvert(attributeValue.NS, out var numberHashSet))
-            {
-                return numberHashSet;
-            }
-
-            throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement");
-        }
+                // check the simple cases first
+                { IsBOOLSet: true } => attributeValue.BOOL,
+                { NULL: true } => default,
+                { N: not null } => JsonNode.Parse(attributeValue.N),
+                { S: not null } => attributeValue.S,
+                { IsMSet: true, } => ToNode(attributeValue.M),
+                { IsLSet: true } => ToNode(attributeValue.L),
+                // check the more complex cases last
+                { B: not null } => MemoryStreamConverter.ToNode(attributeValue.B),
+                { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
+                { SS.Count: > 0 } => HashSetStringConverter.ToNode(attributeValue.SS),
+                { NS.Count: > 0 } => HashSetOfNumberConverter.ToNode(attributeValue.NS),
+                _ => throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement")
+            };
 
         static JsonNode ToNode(Dictionary<string, AttributeValue> attributeValues)
         {

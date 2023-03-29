@@ -117,22 +117,16 @@ namespace NServiceBus.Persistence.DynamoDB
             return true;
         }
 
-        public static bool TrConvert(List<string> numbersAsStrings, out JsonObject? jsonObject)
+        public static JsonNode ToNode(List<string> numbersAsStrings)
         {
-            jsonObject = null;
-            if (numbersAsStrings is not { Count: > 0 })
-            {
-                return false;
-            }
-
-            jsonObject = new JsonObject();
+            var jsonObject = new JsonObject();
             var numberHashSetContent = new JsonArray();
             foreach (var numberValue in numbersAsStrings)
             {
                 numberHashSetContent.Add(JsonNode.Parse(numberValue));
             }
             jsonObject.Add(PropertyName, numberHashSetContent);
-            return true;
+            return jsonObject;
         }
     }
 }

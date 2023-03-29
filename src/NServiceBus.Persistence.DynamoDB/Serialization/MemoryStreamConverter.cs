@@ -64,19 +64,10 @@ namespace NServiceBus.Persistence.DynamoDB
             return true;
         }
 
-        public static bool TryConvert(MemoryStream? memoryStream, out JsonObject? jsonObject)
-        {
-            jsonObject = null;
-            if (memoryStream is null)
-            {
-                return false;
-            }
-
-            jsonObject = new JsonObject
+        public static JsonNode ToNode(MemoryStream memoryStream) =>
+            new JsonObject
             {
                 [PropertyName] = Convert.ToBase64String(memoryStream.ToArray())
             };
-            return true;
-        }
     }
 }

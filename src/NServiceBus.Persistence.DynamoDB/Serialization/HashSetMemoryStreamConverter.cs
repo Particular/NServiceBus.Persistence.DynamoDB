@@ -105,23 +105,16 @@ namespace NServiceBus.Persistence.DynamoDB
             return true;
         }
 
-        public static bool TryConvert(List<MemoryStream> memoryStreams, out JsonObject? jsonObject)
+        public static JsonNode ToNode(List<MemoryStream> memoryStreams)
         {
-            jsonObject = null;
-            if (memoryStreams is not { Count: > 0 })
-            {
-                return false;
-            }
-
-            jsonObject = new JsonObject();
+            var jsonObject = new JsonObject();
             var streamHashSetContent = new JsonArray();
             foreach (var memoryStream in memoryStreams)
             {
-                _ = MemoryStreamConverter.TryConvert(memoryStream, out var memoryStreamJsonObject);
-                streamHashSetContent.Add(memoryStreamJsonObject);
+                streamHashSetContent.Add(MemoryStreamConverter.ToNode(memoryStream));
             }
             jsonObject.Add(PropertyName, streamHashSetContent);
-            return true;
+            return jsonObject;
         }
     }
 }
