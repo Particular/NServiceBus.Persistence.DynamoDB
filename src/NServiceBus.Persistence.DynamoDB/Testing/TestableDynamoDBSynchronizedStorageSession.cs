@@ -12,7 +12,7 @@
         readonly List<TransactWriteItem> transactWriteItems = new List<TransactWriteItem>();
 
         /// <summary>
-        /// Initializes a new TestableCosmosSynchronizedStorageSession with a partition key.
+        /// Initializes a new <see cref="TestableDynamoDBSynchronizedStorageSession"/>.
         /// </summary>
         public TestableDynamoDBSynchronizedStorageSession()
         {
