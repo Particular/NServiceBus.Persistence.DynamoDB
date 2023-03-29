@@ -9,6 +9,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
     sealed class HashSetStringConverter : JsonConverterFactory
     {
+        // This is a cryptic property name to make sure we never class with the user data
         const string PropertyName = "HashSetStringContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
 
         public override bool CanConvert(Type typeToConvert)
