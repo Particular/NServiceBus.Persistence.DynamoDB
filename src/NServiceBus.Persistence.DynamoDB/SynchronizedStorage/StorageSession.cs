@@ -17,7 +17,7 @@
         public HashSet<Guid> SagaLocksReleased = new();
 
         //TODO optimize allocations by avoiding creation of the dictionary on OOC settings. Expect 1 saga to be the default.
-        public Dictionary<Guid, Func<IAmazonDynamoDB, Task>> CleanupActions { get; } = new();
+        public Dictionary<Guid, Func<IAmazonDynamoDB, CancellationToken, Task>> CleanupActions { get; } = new();
 
         public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
@@ -87,7 +87,7 @@
                 {
                     try
                     {
-                        await action(dynamoDbClient).ConfigureAwait(false);
+                        await action(dynamoDbClient, CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {

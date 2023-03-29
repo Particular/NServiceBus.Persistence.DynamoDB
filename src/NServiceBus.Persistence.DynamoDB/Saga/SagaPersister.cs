@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
@@ -108,7 +106,7 @@ namespace NServiceBus.Persistence.DynamoDB
                             // ensure we cleanup the lock even if no update/save operation is being committed
                             // note that a transactional batch can only contain a single operation per item in DynamoDB
                             var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                            dynamoSession.storageSession.CleanupActions[sagaId] = client => client.UpdateItemAsync(new UpdateItemRequest
+                            dynamoSession.CleanupSagaLock(sagaId, (client, cancellationToken) => client.UpdateItemAsync(new UpdateItemRequest
                             {
                                 Key = new Dictionary<string, AttributeValue>
                                 {
@@ -132,7 +130,7 @@ namespace NServiceBus.Persistence.DynamoDB
                                 },
                                 ReturnValues = ReturnValue.NONE,
                                 TableName = configuration.Table.TableName
-                            });
+                            }, cancellationToken));
 
                             return sagaData;
                         }
@@ -142,7 +140,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
                             // we need to delete the entry containing the lock
                             var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                            dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
+                            dynamoSession.CleanupSagaLock(sagaId, (client, cancellationToken) => client.DeleteItemAsync(new DeleteItemRequest
                             {
                                 Key = new Dictionary<string, AttributeValue>
                                 {
@@ -161,7 +159,7 @@ namespace NServiceBus.Persistence.DynamoDB
                                 },
                                 ReturnValues = ReturnValue.NONE,
                                 TableName = configuration.Table.TableName
-                            });
+                            }, cancellationToken));
 
                             return null;
                         }
@@ -215,9 +213,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 }
             });
 
-            // we can't remove the action directly because the transaction was not completed yet
-            var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
-            dynamoSession.storageSession.SagaLocksReleased.Add(sagaData.Id);
+            if (configuration.UsePessimisticLocking)
+            {
+                // we can't remove the action directly because the transaction was not completed yet
+                var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
+                dynamoSession.MarkSagaLockAsReleasedOnCommit(sagaData.Id);
+            }
 
             return Task.CompletedTask;
         }
@@ -246,9 +247,12 @@ namespace NServiceBus.Persistence.DynamoDB
                 }
             });
 
-            // we can't remove the action directly because the transaction was not completed yet
-            var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
-            dynamoSession.storageSession.SagaLocksReleased.Add(sagaData.Id);
+            if (configuration.UsePessimisticLocking)
+            {
+                // we can't remove the action directly because the transaction was not completed yet
+                var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
+                dynamoSession.MarkSagaLockAsReleasedOnCommit(sagaData.Id);
+            }
 
             return Task.CompletedTask;
         }
