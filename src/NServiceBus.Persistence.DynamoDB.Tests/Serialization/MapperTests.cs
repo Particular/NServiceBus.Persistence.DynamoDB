@@ -519,5 +519,13 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             public List<ClassWithCyclicReference> References { get; set; }
         }
+
+        [Test]
+        public void Should_throw_for_non_object_root_types()
+        {
+            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new List<int>()));
+
+            Assert.That(exception.Message, Does.StartWith("Unable to serialize the given type"));
+        }
     }
 }
