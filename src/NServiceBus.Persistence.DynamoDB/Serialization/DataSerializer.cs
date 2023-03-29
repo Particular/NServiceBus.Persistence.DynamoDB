@@ -9,65 +9,38 @@ namespace NServiceBus.Persistence.DynamoDB
     static class DataSerializer
     {
         static readonly JsonSerializerOptions serializerOptions =
-            new JsonSerializerOptions { Converters = { new MemoryStreamConverter(), new HashSetMemoryStreamConverter(), new HashSetStringConverter(), new HashSetOfNumberConverter() } };
+            new() { Converters = { new MemoryStreamConverter(), new HashSetMemoryStreamConverter(), new HashSetStringConverter(), new HashSetOfNumberConverter() } };
 
         public static Dictionary<string, AttributeValue> Serialize<TValue>(TValue value)
-        {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, serializerOptions);
-            var attributeMapFromDocument = SerializeToAttributeMap(jsonDocument);
-            return attributeMapFromDocument;
-        }
+            where TValue : notnull
+            => Serialize(value, typeof(TValue));
 
         public static Dictionary<string, AttributeValue> Serialize(object value, Type type)
         {
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, serializerOptions);
-            var attributeMapFromDocument = SerializeToAttributeMap(jsonDocument);
-            return attributeMapFromDocument;
+            if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidOperationException($"Unable to serialize the given type '{type}' because the json kind is not of type 'JsonValueKind.Object'.");
+            }
+            return ToAttributeMap(jsonDocument.RootElement);
         }
 
         public static TValue? Deserialize<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
-            var jsonObject = DeserializeElementFromAttributeMap(attributeValues);
+            var jsonObject = ToNode(attributeValues);
             return jsonObject.Deserialize<TValue>(serializerOptions);
         }
 
-        static Dictionary<string, AttributeValue> SerializeToAttributeMap(JsonDocument document)
-        {
-            if (document.RootElement.ValueKind != JsonValueKind.Object)
-            {
-                throw new InvalidOperationException("TBD");
-            }
-
-            return SerializeElementToAttributeMap(document.RootElement);
-        }
-
-        static Dictionary<string, AttributeValue> SerializeElementToAttributeMap(JsonElement element)
-        {
-            var dictionary = new Dictionary<string, AttributeValue>();
-
-            foreach (var property in element.EnumerateObject())
-            {
-                AttributeValue serializeElement = SerializeElement(property.Value);
-                if (serializeElement.NULL)
-                {
-                    continue;
-                }
-                dictionary.Add(property.Name, serializeElement);
-            }
-
-            return dictionary;
-        }
-
-        static AttributeValue SerializeElement(JsonElement element)
+        static AttributeValue ToAttribute(JsonElement element)
         {
             if (element.ValueKind == JsonValueKind.Object)
             {
-                return SerializeElementToMap(element);
+                return ToMapAttribute(element);
             }
 
             if (element.ValueKind == JsonValueKind.Array)
             {
-                return SerializeElementToList(element);
+                return ToListAttribute(element);
             }
 
             if (element.ValueKind == JsonValueKind.False)
@@ -93,18 +66,36 @@ namespace NServiceBus.Persistence.DynamoDB
             return new AttributeValue(element.GetString());
         }
 
-        static AttributeValue SerializeElementToList(JsonElement element)
+        static Dictionary<string, AttributeValue> ToAttributeMap(JsonElement element)
         {
-            var values = new List<AttributeValue>();
-            foreach (var innerElement in element.EnumerateArray())
+            var dictionary = new Dictionary<string, AttributeValue>();
+
+            foreach (var property in element.EnumerateObject())
             {
-                AttributeValue serializeElement = SerializeElement(innerElement);
-                values.Add(serializeElement);
+                AttributeValue serializeElement = ToAttribute(property.Value);
+                if (serializeElement.NULL)
+                {
+                    continue;
+                }
+                dictionary.Add(property.Name, serializeElement);
             }
-            return new AttributeValue { L = values };
+
+            return dictionary;
         }
 
-        static AttributeValue SerializeElementToMap(JsonElement element)
+        static AttributeValue ToListAttribute(JsonElement element)
+        {
+            List<AttributeValue>? values = null;
+            foreach (var innerElement in element.EnumerateArray())
+            {
+                values ??= new List<AttributeValue>(element.GetArrayLength());
+                AttributeValue serializeElement = ToAttribute(innerElement);
+                values.Add(serializeElement);
+            }
+            return new AttributeValue { L = values ?? new List<AttributeValue>(0) };
+        }
+
+        static AttributeValue ToMapAttribute(JsonElement element)
         {
             foreach (var property in element.EnumerateObject())
             {
@@ -128,24 +119,10 @@ namespace NServiceBus.Persistence.DynamoDB
                     return new AttributeValue { SS = stringSet };
                 }
             }
-            return new AttributeValue { M = SerializeElementToAttributeMap(element) };
+            return new AttributeValue { M = ToAttributeMap(element) };
         }
 
-        static JsonObject DeserializeElementFromAttributeMap(Dictionary<string, AttributeValue> attributeValues)
-        {
-            var jsonObject = new JsonObject();
-            foreach (var kvp in attributeValues)
-            {
-                AttributeValue attributeValue = kvp.Value;
-                string attributeName = kvp.Key;
-
-                jsonObject.Add(attributeName, DeserializeElement(attributeValue));
-            }
-
-            return jsonObject;
-        }
-
-        static JsonNode? DeserializeElement(AttributeValue attributeValue)
+        static JsonNode? ToNode(AttributeValue attributeValue)
         {
             // check the simple cases first
             if (attributeValue.IsBOOLSet)
@@ -170,12 +147,12 @@ namespace NServiceBus.Persistence.DynamoDB
 
             if (attributeValue.IsMSet)
             {
-                return DeserializeElementFromAttributeMap(attributeValue.M);
+                return ToNode(attributeValue.M);
             }
 
             if (attributeValue.IsLSet)
             {
-                return DeserializeElementFromListSet(attributeValue.L);
+                return ToNode(attributeValue.L);
             }
 
             // check the more complex cases last
@@ -202,12 +179,25 @@ namespace NServiceBus.Persistence.DynamoDB
             throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement");
         }
 
-        static JsonArray DeserializeElementFromListSet(List<AttributeValue> attributeValues)
+        static JsonNode ToNode(Dictionary<string, AttributeValue> attributeValues)
+        {
+            var jsonObject = new JsonObject();
+            foreach (var kvp in attributeValues)
+            {
+                AttributeValue attributeValue = kvp.Value;
+                string attributeName = kvp.Key;
+
+                jsonObject.Add(attributeName, ToNode(attributeValue));
+            }
+            return jsonObject;
+        }
+
+        static JsonNode ToNode(List<AttributeValue> attributeValues)
         {
             var array = new JsonArray();
             foreach (var attributeValue in attributeValues)
             {
-                array.Add(DeserializeElement(attributeValue));
+                array.Add(ToNode(attributeValue));
             }
             return array;
         }
