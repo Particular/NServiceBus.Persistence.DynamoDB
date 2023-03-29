@@ -15,9 +15,9 @@ namespace NServiceBus.Persistence.DynamoDB
 
     class SagaPersister : ISagaPersister
     {
-        const string SagaMetadataAttributeName = "NSERVICEBUS.METADATA";
-        const string SagaDataVersionAttributeName = "VERSION";
-        const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
+        internal const string SagaMetadataAttributeName = "NSERVICEBUS.METADATA";
+        internal const string SagaDataVersionAttributeName = "VERSION";
+        internal const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
 
         readonly SagaPersistenceConfiguration configuration;
         readonly IAmazonDynamoDB dynamoDbClient;
@@ -108,32 +108,7 @@ namespace NServiceBus.Persistence.DynamoDB
                             // ensure we cleanup the lock even if no update/save operation is being committed
                             // note that a transactional batch can only contain a single operation per item in DynamoDB
                             var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                            dynamoSession.storageSession.CleanupActions[sagaId] = client => client.UpdateItemAsync(new UpdateItemRequest
-                            {
-                                Key = new Dictionary<string, AttributeValue>
-                                {
-                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                                    { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
-                                },
-                                UpdateExpression = "SET #lease = :released_lease",
-                                ConditionExpression = "#lease = :current_lease AND #metadata.#version = :current_version", // only if the lock is still the same that we acquired.
-                                ExpressionAttributeNames =
-                                    new Dictionary<string, string>
-                                    {
-                                        { "#metadata", SagaMetadataAttributeName },
-                                        { "#lease", SagaLeaseAttributeName },
-                                        { "#version", SagaDataVersionAttributeName }
-                                    },
-                                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                                {
-                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
-                                    { ":released_lease", new AttributeValue { N = "-1" } },
-                                    { ":current_version", response.Attributes[SagaMetadataAttributeName].M[SagaDataVersionAttributeName] }
-                                },
-                                ReturnValues = ReturnValue.NONE,
-                                TableName = configuration.Table.TableName
-                            });
-
+                            dynamoSession.Add(new ReleaseLock(configuration, sagaId, response.Attributes[SagaLeaseAttributeName].N, response.Attributes[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N));
                             return sagaData;
                         }
                         else
@@ -142,26 +117,26 @@ namespace NServiceBus.Persistence.DynamoDB
 
                             // we need to delete the entry containing the lock
                             var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                            dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
-                            {
-                                Key = new Dictionary<string, AttributeValue>
-                                {
-                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
-                                    { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
-                                },
-                                ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
-                                ExpressionAttributeNames = new Dictionary<string, string>
-                                {
-                                    { "#metadata", SagaMetadataAttributeName },
-                                    { "#lease", SagaLeaseAttributeName },
-                                },
-                                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                                {
-                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } }
-                                },
-                                ReturnValues = ReturnValue.NONE,
-                                TableName = configuration.Table.TableName
-                            });
+                            // dynamoSession.storageSession.CleanupActions[sagaId] = client => client.DeleteItemAsync(new DeleteItemRequest
+                            // {
+                            //     Key = new Dictionary<string, AttributeValue>
+                            //     {
+                            //         { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                            //         { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                            //     },
+                            //     ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
+                            //     ExpressionAttributeNames = new Dictionary<string, string>
+                            //     {
+                            //         { "#metadata", SagaMetadataAttributeName },
+                            //         { "#lease", SagaLeaseAttributeName },
+                            //     },
+                            //     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                            //     {
+                            //         { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } }
+                            //     },
+                            //     ReturnValues = ReturnValue.NONE,
+                            //     TableName = configuration.Table.TableName
+                            // });
 
                             return null;
                         }

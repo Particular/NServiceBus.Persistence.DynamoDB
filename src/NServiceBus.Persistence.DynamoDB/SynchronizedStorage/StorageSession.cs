@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -23,6 +24,12 @@
         {
             this.dynamoDbClient = dynamoDbClient;
             CurrentContextBag = context;
+        }
+
+        public void Add(ICleanupAction cleanup)
+        {
+            cleanupActions ??= new Dictionary<Guid, ICleanupAction>();
+            cleanupActions[cleanup.Id] = cleanup;
         }
 
         public void Add(TransactWriteItem writeItem)
@@ -68,7 +75,7 @@
             // The transaction operations already released any lock, don't clean them up explicitly
             foreach (var sagaId in SagaLocksReleased)
             {
-                CleanupActions.Remove(sagaId);
+                cleanupActions?.Remove(sagaId);
             }
         }
 
@@ -83,11 +90,24 @@
                 // release any outstanding lock
 
                 // Batches only support put/delete operations, no updates, therefore we execute all cleanups separately
-                foreach (var action in CleanupActions.Values)
+                foreach (var action in cleanupActions?.Values ?? Enumerable.Empty<ICleanupAction>())
                 {
                     try
                     {
-                        await action(dynamoDbClient).ConfigureAwait(false);
+                        var dynamoDbRequest = action.CreateRequest();
+                        switch (dynamoDbRequest)
+                        {
+                            case DeleteItemRequest deleteItemRequest:
+                                await dynamoDbClient.DeleteItemAsync(deleteItemRequest, CancellationToken.None)
+                                    .ConfigureAwait(false);
+                                break;
+                            case UpdateItemRequest updateItemRequest:
+                                await dynamoDbClient.UpdateItemAsync(updateItemRequest, CancellationToken.None)
+                                    .ConfigureAwait(false);
+                                break;
+                            default:
+                                throw new InvalidOperationException("TBD");
+                        }
                     }
                     catch (Exception e)
                     {
@@ -102,5 +122,6 @@
 
         List<TransactWriteItem> batch = new List<TransactWriteItem>();
         readonly IAmazonDynamoDB dynamoDbClient;
+        private Dictionary<Guid, ICleanupAction>? cleanupActions;
     }
 }
