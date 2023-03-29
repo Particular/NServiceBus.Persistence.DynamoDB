@@ -1,4 +1,3 @@
-#nullable enable
 namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
