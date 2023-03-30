@@ -30,7 +30,7 @@
                 var numberOfBytesWritten = Encoding.UTF8.GetBytes(src.AsSpan(), buffer);
 
                 using var sha1CryptoServiceProvider = SHA1.Create();
-                var guidBytes = sha1CryptoServiceProvider.ComputeHash(buffer, 0, numberOfBytesWritten).AsSpan().Slice(0, 16);
+                var guidBytes = sha1CryptoServiceProvider.ComputeHash(buffer, 0, numberOfBytesWritten).AsSpan().Slice(0, GuidSizeInBytes);
                 if (!TryParseGuidBytes(guidBytes, out var deterministicGuid))
                 {
                     deterministicGuid = new Guid(guidBytes.ToArray());
