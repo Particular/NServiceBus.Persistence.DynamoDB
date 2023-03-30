@@ -54,15 +54,15 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
-            var jsonObject = ToNode(attributeValues);
+            var jsonObject = ToNodeFromMap(attributeValues);
             return jsonObject.Deserialize<TValue>(mapToClassSerializerOptions);
         }
 
-        static AttributeValue ToAttribute(JsonElement element) =>
+        static AttributeValue ToAttributeFromElement(JsonElement element) =>
             element.ValueKind switch
             {
-                JsonValueKind.Object => ToMapAttribute(element),
-                JsonValueKind.Array => ToListAttribute(element),
+                JsonValueKind.Object => ToAttributeFromObject(element),
+                JsonValueKind.Array => ToAttributeFromArray(element),
                 JsonValueKind.False => FalseAttributeValue,
                 JsonValueKind.True => TrueAttributeValue,
                 JsonValueKind.Null => NullAttributeValue,
@@ -82,7 +82,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
             foreach (var property in element.EnumerateObject())
             {
-                AttributeValue serializeElement = ToAttribute(property.Value);
+                AttributeValue serializeElement = ToAttributeFromElement(property.Value);
                 if (serializeElement.NULL)
                 {
                     continue;
@@ -93,18 +93,18 @@ namespace NServiceBus.Persistence.DynamoDB
             return dictionary;
         }
 
-        static AttributeValue ToListAttribute(JsonElement element)
+        static AttributeValue ToAttributeFromArray(JsonElement element)
         {
             var values = new List<AttributeValue>(element.GetArrayLength());
             foreach (var innerElement in element.EnumerateArray())
             {
-                AttributeValue serializeElement = ToAttribute(innerElement);
+                AttributeValue serializeElement = ToAttributeFromElement(innerElement);
                 values.Add(serializeElement);
             }
             return new AttributeValue { L = values };
         }
 
-        static AttributeValue ToMapAttribute(JsonElement element)
+        static AttributeValue ToAttributeFromObject(JsonElement element)
         {
             // JsonElements of type Object might contain custom converted objects that should be mapped to dedicated DynamoDB value types
             foreach (var property in element.EnumerateObject())
@@ -143,8 +143,8 @@ namespace NServiceBus.Persistence.DynamoDB
                 { NULL: true } => default,
                 { N: not null } => JsonNode.Parse(attributeValue.N),
                 { S: not null } => attributeValue.S,
-                { IsMSet: true, } => ToNode(attributeValue.M),
-                { IsLSet: true } => ToNode(attributeValue.L),
+                { IsMSet: true, } => ToNodeFromMap(attributeValue.M),
+                { IsLSet: true } => ToNodeFromLIst(attributeValue.L),
                 // check the more complex cases last
                 { B: not null } => MemoryStreamConverter.ToNode(attributeValue.B),
                 { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
@@ -157,7 +157,7 @@ namespace NServiceBus.Persistence.DynamoDB
         static JsonNode ThrowInvalidOperationExceptionForNonMappableAttribute()
             => throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement");
 
-        static JsonNode ToNode(Dictionary<string, AttributeValue> attributeValues)
+        static JsonNode ToNodeFromMap(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = new JsonObject();
             foreach (var kvp in attributeValues)
@@ -170,7 +170,7 @@ namespace NServiceBus.Persistence.DynamoDB
             return jsonObject;
         }
 
-        static JsonNode ToNode(List<AttributeValue> attributeValues)
+        static JsonNode ToNodeFromLIst(List<AttributeValue> attributeValues)
         {
             var array = new JsonArray();
             foreach (var attributeValue in attributeValues)
