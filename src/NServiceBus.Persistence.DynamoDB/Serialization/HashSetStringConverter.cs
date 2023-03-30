@@ -4,6 +4,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Collections.Generic;
     using System.Reflection;
     using System.Text.Json;
+    using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
     sealed class HashSetStringConverter : JsonConverterFactory
@@ -60,6 +61,16 @@ namespace NServiceBus.Persistence.DynamoDB
                 strings.Add(innerElement.GetString());
             }
             return true;
+        }
+
+        public static JsonNode ToNode(List<string> strings)
+        {
+            var array = new JsonArray();
+            foreach (var value in strings)
+            {
+                array.Add(value);
+            }
+            return array;
         }
     }
 }

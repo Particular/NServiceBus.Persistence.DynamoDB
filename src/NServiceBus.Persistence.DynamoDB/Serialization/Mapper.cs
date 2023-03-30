@@ -5,7 +5,6 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json;
     using System.Text.Json.Nodes;
-    using System.Text.Json.Serialization;
     using Amazon.DynamoDBv2.Model;
 
     static class Mapper
@@ -29,9 +28,7 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     new MemoryStreamConverter(),
                     new HashSetMemoryStreamConverter()
-                },
-                // DynamoDB returns us numbers as strings and we need to be able to read them
-                NumberHandling = JsonNumberHandling.AllowReadingFromString
+                }
             };
 
         public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value)
@@ -148,8 +145,8 @@ namespace NServiceBus.Persistence.DynamoDB
                 // check the more complex cases last
                 { B: not null } => MemoryStreamConverter.ToNode(attributeValue.B),
                 { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
-                { SS.Count: > 0 } => JsonSerializer.SerializeToNode(attributeValue.SS),
-                { NS.Count: > 0 } => JsonSerializer.SerializeToNode(attributeValue.NS),
+                { SS.Count: > 0 } => HashSetStringConverter.ToNode(attributeValue.SS),
+                { NS.Count: > 0 } => HashSetOfNumberConverter.ToNode(attributeValue.NS),
                 _ => ThrowInvalidOperationExceptionForNonMappableAttribute()
             };
 
