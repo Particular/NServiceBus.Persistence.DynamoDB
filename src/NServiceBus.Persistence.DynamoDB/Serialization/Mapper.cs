@@ -10,7 +10,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
     static class Mapper
     {
-        static readonly JsonSerializerOptions classToMapSerializerOptions =
+        public static JsonSerializerOptions MapDefaults { get; } =
             new()
             {
                 Converters =
@@ -22,7 +22,7 @@ namespace NServiceBus.Persistence.DynamoDB
                 }
             };
 
-        static readonly JsonSerializerOptions mapToClassSerializerOptions =
+        public static JsonSerializerOptions ObjectDefaults { get; } =
             new()
             {
                 Converters =
@@ -40,7 +40,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static Dictionary<string, AttributeValue> ToMap(object value, Type type)
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, classToMapSerializerOptions);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, MapDefaults);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(type);
@@ -55,7 +55,7 @@ namespace NServiceBus.Persistence.DynamoDB
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize<TValue>(mapToClassSerializerOptions);
+            return jsonObject.Deserialize<TValue>(ObjectDefaults);
         }
 
         static AttributeValue ToAttributeFromElement(JsonElement element) =>
@@ -144,7 +144,7 @@ namespace NServiceBus.Persistence.DynamoDB
                 { N: not null } => JsonNode.Parse(attributeValue.N),
                 { S: not null } => attributeValue.S,
                 { IsMSet: true, } => ToNodeFromMap(attributeValue.M),
-                { IsLSet: true } => ToNodeFromLIst(attributeValue.L),
+                { IsLSet: true } => ToNodeFromList(attributeValue.L),
                 // check the more complex cases last
                 { B: not null } => MemoryStreamConverter.ToNode(attributeValue.B),
                 { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
@@ -170,7 +170,7 @@ namespace NServiceBus.Persistence.DynamoDB
             return jsonObject;
         }
 
-        static JsonNode ToNodeFromLIst(List<AttributeValue> attributeValues)
+        static JsonNode ToNodeFromList(List<AttributeValue> attributeValues)
         {
             var array = new JsonArray();
             foreach (var attributeValue in attributeValues)
