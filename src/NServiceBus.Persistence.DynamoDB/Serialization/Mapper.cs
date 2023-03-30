@@ -5,12 +5,34 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json;
     using System.Text.Json.Nodes;
+    using System.Text.Json.Serialization;
     using Amazon.DynamoDBv2.Model;
 
     static class Mapper
     {
-        static readonly JsonSerializerOptions serializerOptions =
-            new() { Converters = { new MemoryStreamConverter(), new HashSetMemoryStreamConverter(), new HashSetStringConverter(), new HashSetOfNumberConverter() } };
+        static readonly JsonSerializerOptions classToMapSerializerOptions =
+            new()
+            {
+                Converters =
+                {
+                    new MemoryStreamConverter(),
+                    new HashSetMemoryStreamConverter(),
+                    new HashSetStringConverter(),
+                    new HashSetOfNumberConverter()
+                }
+            };
+
+        static readonly JsonSerializerOptions mapToClassSerializerOptions =
+            new()
+            {
+                Converters =
+                {
+                    new MemoryStreamConverter(),
+                    new HashSetMemoryStreamConverter()
+                },
+                // DynamoDB returns us numbers as strings and we need to be able to read them
+                NumberHandling = JsonNumberHandling.AllowReadingFromString
+            };
 
         public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value)
             where TValue : class
@@ -18,7 +40,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static Dictionary<string, AttributeValue> ToMap(object value, Type type)
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, serializerOptions);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, classToMapSerializerOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(type);
@@ -33,7 +55,7 @@ namespace NServiceBus.Persistence.DynamoDB
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
         {
             var jsonObject = ToNode(attributeValues);
-            return jsonObject.Deserialize<TValue>(serializerOptions);
+            return jsonObject.Deserialize<TValue>(mapToClassSerializerOptions);
         }
 
         static AttributeValue ToAttribute(JsonElement element) =>
@@ -123,8 +145,8 @@ namespace NServiceBus.Persistence.DynamoDB
                 // check the more complex cases last
                 { B: not null } => MemoryStreamConverter.ToNode(attributeValue.B),
                 { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
-                { SS.Count: > 0 } => HashSetStringConverter.ToNode(attributeValue.SS),
-                { NS.Count: > 0 } => HashSetOfNumberConverter.ToNode(attributeValue.NS),
+                { SS.Count: > 0 } => JsonSerializer.SerializeToNode(attributeValue.SS),
+                { NS.Count: > 0 } => JsonSerializer.SerializeToNode(attributeValue.NS),
                 _ => ThrowInvalidOperationExceptionForNonMappableAttribute()
             };
 

@@ -4,7 +4,6 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Collections.Generic;
     using System.Reflection;
     using System.Text.Json;
-    using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
     sealed class HashSetOfNumberConverter : JsonConverterFactory
@@ -54,42 +53,9 @@ namespace NServiceBus.Persistence.DynamoDB
             where TSet : ISet<TValue>
             where TValue : struct
         {
-            public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-            {
-                if (reader.TokenType != JsonTokenType.StartObject)
-                {
-                    throw new JsonException();
-                }
-
-                reader.Read();
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    throw new JsonException();
-                }
-
-                string? propertyName = reader.GetString();
-                if (propertyName != PropertyName)
-                {
-                    throw new JsonException();
-                }
-
-                reader.Read();
-                if (reader.TokenType != JsonTokenType.StartArray)
-                {
-                    throw new JsonException();
-                }
-
-                // Deliberately not passing the options to use the default json serialization behavior
-                var set = JsonSerializer.Deserialize<TSet>(ref reader);
-
-                reader.Read();
-
-                if (reader.TokenType != JsonTokenType.EndObject)
-                {
-                    throw new JsonException();
-                }
-                return set;
-            }
+            public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+                throw new NotImplementedException(
+                $"The {GetType().FullName} should never be used on the read path since its sole purpose is to preserve information on the write path");
 
             public override void Write(Utf8JsonWriter writer, TSet value, JsonSerializerOptions options)
             {
@@ -116,18 +82,6 @@ namespace NServiceBus.Persistence.DynamoDB
             }
             numbersAsStrings ??= new List<string?>(0);
             return true;
-        }
-
-        public static JsonNode ToNode(List<string> numbersAsStrings)
-        {
-            var jsonObject = new JsonObject();
-            var numberHashSetContent = new JsonArray();
-            foreach (var numberValue in numbersAsStrings)
-            {
-                numberHashSetContent.Add(JsonNode.Parse(numberValue));
-            }
-            jsonObject.Add(PropertyName, numberHashSetContent);
-            return jsonObject;
         }
     }
 }
