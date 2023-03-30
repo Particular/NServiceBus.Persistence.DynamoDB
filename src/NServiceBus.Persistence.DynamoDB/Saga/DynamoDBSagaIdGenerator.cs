@@ -2,13 +2,13 @@
 {
     using System;
     using System.Buffers;
-    using System.Globalization;
 #if NETFRAMEWORK
     using System.Runtime.InteropServices;
     using System.Buffers.Binary;
 #endif
     using System.Security.Cryptography;
     using System.Text;
+    using System.Text.Json;
 
     static class DynamoDBSagaIdGenerator
     {
@@ -16,7 +16,7 @@
         {
             // assumes single correlated sagas since v6 doesn't allow more than one corr prop
             // will still have to use a GUID since moving to a string id will have to wait since its a breaking change
-            var serializedPropertyValue = Convert.ToString(correlationPropertyValue, CultureInfo.InvariantCulture);
+            var serializedPropertyValue = JsonSerializer.Serialize(correlationPropertyValue);
             return DeterministicGuid($"{sagaEntityType.FullName}_{correlationPropertyName}_{serializedPropertyValue}");
         }
 
