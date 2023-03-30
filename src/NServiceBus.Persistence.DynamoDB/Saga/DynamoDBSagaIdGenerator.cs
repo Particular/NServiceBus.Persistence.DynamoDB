@@ -2,24 +2,22 @@
 {
     using System;
     using System.Buffers;
-    using System.Globalization;
 #if NETFRAMEWORK
     using System.Runtime.InteropServices;
+    using System.Buffers.Binary;
 #endif
     using System.Security.Cryptography;
     using System.Text;
+    using System.Text.Json;
 
     static class DynamoDBSagaIdGenerator
     {
-        public static Guid Generate(Type sagaEntityType, string correlationPropertyName, object correlationPropertyValue) => Generate(sagaEntityType.FullName!, correlationPropertyName, correlationPropertyValue);
-
-        public static Guid Generate(string sagaEntityTypeFullName, string correlationPropertyName, object correlationPropertyValue)
+        public static Guid Generate(Type sagaEntityType, string correlationPropertyName, object correlationPropertyValue)
         {
             // assumes single correlated sagas since v6 doesn't allow more than one corr prop
             // will still have to use a GUID since moving to a string id will have to wait since its a breaking change
-            // TODO: Check whether that is actually a good idea
-            var serializedPropertyValue = Convert.ToString(correlationPropertyValue, CultureInfo.InvariantCulture);
-            return DeterministicGuid($"{sagaEntityTypeFullName}_{correlationPropertyName}_{serializedPropertyValue}");
+            var serializedPropertyValue = JsonSerializer.Serialize(correlationPropertyValue);
+            return DeterministicGuid($"{sagaEntityType.FullName}_{correlationPropertyName}_{serializedPropertyValue}");
         }
 
 #if NETFRAMEWORK
@@ -32,8 +30,8 @@
                 var numberOfBytesWritten = Encoding.UTF8.GetBytes(src.AsSpan(), buffer);
 
                 using var sha1CryptoServiceProvider = SHA1.Create();
-                var guidBytes = sha1CryptoServiceProvider.ComputeHash(buffer, 0, numberOfBytesWritten).AsSpan().Slice(0, 16);
-                if (!MemoryMarshal.TryRead<Guid>(guidBytes, out var deterministicGuid))
+                var guidBytes = sha1CryptoServiceProvider.ComputeHash(buffer, 0, numberOfBytesWritten).AsSpan().Slice(0, GuidSizeInBytes);
+                if (!TryParseGuidBytes(guidBytes, out var deterministicGuid))
                 {
                     deterministicGuid = new Guid(guidBytes.ToArray());
                 }
@@ -44,7 +42,40 @@
                 ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
             }
         }
+
+        static bool TryParseGuidBytes(ReadOnlySpan<byte> bytes, out Guid guid)
+        {
+            if (bytes.Length != GuidSizeInBytes)
+            {
+                guid = default;
+                return false;
+            }
+
+            if (BitConverter.IsLittleEndian)
+            {
+                guid = MemoryMarshal.Read<Guid>(bytes);
+                return true;
+            }
+
+            // copied from https://github.com/dotnet/runtime/blob/9129083c2fc6ef32479168f0555875b54aee4dfb/src/libraries/System.Private.CoreLib/src/System/Guid.cs#L49
+            // slower path for BigEndian:
+            byte k = bytes[15];  // hoist bounds checks
+            int a = BinaryPrimitives.ReadInt32LittleEndian(bytes);
+            short b = BinaryPrimitives.ReadInt16LittleEndian(bytes.Slice(4));
+            short c = BinaryPrimitives.ReadInt16LittleEndian(bytes.Slice(6));
+            byte d = bytes[8];
+            byte e = bytes[9];
+            byte f = bytes[10];
+            byte g = bytes[11];
+            byte h = bytes[12];
+            byte i = bytes[13];
+            byte j = bytes[14];
+
+            guid = new Guid(a, b, c, d, e, f, g, h, i, j, k);
+            return true;
+        }
 #endif
+
 #if NET
         static Guid DeterministicGuid(string src)
         {
@@ -62,7 +93,7 @@
                     hashBufferLocal.CopyTo(hashBuffer);
                 }
 
-                var guidBytes = hashBuffer.Slice(0, 16);
+                var guidBytes = hashBuffer.Slice(0, GuidSizeInBytes);
                 return new Guid(guidBytes);
             }
             finally
@@ -71,6 +102,7 @@
             }
         }
 #endif
+        const int GuidSizeInBytes = 16;
     }
 
 #if NETFRAMEWORK
