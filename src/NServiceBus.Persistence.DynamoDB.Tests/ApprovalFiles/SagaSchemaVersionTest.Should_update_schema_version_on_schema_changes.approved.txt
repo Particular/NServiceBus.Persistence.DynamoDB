@@ -136,10 +136,10 @@
         "IsLSet": false,
         "M": {},
         "IsMSet": false,
-        "N": "1",
+        "N": null,
         "NS": [],
         "NULL": false,
-        "S": null,
+        "S": "1.0.0",
         "SS": []
       }
     },
