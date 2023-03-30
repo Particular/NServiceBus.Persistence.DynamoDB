@@ -30,9 +30,9 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.AreEqual(basicPoco.String, deserialized.String);
             Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
 
-            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()));
-            Assert.That(attributes[nameof(BasicPoco.String)].S, Is.EqualTo("Hello World 1"));
-            Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.True);
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(BasicPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.True, "Should have been mapped to DynamoDB Bool attribute");
         }
 
         [Test]
@@ -42,6 +42,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             var basicPoco = new BasicPoco
             {
                 Guid = basicPocoId,
+                String = null
             };
 
             var attributes = Mapper.ToMap(basicPoco);
@@ -49,8 +50,12 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
             Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
-            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()));
-            Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)));
+            Assert.AreEqual(basicPoco.String, deserialized.String);
+            Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
+
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)), "Null attributes should not be mapped");
+            Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.False, "Should have been mapped to DynamoDB Bool attribute");
         }
 
         class BasicPoco
@@ -64,6 +69,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         public void Should_roundtrip_nested_poco()
         {
             var nestedPocoId = Guid.NewGuid();
+            var subPocoId = Guid.NewGuid();
+            var subSubPocoId = Guid.NewGuid();
             var nestedPoco = new NestedPoco
             {
                 Guid = nestedPocoId,
@@ -71,12 +78,12 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 Boolean = true,
                 SubPoco = new SubPoco
                 {
-                    Guid = Guid.NewGuid(),
+                    Guid = subPocoId,
                     String = "Hello World 2",
                     Boolean = false,
                     SubSubPoco = new SubSubPoco
                     {
-                        Guid = Guid.NewGuid(),
+                        Guid = subSubPocoId,
                         String = "Hello World 3",
                         Boolean = true,
                     }
@@ -101,9 +108,17 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.String, deserialized.SubPoco.SubSubPoco.String);
             Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Boolean, deserialized.SubPoco.SubSubPoco.Boolean);
 
-            Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.EqualTo(nestedPocoId.ToString()));
-            Assert.That(attributes[nameof(NestedPoco.String)].S, Is.EqualTo("Hello World 1"));
-            Assert.That(attributes[nameof(NestedPoco.Boolean)].BOOL, Is.True);
+            Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.EqualTo(nestedPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(NestedPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(NestedPoco.Boolean)].BOOL, Is.True, "Should have been mapped to DynamoDB Bool attribute");
+
+            Assert.That(attributes[nameof(NestedPoco.SubPoco)].M[nameof(SubPoco.Guid)].S, Is.EqualTo(subPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(NestedPoco.SubPoco)].M[nameof(SubPoco.String)].S, Is.EqualTo("Hello World 2"), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(NestedPoco.SubPoco)].M[nameof(SubPoco.Boolean)].BOOL, Is.False, "Should have been mapped to DynamoDB Bool attribute");
+
+            Assert.That(attributes[nameof(NestedPoco.SubPoco)].M[nameof(SubPoco.SubSubPoco)].M[nameof(SubSubPoco.Guid)].S, Is.EqualTo(subSubPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(NestedPoco.SubPoco)].M[nameof(SubPoco.SubSubPoco)].M[nameof(SubSubPoco.String)].S, Is.EqualTo("Hello World 3"), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(NestedPoco.SubPoco)].M[nameof(SubPoco.SubSubPoco)].M[nameof(SubSubPoco.Boolean)].BOOL, Is.True, "Should have been mapped to DynamoDB Bool attribute");
         }
 
         [Test]
@@ -242,7 +257,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_roundtrip_set_of_strings()
         {
-            var classWithSetOfString = new ClassWithSetOStrings
+            var classWithSetOfString = new ClassWithSetOfString
             {
                 HashSetOfString = new HashSet<string>
                 {
@@ -268,25 +283,25 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = Mapper.ToMap(classWithSetOfString);
 
-            var deserialized = Mapper.ToObject<ClassWithSetOStrings>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithSetOfString>(attributes);
 
             CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
             CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
             CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableHashSetOfString, deserialized.ImmutableHashSetOfString);
             CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableSortedSetOfString, deserialized.ImmutableSortedSetOfString);
 
-            Assert.That(attributes[nameof(ClassWithSetOStrings.HashSetOfString)].SS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithSetOStrings.SortedSetOfString)].SS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
 
-            Assert.That(attributes[nameof(ClassWithSetOStrings.HashSetOfString)].L, Has.Count.Zero);
-            Assert.That(attributes[nameof(ClassWithSetOStrings.SortedSetOfString)].L, Has.Count.Zero);
-            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableHashSetOfString)].L, Has.Count.Zero);
-            Assert.That(attributes[nameof(ClassWithSetOStrings.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
         }
 
-        class ClassWithSetOStrings
+        class ClassWithSetOfString
         {
             public HashSet<string> HashSetOfString { get; set; }
             public SortedSet<string> SortedSetOfString { get; set; }
@@ -335,7 +350,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_roundtrip_numbers()
         {
-            var classNumbers = new ClassNumbers
+            var classNumbers = new ClassWithNumbers
             {
                 SByte = sbyte.MaxValue,
                 Byte = byte.MaxValue,
@@ -352,7 +367,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = Mapper.ToMap(classNumbers);
 
-            var deserialized = Mapper.ToObject<ClassNumbers>(attributes);
+            var deserialized = Mapper.ToObject<ClassWithNumbers>(attributes);
 
             Assert.AreEqual(classNumbers.Int, deserialized.Int);
             Assert.AreEqual(classNumbers.Double, deserialized.Double);
@@ -366,20 +381,20 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.AreEqual(classNumbers.Byte, deserialized.Byte);
             Assert.AreEqual(classNumbers.Decimal, deserialized.Decimal);
 
-            Assert.That(attributes[nameof(ClassNumbers.Int)].N, Is.EqualTo("2147483647"));
-            Assert.That(attributes[nameof(ClassNumbers.Double)].N, Does.EndWith("E+308"));
-            Assert.That(attributes[nameof(ClassNumbers.Float)].N, Does.EndWith("E+38"));
-            Assert.That(attributes[nameof(ClassNumbers.Long)].N, Is.EqualTo("9223372036854775807"));
-            Assert.That(attributes[nameof(ClassNumbers.ULong)].N, Is.EqualTo("18446744073709551615"));
-            Assert.That(attributes[nameof(ClassNumbers.Short)].N, Is.EqualTo("32767"));
-            Assert.That(attributes[nameof(ClassNumbers.Ushort)].N, Is.EqualTo("65535"));
-            Assert.That(attributes[nameof(ClassNumbers.UInt)].N, Is.EqualTo("4294967295"));
-            Assert.That(attributes[nameof(ClassNumbers.SByte)].N, Is.EqualTo("127"));
-            Assert.That(attributes[nameof(ClassNumbers.Byte)].N, Is.EqualTo("255"));
-            Assert.That(attributes[nameof(ClassNumbers.Decimal)].N, Is.EqualTo("79228162514264337593543950335"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Int)].N, Is.EqualTo("2147483647"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Double)].N, Does.EndWith("E+308"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Float)].N, Does.EndWith("E+38"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Long)].N, Is.EqualTo("9223372036854775807"));
+            Assert.That(attributes[nameof(ClassWithNumbers.ULong)].N, Is.EqualTo("18446744073709551615"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Short)].N, Is.EqualTo("32767"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Ushort)].N, Is.EqualTo("65535"));
+            Assert.That(attributes[nameof(ClassWithNumbers.UInt)].N, Is.EqualTo("4294967295"));
+            Assert.That(attributes[nameof(ClassWithNumbers.SByte)].N, Is.EqualTo("127"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Byte)].N, Is.EqualTo("255"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Decimal)].N, Is.EqualTo("79228162514264337593543950335"));
         }
 
-        class ClassNumbers
+        class ClassWithNumbers
         {
             public byte Byte { get; set; }
             public short Short { get; set; }
