@@ -6,6 +6,11 @@ namespace NServiceBus.Persistence.DynamoDB
     {
         public static bool IsAssignableToGenericType(this Type givenType, Type genericType)
         {
+            if (givenType.IsGenericType && givenType.GetGenericTypeDefinition() == genericType)
+            {
+                return true;
+            }
+
             var interfaceTypes = givenType.GetInterfaces();
 
             foreach (var it in interfaceTypes)
@@ -14,11 +19,6 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     return true;
                 }
-            }
-
-            if (givenType.IsGenericType && givenType.GetGenericTypeDefinition() == genericType)
-            {
-                return true;
             }
 
             Type? baseType = givenType.BaseType;

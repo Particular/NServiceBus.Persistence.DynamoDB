@@ -106,6 +106,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         static AttributeValue ToMapAttribute(JsonElement element)
         {
+            // JsonElements of type Object might contain custom converted objects that should be mapped to dedicated DynamoDB value types
             foreach (var property in element.EnumerateObject())
             {
                 if (MemoryStreamConverter.TryExtract(property, out var stream))
