@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -11,7 +12,7 @@
 
     class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSession
     {
-        internal StorageSession storageSession = null!;
+        StorageSession storageSession = null!;
         bool commitOnComplete;
         bool disposed;
         readonly IAmazonDynamoDB client;
@@ -72,5 +73,9 @@
         public void Add(TransactWriteItem writeItem) => storageSession.Add(writeItem);
 
         public void AddRange(IEnumerable<TransactWriteItem> writeItems) => storageSession.AddRange(writeItems);
+
+        public void MarkSagaLockAsReleasedOnCommit(Guid sagaId) => storageSession.SagaLocksReleased.Add(sagaId);
+
+        public void CleanupSagaLock(Guid sagaId, Func<IAmazonDynamoDB, CancellationToken, Task> cleanupAction) => storageSession.CleanupActions[sagaId] = cleanupAction;
     }
 }
