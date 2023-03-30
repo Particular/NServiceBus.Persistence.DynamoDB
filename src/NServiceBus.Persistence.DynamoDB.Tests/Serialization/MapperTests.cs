@@ -536,6 +536,21 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
+        public void Should_not_throw_for_non_cyclic_references()
+        {
+            var reference = new ClassWithCyclicReference();
+
+            var classWithoutCyclicReference = new ClassWithCyclicReference();
+            var anotherClass = new ClassWithCyclicReference();
+
+            reference.References = new List<ClassWithCyclicReference> { classWithoutCyclicReference };
+
+            classWithoutCyclicReference.References = new List<ClassWithCyclicReference> { anotherClass };
+
+            Assert.DoesNotThrow(() => Mapper.ToMap(classWithoutCyclicReference));
+        }
+
+        [Test]
         public void Should_throw_for_non_object_root_types()
         {
             var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new List<int>()));
