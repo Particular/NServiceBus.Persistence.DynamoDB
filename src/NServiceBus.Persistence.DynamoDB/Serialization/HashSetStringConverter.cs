@@ -21,13 +21,16 @@ namespace NServiceBus.Persistence.DynamoDB
                     .MakeGenericType(new Type[] { typeToConvert }),
                 BindingFlags.Instance | BindingFlags.Public,
                 binder: null,
-                args: null,
+                args: new object[] { options },
                 culture: null)!;
             return converter;
         }
 
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
         {
+            public SetConverter(JsonSerializerOptions options)
+                => optionsWithoutHashSetOfNumberConverter = options.FromWithout<HashSetStringConverter>();
+
             public override TSet Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
                 throw new NotImplementedException(
                 $"The {GetType().FullName} should never be used on the read path since its sole purpose is to preserve information on the write path");
@@ -36,10 +39,11 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                // Deliberately not passing the options to use the default json serialization behavior
-                JsonSerializer.Serialize(writer, value);
+                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetOfNumberConverter);
                 writer.WriteEndObject();
             }
+
+            readonly JsonSerializerOptions optionsWithoutHashSetOfNumberConverter;
         }
 
         public static bool TryExtract(JsonProperty property, out List<string?>? strings)

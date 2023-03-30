@@ -31,10 +31,7 @@ namespace NServiceBus.Persistence.DynamoDB
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<MemoryStream>
         {
             public SetConverter(JsonSerializerOptions options)
-            {
-                var streamConverter = (JsonConverter<MemoryStream>)options.GetConverter(typeof(MemoryStream));
-                memoryStreamOptions = new JsonSerializerOptions { Converters = { streamConverter } };
-            }
+                => optionsWithoutHashSetMemoryStreamConverter = options.FromWithout<HashSetMemoryStreamConverter>();
 
             public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert,
                 JsonSerializerOptions options)
@@ -62,7 +59,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                var set = JsonSerializer.Deserialize<TSet>(ref reader, memoryStreamOptions);
+                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetMemoryStreamConverter);
 
                 reader.Read();
 
@@ -78,11 +75,11 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                JsonSerializer.Serialize(writer, value, memoryStreamOptions);
+                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetMemoryStreamConverter);
                 writer.WriteEndObject();
             }
 
-            readonly JsonSerializerOptions memoryStreamOptions;
+            readonly JsonSerializerOptions optionsWithoutHashSetMemoryStreamConverter;
         }
 
         public static bool TryExtract(JsonProperty property, out List<MemoryStream?>? memoryStreams)
