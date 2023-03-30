@@ -28,7 +28,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
         {
-            public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            public override TSet Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
                 throw new NotImplementedException(
                 $"The {GetType().FullName} should never be used on the read path since its sole purpose is to preserve information on the write path");
 
@@ -50,13 +50,11 @@ namespace NServiceBus.Persistence.DynamoDB
                 return false;
             }
 
+            strings = new List<string?>(property.Value.GetArrayLength());
             foreach (var innerElement in property.Value.EnumerateArray())
             {
-                strings ??= new List<string?>(property.Value.GetArrayLength());
                 strings.Add(innerElement.GetString());
             }
-
-            strings ??= new List<string?>(0);
             return true;
         }
     }

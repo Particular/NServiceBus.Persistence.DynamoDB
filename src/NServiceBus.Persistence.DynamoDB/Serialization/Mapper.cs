@@ -95,14 +95,13 @@ namespace NServiceBus.Persistence.DynamoDB
 
         static AttributeValue ToListAttribute(JsonElement element)
         {
-            List<AttributeValue>? values = null;
+            var values = new List<AttributeValue>(element.GetArrayLength());
             foreach (var innerElement in element.EnumerateArray())
             {
-                values ??= new List<AttributeValue>(element.GetArrayLength());
                 AttributeValue serializeElement = ToAttribute(innerElement);
                 values.Add(serializeElement);
             }
-            return new AttributeValue { L = values ?? new List<AttributeValue>(0) };
+            return new AttributeValue { L = values };
         }
 
         static AttributeValue ToMapAttribute(JsonElement element)

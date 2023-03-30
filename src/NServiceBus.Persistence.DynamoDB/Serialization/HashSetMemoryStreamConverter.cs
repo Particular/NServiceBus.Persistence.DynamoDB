@@ -93,16 +93,14 @@ namespace NServiceBus.Persistence.DynamoDB
                 return false;
             }
 
+            memoryStreams = new List<MemoryStream?>(property.Value.GetArrayLength());
             foreach (var innerElement in property.Value.EnumerateArray())
             {
-                memoryStreams ??= new List<MemoryStream?>(property.Value.GetArrayLength());
                 foreach (var streamElement in innerElement.EnumerateObject())
                 {
                     memoryStreams.Add(new MemoryStream(streamElement.Value.GetBytesFromBase64()));
                 }
             }
-
-            memoryStreams ??= new List<MemoryStream?>(0);
             return true;
         }
 

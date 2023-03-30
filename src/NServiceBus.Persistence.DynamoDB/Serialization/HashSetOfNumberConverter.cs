@@ -53,7 +53,7 @@ namespace NServiceBus.Persistence.DynamoDB
             where TSet : ISet<TValue>
             where TValue : struct
         {
-            public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            public override TSet Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
                 throw new NotImplementedException(
                 $"The {GetType().FullName} should never be used on the read path since its sole purpose is to preserve information on the write path");
 
@@ -75,12 +75,11 @@ namespace NServiceBus.Persistence.DynamoDB
                 return false;
             }
 
+            numbersAsStrings = new List<string?>(property.Value.GetArrayLength());
             foreach (var innerElement in property.Value.EnumerateArray())
             {
-                numbersAsStrings ??= new List<string?>(property.Value.GetArrayLength());
                 numbersAsStrings.Add(innerElement.ToString());
             }
-            numbersAsStrings ??= new List<string?>(0);
             return true;
         }
     }
