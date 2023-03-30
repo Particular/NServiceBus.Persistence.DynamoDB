@@ -4,6 +4,7 @@
     using System.Threading.Tasks;
     using System;
     using NUnit.Framework;
+    using System.Threading;
 
     public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersisterTests
     {
@@ -18,7 +19,8 @@
             var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
-            DateTime session1CommitTimestamp = default;
+            int invocationCounter = 0;
+            int session1Invocation = 0;
             var lockingSession = Task.Run(async () =>
             {
                 var contextBag1 = configuration.GetContextBagForOutbox();
@@ -38,13 +40,13 @@
 
                 // give session 2 some time to read the same entry
                 await Task.Delay(TimeSpan.FromTicks(configuration.SessionTimeout.GetValueOrDefault(TimeSpan.FromSeconds(1)).Ticks / 2));
+                session1Invocation = Interlocked.Increment(ref invocationCounter);
 
-                session1CommitTimestamp = DateTime.UtcNow;
                 await outboxTransaction1.Commit();
             });
 
             TestSagaData session2Saga = null;
-            DateTime session2ReadTimestamp = default;
+            int session2Invocation = 0;
             var blockedSession = Task.Run(async () =>
             {
                 var contextBag2 = configuration.GetContextBagForOutbox();
@@ -59,8 +61,7 @@
                     session2Saga = await configuration.SagaStorage.Get<TestSagaData>(
                         nameof(TestSagaData.SomeId),
                         saga.SomeId, synchronizedStorageSession, contextBag2);
-                    session2ReadTimestamp = DateTime.UtcNow;
-
+                    session2Invocation = Interlocked.Increment(ref invocationCounter);
                     await synchronizedStorageSession.CompleteAsync();
                 }
 
@@ -71,7 +72,7 @@
 
             Assert.IsNotNull(session1Saga);
             Assert.IsNotNull(session2Saga);
-            Assert.Greater(session2ReadTimestamp, session1CommitTimestamp, "because session 2 should only be able to read after the transaction completed");
+            Assert.Greater(session2Invocation, session1Invocation, "because session 2 should only be able to read after the transaction completed");
         }
 
         [Test]
@@ -84,7 +85,8 @@
             var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
-            DateTime session1CommitTimestamp = default;
+            int invocationCounter = 0;
+            int session1Invocation = 0;
             var lockingSession = Task.Run(async () =>
             {
                 var contextBag1 = configuration.GetContextBagForOutbox();
@@ -105,12 +107,12 @@
                 // give session 2 some time to read the same entry
                 await Task.Delay(TimeSpan.FromTicks(configuration.SessionTimeout.GetValueOrDefault(TimeSpan.FromSeconds(1)).Ticks / 2));
 
-                session1CommitTimestamp = DateTime.UtcNow;
+                session1Invocation = Interlocked.Increment(ref invocationCounter);
                 await outboxTransaction1.Commit();
             });
 
             TestSagaData session2Saga = null;
-            DateTime session2ReadTimestamp = default;
+            int session2Invocation = 0;
             var blockedSession = Task.Run(async () =>
             {
                 var contextBag2 = configuration.GetContextBagForOutbox();
@@ -125,7 +127,7 @@
                     session2Saga = await configuration.SagaStorage.Get<TestSagaData>(
                         nameof(TestSagaData.SomeId),
                         saga.SomeId, synchronizedStorageSession, contextBag2);
-                    session2ReadTimestamp = DateTime.UtcNow;
+                    session2Invocation = Interlocked.Increment(ref invocationCounter);
 
                     await synchronizedStorageSession.CompleteAsync();
                 }
@@ -137,7 +139,7 @@
 
             Assert.IsNull(session1Saga);
             Assert.IsNull(session2Saga);
-            Assert.Greater(session2ReadTimestamp, session1CommitTimestamp, "because session 2 should only be able to read after the transaction completed");
+            Assert.Greater(session2Invocation, session1Invocation, "because session 2 should only be able to read after the transaction completed");
         }
 
         [Test]
@@ -151,7 +153,8 @@
             var session1LockAcquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             TestSagaData session1Saga = null;
-            DateTime session1DisposeTime = default;
+            int invocationCounter = 0;
+            int session1Invocation = 0;
             var lockingSession = Task.Run(async () =>
             {
                 var contextBag1 = configuration.GetContextBagForOutbox();
@@ -172,12 +175,12 @@
                 // give session 2 some time to read the same entry
                 await Task.Delay(TimeSpan.FromTicks(configuration.SessionTimeout.GetValueOrDefault(TimeSpan.FromSeconds(1)).Ticks / 2));
 
-                session1DisposeTime = DateTime.UtcNow;
+                session1Invocation = Interlocked.Increment(ref invocationCounter);
                 // do not commit, session is being disposed
             });
 
             TestSagaData session2Saga = null;
-            DateTime session2ReadTimestamp = default;
+            int session2Invocation = 0;
             var blockedSession = Task.Run(async () =>
             {
                 var contextBag2 = configuration.GetContextBagForOutbox();
@@ -192,7 +195,7 @@
                     session2Saga = await configuration.SagaStorage.Get<TestSagaData>(
                         nameof(TestSagaData.SomeId),
                         saga.SomeId, synchronizedStorageSession, contextBag2);
-                    session2ReadTimestamp = DateTime.UtcNow;
+                    session2Invocation = Interlocked.Increment(ref invocationCounter);
 
                     await synchronizedStorageSession.CompleteAsync();
                 }
@@ -204,7 +207,7 @@
 
             Assert.IsNotNull(session1Saga);
             Assert.IsNotNull(session2Saga);
-            Assert.Greater(session2ReadTimestamp, session1DisposeTime, "because session 2 should only be able to read after the transaction disposed");
+            Assert.Greater(session2Invocation, session1Invocation, "because session 2 should only be able to read after the transaction disposed");
         }
 
         [Test]
