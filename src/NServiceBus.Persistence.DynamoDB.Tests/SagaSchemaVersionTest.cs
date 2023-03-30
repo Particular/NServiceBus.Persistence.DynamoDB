@@ -1,46 +1,47 @@
-﻿namespace NServiceBus.Persistence.DynamoDB.Tests;
-
-using System;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Extensibility;
-using NUnit.Framework;
-using Particular.Approvals;
-using Sagas;
-using Testing;
-
-[TestFixture]
-public class SagaSchemaVersionTest
+﻿namespace NServiceBus.Persistence.DynamoDB.Tests
 {
-    [Test]
-    public async Task Should_update_schema_version_on_schema_changes()
-    {
-        var sagaPersister = new SagaPersister(new SagaPersistenceConfiguration(), new MockDynamoDBClient());
+    using System;
+    using System.Linq;
+    using System.Text.Json;
+    using System.Threading.Tasks;
+    using Extensibility;
+    using NUnit.Framework;
+    using Particular.Approvals;
+    using Sagas;
+    using Testing;
 
-        var sagaData = new TestSagaData()
+    [TestFixture]
+    public class SagaSchemaVersionTest
+    {
+        [Test]
+        public async Task Should_update_schema_version_on_schema_changes()
         {
-            CorrelationProperty = "CorrelationPropertyValue",
-            Id = new Guid("FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8"),
-            OriginalMessageId = "OriginalMessageIdValue",
-            Originator = "OriginatorValue"
-        };
+            var sagaPersister = new SagaPersister(new SagaPersistenceConfiguration(), new MockDynamoDBClient());
 
-        var testableSession = new TestableDynamoDBSynchronizedStorageSession();
-        await sagaPersister.Save(sagaData,
-            new SagaCorrelationProperty(nameof(TestSagaData.CorrelationProperty), sagaData.CorrelationProperty),
-            testableSession, new ContextBag());
+            var sagaData = new TestSagaData()
+            {
+                CorrelationProperty = "CorrelationPropertyValue",
+                Id = new Guid("FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8"),
+                OriginalMessageId = "OriginalMessageIdValue",
+                Originator = "OriginatorValue"
+            };
 
-        // !!! IMPORTANT !!!
-        // This test should help to detect data schema changes.
-        // When this test fails, make sure to update the saga data schema version in the metadata.
-        Approver.Verify(
-            JsonSerializer.Serialize(testableSession.TransactWriteItems.Single().Put.Item,
-            new JsonSerializerOptions { WriteIndented = true }));
-    }
+            var testableSession = new TestableDynamoDBSynchronizedStorageSession();
+            await sagaPersister.Save(sagaData,
+                new SagaCorrelationProperty(nameof(TestSagaData.CorrelationProperty), sagaData.CorrelationProperty),
+                testableSession, new ContextBag());
 
-    class TestSagaData : ContainSagaData
-    {
-        public string CorrelationProperty { get; set; }
+            // !!! IMPORTANT !!!
+            // This test should help to detect data schema changes.
+            // When this test fails, make sure to update the saga data schema version in the metadata.
+            Approver.Verify(
+                JsonSerializer.Serialize(testableSession.TransactWriteItems.Single().Put.Item,
+                    new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        class TestSagaData : ContainSagaData
+        {
+            public string CorrelationProperty { get; set; }
+        }
     }
 }
