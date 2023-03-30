@@ -128,6 +128,9 @@ namespace NServiceBus.Persistence.DynamoDB
                 {
                     return new AttributeValue { SS = stringSet };
                 }
+
+                // if we reached this point we know there are no special cases to handle so let's stop trying to iterate
+                break;
             }
             return new AttributeValue { M = ToAttributeMap(element) };
         }
