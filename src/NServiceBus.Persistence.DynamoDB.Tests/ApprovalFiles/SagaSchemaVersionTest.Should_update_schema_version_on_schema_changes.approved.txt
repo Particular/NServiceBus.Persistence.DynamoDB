@@ -89,7 +89,7 @@
     "S": "SAGA#ffc8a2fd-0335-47c8-a29d-9eea6c8445d8",
     "SS": []
   },
-  "NSERVICEBUS.METADATA": {
+  "NSERVICEBUS_METADATA": {
     "B": null,
     "BOOL": false,
     "IsBOOLSet": false,

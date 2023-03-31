@@ -11,7 +11,7 @@
 
     class SagaPersister : ISagaPersister
     {
-        const string SagaMetadataAttributeName = "NSERVICEBUS.METADATA";
+        const string SagaMetadataAttributeName = "NSERVICEBUS_METADATA";
         const string SagaDataVersionAttributeName = "VERSION";
         const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
 
