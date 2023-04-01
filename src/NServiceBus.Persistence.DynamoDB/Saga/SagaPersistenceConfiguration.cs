@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
+    using System.Text.Json;
 
     /// <summary>
     /// The saga persistence configuration options.
@@ -34,5 +35,8 @@
         /// How long the client should attempt to acquire a lock when using pessimistic locking before giving up.
         /// </summary>
         public TimeSpan LeaseAcquisitionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+        internal JsonSerializerOptions MapOptions { get; set; } = Mapper.MapDefaults;
+        internal JsonSerializerOptions ObjectOptions { get; set; } = Mapper.ObjectDefaults;
     }
 }

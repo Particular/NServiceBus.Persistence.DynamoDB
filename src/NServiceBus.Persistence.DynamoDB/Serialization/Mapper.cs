@@ -5,6 +5,8 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Diagnostics.CodeAnalysis;
     using System.Text.Json;
     using System.Text.Json.Nodes;
+    using System.Text.Json.Serialization;
+    using System.Text.Json.Serialization.Metadata;
     using Amazon.DynamoDBv2.Model;
 
     static class Mapper
@@ -31,13 +33,43 @@ namespace NServiceBus.Persistence.DynamoDB
                 }
             };
 
-        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value)
+        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
             where TValue : class
-            => ToMap(value, typeof(TValue));
-
-        public static Dictionary<string, AttributeValue> ToMap(object value, Type type)
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, MapDefaults);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? MapDefaults);
+            if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                ThrowInvalidOperationExceptionForInvalidRoot(typeof(TValue));
+            }
+            return ToAttributeMap(jsonDocument.RootElement);
+        }
+
+        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo)
+            where TValue : class
+        {
+            Guard.AgainstNull(nameof(jsonTypeInfo), jsonTypeInfo);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, jsonTypeInfo);
+            if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                ThrowInvalidOperationExceptionForInvalidRoot(typeof(TValue));
+            }
+            return ToAttributeMap(jsonDocument.RootElement);
+        }
+
+        public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
+        {
+            Guard.AgainstNull(nameof(context), context);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, context);
+            if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                ThrowInvalidOperationExceptionForInvalidRoot(type);
+            }
+            return ToAttributeMap(jsonDocument.RootElement);
+        }
+
+        public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
+        {
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? MapDefaults);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(type);
@@ -49,10 +81,28 @@ namespace NServiceBus.Persistence.DynamoDB
         static void ThrowInvalidOperationExceptionForInvalidRoot(Type type)
             => throw new InvalidOperationException($"Unable to serialize the given type '{type}' because the json kind is not of type 'JsonValueKind.Object'.");
 
-        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
+        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
         {
             var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize<TValue>(ObjectDefaults);
+            return jsonObject.Deserialize(jsonTypeInfo);
+        }
+
+        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
+        {
+            var jsonObject = ToNodeFromMap(attributeValues);
+            return jsonObject.Deserialize<TValue>(options ?? ObjectDefaults);
+        }
+
+        public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
+        {
+            var jsonObject = ToNodeFromMap(attributeValues);
+            return jsonObject.Deserialize(returnType, options ?? ObjectDefaults);
+        }
+
+        public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
+        {
+            var jsonObject = ToNodeFromMap(attributeValues);
+            return jsonObject.Deserialize(returnType, context);
         }
 
         static AttributeValue ToAttributeFromElement(JsonElement element) =>
