@@ -57,7 +57,6 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                // Deliberately not passing the options to use the default json serialization behavior
                 var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetOfNumberConverter);
 
                 reader.Read();
