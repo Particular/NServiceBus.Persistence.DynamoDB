@@ -11,42 +11,12 @@ namespace NServiceBus.Persistence.DynamoDB
 
     static class Mapper
     {
-        /// <summary>
-        /// The defaults are never directly used to serialize and deserialize otherwise they become immutable
-        /// </summary>
-        public static JsonSerializerOptions MapDefaults { get; } =
-            new()
-            {
-                Converters =
-                {
-                    new MemoryStreamConverter(),
-                    new HashSetMemoryStreamConverter(),
-                    new HashSetStringConverter(),
-                    new HashSetOfNumberConverter()
-                }
-            };
-
-        /// <summary>
-        /// The defaults are never directly used to serialize and deserialize otherwise they become immutable
-        /// </summary>
-        public static JsonSerializerOptions ObjectDefaults { get; } =
-            new()
-            {
-                Converters =
-                {
-                    new MemoryStreamConverter(),
-                    new HashSetMemoryStreamConverter()
-                }
-            };
-
-        static JsonSerializerOptions MapOptions { get; } = new(MapDefaults);
-
-        static JsonSerializerOptions ObjectOptions { get; } = new(ObjectDefaults);
+        static JsonSerializerOptions DefaultOptions { get; } = new(MapperOptions.Defaults);
 
         public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
             where TValue : class
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? MapOptions);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? DefaultOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(typeof(TValue));
@@ -79,7 +49,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? MapOptions);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? DefaultOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(type);
@@ -100,13 +70,13 @@ namespace NServiceBus.Persistence.DynamoDB
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
         {
             var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize<TValue>(options ?? ObjectOptions);
+            return jsonObject.Deserialize<TValue>(options ?? DefaultOptions);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
         {
             var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize(returnType, options ?? ObjectOptions);
+            return jsonObject.Deserialize(returnType, options ?? DefaultOptions);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)

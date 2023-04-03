@@ -36,7 +36,6 @@
         /// </summary>
         public TimeSpan LeaseAcquisitionTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
-        internal JsonSerializerOptions MapOptions { get; set; } = new(Mapper.MapDefaults);
-        internal JsonSerializerOptions ObjectOptions { get; set; } = new(Mapper.ObjectDefaults);
+        internal JsonSerializerOptions MapperOptions { get; set; } = new(DynamoDB.MapperOptions.Defaults);
     }
 }

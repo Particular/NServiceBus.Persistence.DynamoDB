@@ -43,14 +43,9 @@ namespace NServiceBus.AcceptanceTests
                 {
                     var persistence = c.UsePersistence<DynamoDBPersistence>();
                     var sagas = persistence.Sagas();
-                    sagas.MapOptions = new JsonSerializerOptions(sagas.MapOptions)
+                    sagas.MapperOptions = new JsonSerializerOptions(sagas.MapperOptions)
                     {
-                        TypeInfoResolver = new SagaJsonContext(sagas.MapOptions),
-                        Converters = { new CustomConverter() }
-                    };
-                    sagas.ObjectOptions = new JsonSerializerOptions(sagas.ObjectOptions)
-                    {
-                        TypeInfoResolver = new SagaJsonContext(sagas.ObjectOptions),
+                        TypeInfoResolver = new SagaJsonContext(sagas.MapperOptions),
                         Converters = { new CustomConverter() }
                     };
                 });
