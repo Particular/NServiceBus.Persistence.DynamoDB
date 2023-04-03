@@ -11,6 +11,9 @@ namespace NServiceBus.Persistence.DynamoDB
 
     static class Mapper
     {
+        /// <summary>
+        /// The defaults are never directly used to serialize and deserialize otherwise they become immutable
+        /// </summary>
         public static JsonSerializerOptions MapDefaults { get; } =
             new()
             {
@@ -23,6 +26,9 @@ namespace NServiceBus.Persistence.DynamoDB
                 }
             };
 
+        /// <summary>
+        /// The defaults are never directly used to serialize and deserialize otherwise they become immutable
+        /// </summary>
         public static JsonSerializerOptions ObjectDefaults { get; } =
             new()
             {
@@ -33,10 +39,14 @@ namespace NServiceBus.Persistence.DynamoDB
                 }
             };
 
+        static JsonSerializerOptions MapOptions { get; } = new(MapDefaults);
+
+        static JsonSerializerOptions ObjectOptions { get; } = new(ObjectDefaults);
+
         public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
             where TValue : class
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? MapDefaults);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? MapOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(typeof(TValue));
@@ -69,7 +79,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
         {
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? MapDefaults);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? MapOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowInvalidOperationExceptionForInvalidRoot(type);
@@ -90,13 +100,13 @@ namespace NServiceBus.Persistence.DynamoDB
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
         {
             var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize<TValue>(options ?? ObjectDefaults);
+            return jsonObject.Deserialize<TValue>(options ?? ObjectOptions);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
         {
             var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize(returnType, options ?? ObjectDefaults);
+            return jsonObject.Deserialize(returnType, options ?? ObjectOptions);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
