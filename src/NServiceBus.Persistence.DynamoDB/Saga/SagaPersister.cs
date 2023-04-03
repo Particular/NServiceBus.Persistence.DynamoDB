@@ -47,7 +47,7 @@
                     Key = new Dictionary<string, AttributeValue>
                     {
                         { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                        { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
+                        { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
                     },
                     TableName = configuration.Table.TableName
                 };
@@ -76,7 +76,7 @@
                         Key = new Dictionary<string, AttributeValue>
                         {
                             { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                            { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                            { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
                         },
                         UpdateExpression = "SET #lease = :lease_timeout",
                         ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
@@ -111,7 +111,7 @@
                                 Key = new Dictionary<string, AttributeValue>
                                 {
                                     { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                                    { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                                    { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
                                 },
                                 UpdateExpression = "SET #lease = :released_lease",
                                 ConditionExpression = "#lease = :current_lease AND #metadata.#version = :current_version", // only if the lock is still the same that we acquired.
@@ -145,7 +145,7 @@
                                 Key = new Dictionary<string, AttributeValue>
                                 {
                                     { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                                    { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
+                                    { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
                                 },
                                 ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
                                 ExpressionAttributeNames = new Dictionary<string, string>
@@ -262,7 +262,7 @@
         {
             var sagaDataMap = Mapper.ToMap(sagaData, sagaData.GetType());
             sagaDataMap.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaData.Id) });
-            sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
+            sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaData.Id) });
             sagaDataMap.Add(SagaMetadataAttributeName, new AttributeValue
             {
                 M = new Dictionary<string, AttributeValue>()
@@ -288,7 +288,7 @@
                     Key = new Dictionary<string, AttributeValue>
                     {
                         {configuration.Table.PartitionKeyName, new AttributeValue {S = SagaPartitionKey(sagaData.Id)}},
-                        {configuration.Table.SortKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
+                        {configuration.Table.SortKeyName, new AttributeValue {S = SagaSortKey(sagaData.Id)}}
                     },
                     ConditionExpression = "#metadata.#version = :current_version", // fail if modified in the meantime
                     ExpressionAttributeNames = new Dictionary<string, string>
@@ -315,5 +315,7 @@
         }
 
         string SagaPartitionKey(Guid sagaId) => $"SAGA#{endpointIdentifier}#{sagaId}";
+
+        string SagaSortKey(Guid sagaId) => $"SAGA#{sagaId}";
     }
 }
