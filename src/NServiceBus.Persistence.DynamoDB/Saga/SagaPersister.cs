@@ -16,6 +16,7 @@
         const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
 
         readonly SagaPersistenceConfiguration configuration;
+        readonly string endpointIdentifier;
         readonly IAmazonDynamoDB dynamoDbClient;
 
 #if NET
@@ -24,9 +25,10 @@
         readonly Random random = new Random();
 #endif
 
-        public SagaPersister(SagaPersistenceConfiguration configuration, IAmazonDynamoDB dynamoDbClient)
+        public SagaPersister(IAmazonDynamoDB dynamoDbClient, SagaPersistenceConfiguration configuration, string endpointIdentifier)
         {
             this.configuration = configuration;
+            this.endpointIdentifier = endpointIdentifier.ToUpperInvariant();
             this.dynamoDbClient = dynamoDbClient;
         }
 
@@ -44,7 +46,7 @@
                     ConsistentRead = true,
                     Key = new Dictionary<string, AttributeValue>
                     {
-                        { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                        { configuration.Table.PartitionKeyName, new AttributeValue { S = CreateOutboxPartitionKey(sagaId) } },
                         { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }, //Sort key
                     },
                     TableName = configuration.Table.TableName
@@ -73,7 +75,7 @@
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                            { configuration.Table.PartitionKeyName, new AttributeValue { S = CreateOutboxPartitionKey(sagaId) } },
                             { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                         },
                         UpdateExpression = "SET #lease = :lease_timeout",
@@ -108,7 +110,7 @@
                             {
                                 Key = new Dictionary<string, AttributeValue>
                                 {
-                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = CreateOutboxPartitionKey(sagaId) } },
                                     { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                                 },
                                 UpdateExpression = "SET #lease = :released_lease",
@@ -142,7 +144,7 @@
                             {
                                 Key = new Dictionary<string, AttributeValue>
                                 {
-                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } },
+                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = CreateOutboxPartitionKey(sagaId) } },
                                     { configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaId}" } }
                                 },
                                 ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
@@ -259,7 +261,7 @@
         Dictionary<string, AttributeValue> Serialize(IContainSagaData sagaData, int version)
         {
             var sagaDataMap = Mapper.ToMap(sagaData, sagaData.GetType());
-            sagaDataMap.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });
+            sagaDataMap.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = CreateOutboxPartitionKey(sagaData.Id) });
             sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = $"SAGA#{sagaData.Id}" });  //Sort key
             sagaDataMap.Add(SagaMetadataAttributeName, new AttributeValue
             {
@@ -285,7 +287,7 @@
                 {
                     Key = new Dictionary<string, AttributeValue>
                     {
-                        {configuration.Table.PartitionKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}},
+                        {configuration.Table.PartitionKeyName, new AttributeValue {S = CreateOutboxPartitionKey(sagaData.Id)}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = $"SAGA#{sagaData.Id}"}}, //Sort key
                     },
                     ConditionExpression = "#metadata.#version = :current_version", // fail if modified in the meantime
@@ -311,5 +313,7 @@
             var sagaId = DynamoDBSagaIdGenerator.Generate(typeof(TSagaData), propertyName, propertyValue);
             return Get<TSagaData>(sagaId, session, context, cancellationToken);
         }
+
+        string CreateOutboxPartitionKey(Guid sagaId) => $"SAGA#{endpointIdentifier}#{sagaId}";
     }
 }

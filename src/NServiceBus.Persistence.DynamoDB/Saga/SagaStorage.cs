@@ -24,7 +24,10 @@
             // By default, use the endpoint name for the saga table name to store all sagas
             var sagaConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
 
-            context.Services.AddSingleton<ISagaPersister>(provider => new SagaPersister(sagaConfiguration, provider.GetRequiredService<IDynamoDBClientProvider>().Client));
+            context.Services.AddSingleton<ISagaPersister>(provider => new SagaPersister(
+                provider.GetRequiredService<IDynamoDBClientProvider>().Client,
+                sagaConfiguration,
+                context.Settings.EndpointName()));
         }
     }
 }
