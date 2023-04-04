@@ -58,13 +58,14 @@
             var configuration = (PersistenceConfiguration)Variant.Values[0];
 
             SagaStorage = new SagaPersister(
+                Client,
                 new SagaPersistenceConfiguration
                 {
                     Table = SetupFixture.SagaTable,
                     UsePessimisticLocking = SupportsPessimisticConcurrency = configuration.UsePessimisticLocking,
                     LeaseAcquisitionTimeout = Variant.SessionTimeout ?? TimeSpan.FromSeconds(10)
                 },
-                Client);
+                "PersistenceTest");
 
             OutboxStorage = new OutboxPersister(
                 Client,

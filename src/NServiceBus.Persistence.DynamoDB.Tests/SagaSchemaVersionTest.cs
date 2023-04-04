@@ -16,7 +16,7 @@
         [Test]
         public async Task Should_update_schema_version_on_schema_changes()
         {
-            var sagaPersister = new SagaPersister(new SagaPersistenceConfiguration(), new MockDynamoDBClient());
+            var sagaPersister = new SagaPersister(new MockDynamoDBClient(), new SagaPersistenceConfiguration(), "SchemaVersionTest");
 
             var sagaData = new TestSagaData()
             {

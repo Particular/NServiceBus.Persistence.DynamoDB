@@ -44,7 +44,7 @@
                     new Dictionary<string, string> { { "#PK", configuration.Table.PartitionKeyName } },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
-                    { ":outboxId", new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{messageId}" } }
+                    { ":outboxId", new AttributeValue { S = OutboxPartitionKey(messageId) } }
                 },
                 TableName = configuration.Table.TableName
             };
@@ -151,11 +151,11 @@
                         {
                             {
                                 configuration.Table.PartitionKeyName,
-                                new AttributeValue { S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}" }
+                                new AttributeValue { S = OutboxPartitionKey(outboxMessage.MessageId) }
                             },
                             {
                                 configuration.Table.SortKeyName,
-                                new AttributeValue { S = $"OUTBOX#METADATA#{outboxMessage.MessageId}" }
+                                new AttributeValue { S = OutboxMetadataSortKey(outboxMessage.MessageId) }
                             },
                             {
                                 "TransportOperationsCount",
@@ -183,8 +183,8 @@
                     {
                         Item = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{outboxMessage.MessageId}"}},
-                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{outboxMessage.MessageId}#{n:D4}"}}, //Sort key
+                            {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(outboxMessage.MessageId)}},
+                            {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(outboxMessage.MessageId, n)}},
                             {"MessageId", new AttributeValue {S = operation.MessageId}},
                             {
                                 "Properties",
@@ -257,8 +257,8 @@
             {
                 Key = new Dictionary<string, AttributeValue>
                 {
-                    {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                    {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#METADATA#{messageId}"}}, //Sort key
+                    {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(messageId)}},
+                    {configuration.Table.SortKeyName, new AttributeValue {S = OutboxMetadataSortKey(messageId)}}
                 },
                 UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
                 ExpressionAttributeNames = new Dictionary<string, string>
@@ -292,8 +292,8 @@
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            {configuration.Table.PartitionKeyName, new AttributeValue {S = $"OUTBOX#{endpointIdentifier}#{messageId}"}},
-                            {configuration.Table.SortKeyName, new AttributeValue {S = $"OUTBOX#OPERATION#{messageId}#{i:D4}"}}, //Sort key
+                            {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(messageId)}},
+                            {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(messageId, i)}}
                         }
                     }
                 });
@@ -309,6 +309,10 @@
                     cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        string OutboxPartitionKey(string messageId) => $"OUTBOX#{endpointIdentifier}#{messageId}";
+        string OutboxMetadataSortKey(string messageId) => $"OUTBOX#METADATA#{messageId}";
+        string OutboxOperationSortKey(string messageId, int messageNumber) => $"OUTBOX#OPERATION#{messageId}#{messageNumber:D4}";
 
         readonly IAmazonDynamoDB dynamoDbClient;
         readonly OutboxPersistenceConfiguration configuration;
