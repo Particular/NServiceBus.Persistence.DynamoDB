@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net472;net6.0</TargetFrameworks>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <!-- We want the root namespace to match the transactional session one -->
+    <RootNamespace>NServiceBus.TransactionalSession</RootNamespace>
+    <Description>NServiceBus Transactional Session for the DynamoDB persistence.</Description>
+  </PropertyGroup>
+
+  <ItemGroup Label="Public dependencies">
+    <PackageReference Include="Particular.Packaging" Version="2.3.0" PrivateAssets="All" />
+    <PackageReference Include="NServiceBus.TransactionalSession" Version="[2.0.0, 3.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.Persistence.DynamoDB\NServiceBus.Persistence.DynamoDB.csproj" />
+  </ItemGroup>
+
+</Project>
