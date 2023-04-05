@@ -82,22 +82,19 @@ namespace NServiceBus.Persistence.DynamoDB
             readonly JsonSerializerOptions optionsWithoutHashSetMemoryStreamConverter;
         }
 
-        public static bool TryExtract(JsonProperty property, out List<MemoryStream?>? memoryStreams)
+        public static bool TryExtract(JsonElement element, out List<MemoryStream?>? memoryStreams)
         {
             memoryStreams = null;
-            if (!property.NameEquals(PropertyName))
+            if (!element.TryGetProperty(PropertyName, out var property))
             {
                 return false;
             }
 
-            memoryStreams = new List<MemoryStream?>(property.Value.GetArrayLength());
-            foreach (var innerElement in property.Value.EnumerateArray())
+            memoryStreams = new List<MemoryStream?>(property.GetArrayLength());
+            foreach (var streamElement in property.EnumerateArray())
             {
-                foreach (var streamElement in innerElement.EnumerateObject())
-                {
-                    _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
-                    memoryStreams.Add(stream);
-                }
+                _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
+                memoryStreams.Add(stream);
             }
             return true;
         }

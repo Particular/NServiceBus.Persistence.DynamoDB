@@ -144,30 +144,24 @@ namespace NServiceBus.Persistence.DynamoDB
         static AttributeValue ToAttributeFromObject(JsonElement element)
         {
             // JsonElements of type Object might contain custom converted objects that should be mapped to dedicated DynamoDB value types
-            foreach (var property in element.EnumerateObject())
+            if (MemoryStreamConverter.TryExtract(element, out var stream))
             {
-                if (MemoryStreamConverter.TryExtract(property, out var stream))
-                {
-                    return new AttributeValue { B = stream };
-                }
+                return new AttributeValue { B = stream };
+            }
 
-                if (HashSetMemoryStreamConverter.TryExtract(property, out var streamSet))
-                {
-                    return new AttributeValue { BS = streamSet };
-                }
+            if (HashSetMemoryStreamConverter.TryExtract(element, out var streamSet))
+            {
+                return new AttributeValue { BS = streamSet };
+            }
 
-                if (HashSetOfNumberConverter.TryExtract(property, out var numberSEt))
-                {
-                    return new AttributeValue { NS = numberSEt };
-                }
+            if (HashSetOfNumberConverter.TryExtract(element, out var numberSEt))
+            {
+                return new AttributeValue { NS = numberSEt };
+            }
 
-                if (HashSetStringConverter.TryExtract(property, out var stringSet))
-                {
-                    return new AttributeValue { SS = stringSet };
-                }
-
-                // if we reached this point we know there are no special cases to handle so let's stop trying to iterate
-                break;
+            if (HashSetStringConverter.TryExtract(element, out var stringSet))
+            {
+                return new AttributeValue { SS = stringSet };
             }
             return new AttributeValue { M = ToAttributeMap(element) };
         }

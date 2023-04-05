@@ -79,16 +79,16 @@ namespace NServiceBus.Persistence.DynamoDB
             readonly JsonSerializerOptions optionsWithoutHashSetStringConverter;
         }
 
-        public static bool TryExtract(JsonProperty property, out List<string?>? strings)
+        public static bool TryExtract(JsonElement element, out List<string?>? strings)
         {
             strings = null;
-            if (!property.NameEquals(PropertyName))
+            if (!element.TryGetProperty(PropertyName, out var property))
             {
                 return false;
             }
 
-            strings = new List<string?>(property.Value.GetArrayLength());
-            foreach (var innerElement in property.Value.EnumerateArray())
+            strings = new List<string?>(property.GetArrayLength());
+            foreach (var innerElement in property.EnumerateArray())
             {
                 strings.Add(innerElement.GetString());
             }

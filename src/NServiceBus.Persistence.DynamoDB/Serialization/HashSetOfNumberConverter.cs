@@ -104,16 +104,16 @@ namespace NServiceBus.Persistence.DynamoDB
             readonly JsonSerializerOptions optionsWithoutHashSetOfNumberConverter;
         }
 
-        public static bool TryExtract(JsonProperty property, out List<string?>? numbersAsStrings)
+        public static bool TryExtract(JsonElement element, out List<string?>? numbersAsStrings)
         {
             numbersAsStrings = null;
-            if (!property.NameEquals(PropertyName))
+            if (!element.TryGetProperty(PropertyName, out var property))
             {
                 return false;
             }
 
-            numbersAsStrings = new List<string?>(property.Value.GetArrayLength());
-            foreach (var innerElement in property.Value.EnumerateArray())
+            numbersAsStrings = new List<string?>(property.GetArrayLength());
+            foreach (var innerElement in property.EnumerateArray())
             {
                 numbersAsStrings.Add(innerElement.ToString());
             }

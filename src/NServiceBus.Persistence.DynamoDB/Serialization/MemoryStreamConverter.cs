@@ -58,15 +58,15 @@ namespace NServiceBus.Persistence.DynamoDB
             writer.WriteEndObject();
         }
 
-        public static bool TryExtract(JsonProperty property, out MemoryStream? memoryStream)
+        public static bool TryExtract(JsonElement element, out MemoryStream? memoryStream)
         {
             memoryStream = null;
-            if (!property.NameEquals(PropertyName))
+            if (!element.TryGetProperty(PropertyName, out var property))
             {
                 return false;
             }
 
-            GetStream(property.Value.GetGuid(), out memoryStream);
+            GetStream(property.GetGuid(), out memoryStream);
             return true;
         }
 
