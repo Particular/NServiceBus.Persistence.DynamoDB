@@ -95,7 +95,8 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 foreach (var streamElement in innerElement.EnumerateObject())
                 {
-                    memoryStreams.Add(new MemoryStream(streamElement.Value.GetBytesFromBase64()));
+                    _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
+                    memoryStreams.Add(stream);
                 }
             }
             return true;
