@@ -180,10 +180,10 @@ namespace NServiceBus.Persistence.DynamoDB
                 { IsMSet: true, } => ToNodeFromMap(attributeValue.M, jsonSerializerOptions),
                 { IsLSet: true } => ToNodeFromList(attributeValue.L, jsonSerializerOptions),
                 // check the more complex cases last
-                { B: not null } => jsonSerializerOptions.Has<MemoryStreamConverter>() ? MemoryStreamConverter.ToNode(attributeValue.B) : ThrowForMissingConverter("MemoryStreams"),
-                { BS.Count: > 0 } => jsonSerializerOptions.Has<SetOfMemoryStreamConverter>() ? SetOfMemoryStreamConverter.ToNode(attributeValue.BS) : ThrowForMissingConverter("Sets of MemoryStreams"),
-                { SS.Count: > 0 } => jsonSerializerOptions.Has<SetOfStringConverter>() ? SetOfStringConverter.ToNode(attributeValue.SS) : ThrowForMissingConverter("Sets of Strings"),
-                { NS.Count: > 0 } => jsonSerializerOptions.Has<SetOfNumberConverter>() ? SetOfNumberConverter.ToNode(attributeValue.NS) : ThrowForMissingConverter("Sets of Numbers"),
+                { B: not null } => jsonSerializerOptions.Has<MemoryStreamConverter>() ? MemoryStreamConverter.ToNode(attributeValue.B) : ThrowForMissingConverter("MemoryStream"),
+                { BS.Count: > 0 } => jsonSerializerOptions.Has<SetOfMemoryStreamConverter>() ? SetOfMemoryStreamConverter.ToNode(attributeValue.BS) : ThrowForMissingConverter("Sets of MemoryStream"),
+                { SS.Count: > 0 } => jsonSerializerOptions.Has<SetOfStringConverter>() ? SetOfStringConverter.ToNode(attributeValue.SS) : ThrowForMissingConverter("Sets of String"),
+                { NS.Count: > 0 } => jsonSerializerOptions.Has<SetOfNumberConverter>() ? SetOfNumberConverter.ToNode(attributeValue.NS) : ThrowForMissingConverter("Sets of Number"),
                 _ => ThrowForNonMappableAttribute()
             };
 
