@@ -13,9 +13,9 @@ namespace NServiceBus.Persistence.DynamoDB
                 Converters =
                 {
                     new MemoryStreamConverter(),
-                    new HashSetMemoryStreamConverter(),
-                    new HashSetStringConverter(),
-                    new HashSetOfNumberConverter()
+                    new SetOfMemoryStreamConverter(),
+                    new SetOfStringConverter(),
+                    new SetOfNumberConverter()
                 }
             };
     }

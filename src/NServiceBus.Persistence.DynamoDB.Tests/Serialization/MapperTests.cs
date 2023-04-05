@@ -4,6 +4,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.IO;
+    using System.Runtime.Serialization;
     using System.Text;
     using System.Text.Json;
     using Amazon.DynamoDBv2.Model;
@@ -654,7 +655,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_throw_for_non_object_root_types()
         {
-            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new List<int>()));
+            var exception = Assert.Throws<SerializationException>(() => Mapper.ToMap(new List<int>()));
 
             Assert.That(exception.Message, Does.StartWith("Unable to serialize the given type"));
         }

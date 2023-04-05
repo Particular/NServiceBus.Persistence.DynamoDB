@@ -1,5 +1,8 @@
 namespace NServiceBus.Persistence.DynamoDB
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Runtime.CompilerServices;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
@@ -27,5 +30,24 @@ namespace NServiceBus.Persistence.DynamoDB
             }
             return newOptions;
         }
+
+        public static bool Has<TConverter>(this JsonSerializerOptions options)
+            where TConverter : JsonConverter
+        {
+            var cache = hasConverterCache.GetValue(options, static o => new ConcurrentDictionary<Type, bool>());
+            return cache.GetOrAdd(typeof(TConverter), static (t, o) =>
+            {
+                foreach (var converter in o.Converters)
+                {
+                    if (converter is TConverter)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }, options);
+        }
+
+        static ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<Type, bool>> hasConverterCache = new();
     }
 }

@@ -7,7 +7,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
-    sealed class HashSetOfNumberConverter : JsonConverterFactory
+    sealed class SetOfNumberConverter : JsonConverterFactory
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "HashSetNumberContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -55,7 +55,7 @@ namespace NServiceBus.Persistence.DynamoDB
             where TValue : struct
         {
             public SetConverter(JsonSerializerOptions options)
-                => optionsWithoutHashSetOfNumberConverter = options.FromWithout<HashSetOfNumberConverter>();
+                => optionsWithoutSetOfNumberConverter = options.FromWithout<SetOfNumberConverter>();
 
             public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
@@ -82,7 +82,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetOfNumberConverter);
+                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfNumberConverter);
 
                 reader.Read();
 
@@ -97,11 +97,11 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetOfNumberConverter);
+                JsonSerializer.Serialize(writer, value, optionsWithoutSetOfNumberConverter);
                 writer.WriteEndObject();
             }
 
-            readonly JsonSerializerOptions optionsWithoutHashSetOfNumberConverter;
+            readonly JsonSerializerOptions optionsWithoutSetOfNumberConverter;
         }
 
         public static bool TryExtract(JsonElement element, out List<string?>? numbersAsStrings)
