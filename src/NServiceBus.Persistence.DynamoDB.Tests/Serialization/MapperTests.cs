@@ -557,5 +557,44 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             Assert.That(exception.Message, Does.StartWith("Unable to serialize the given type"));
         }
+
+        [Test]
+        public void Should_respect_default_options_on_to_map()
+        {
+            var classWithMemoryStream = new ClassWithMemoryStream
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            };
+
+            // using the default options bypasses all custom converters
+            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream, JsonSerializerOptions.Default));
+            Assert.That(exception.Message, Contains.Substring("not supported on this stream."));
+        }
+
+        [Test]
+        public void Should_respect_default_options_on_to_object()
+        {
+            var classWithMemoryStream = new ClassWithMemoryStream
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            };
+
+            // using the default options bypasses all custom converters
+            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream, JsonSerializerOptions.Default));
+            Assert.That(exception.Message, Contains.Substring("not supported on this stream."));
+        }
+
+        [Test]
+        public void Should_respect_custom_options()
+        {
+            var classWithMemoryStream = new ClassWithMemoryStream
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            };
+
+            // using the default options bypasses all custom converters
+            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream, JsonSerializerOptions.Default));
+            Assert.That(exception.Message, Contains.Substring("not supported on this stream."));
+        }
     }
 }
