@@ -6,6 +6,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using System.IO;
     using System.Text;
     using System.Text.Json;
+    using Amazon.DynamoDBv2.Model;
     using NUnit.Framework;
 
     [TestFixture]
@@ -174,15 +175,103 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = Mapper.ToMap(classWithMemoryStream);
 
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+
             var deserialized = Mapper.ToObject<ClassWithMemoryStream>(attributes);
 
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+
             CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
-            Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.Not.Null);
+            Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
         }
 
         class ClassWithMemoryStream
         {
             public MemoryStream SomeStream { get; set; }
+        }
+
+        [Test]
+        public void Should_cleanup_map_stream_state_even_under_failure_conditions()
+        {
+            var classWithMemoryStream = new ClassWithMemoryStreamAndUnserializableValue
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")),
+                UnsupportedStream = Stream.Null,
+            };
+
+            Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream));
+
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        }
+
+        [Test]
+        public void Should_cleanup_object_stream_state_even_under_failure_conditions()
+        {
+            var attributeMap = new Dictionary<string, AttributeValue>
+            {
+                { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
+                { "UnsupportedStream", new AttributeValue { B = null } },
+            };
+
+            Assert.Throws<InvalidOperationException>(() => Mapper.ToObject<ClassWithMemoryStreamAndUnserializableValue>(attributeMap));
+
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        }
+
+        class ClassWithMemoryStreamAndUnserializableValue
+        {
+            public MemoryStream SomeStream { get; set; }
+
+            public Stream UnsupportedStream { get; set; }
+        }
+
+        [Test]
+        public void Should_cleanup_map_set_stream_state_even_under_failure_conditions()
+        {
+            var classWithSetOfStreams = new ClassWithSetOfMemoryStreamAndUnserializableValue
+            {
+                SomeStreams = new HashSet<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                },
+                UnsupportedStream = Stream.Null,
+            };
+
+            Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithSetOfStreams));
+
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        }
+
+        [Test]
+        public void Should_cleanup_object_set_stream_state_even_under_failure_conditions()
+        {
+            var attributeMap = new Dictionary<string, AttributeValue>
+            {
+                { "SomeStreams", new AttributeValue { BS = new List<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                } } },
+                { "UnsupportedStream", new AttributeValue { B = null } },
+            };
+
+            Assert.Throws<InvalidOperationException>(() => Mapper.ToObject<ClassWithSetOfMemoryStreamAndUnserializableValue>(attributeMap));
+
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        }
+
+        class ClassWithSetOfMemoryStreamAndUnserializableValue
+        {
+            public HashSet<MemoryStream> SomeStreams { get; set; }
+
+            public Stream UnsupportedStream { get; set; }
         }
 
         [Test]
@@ -204,13 +293,19 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = Mapper.ToMap(classWithListOfMemoryStream);
 
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+
             var deserialized = Mapper.ToObject<ClassWithSetOfMemoryStream>(attributes);
+
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
 
             CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
             CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
 
-            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
         }
 
         // Sorted sets don't really make sense here
@@ -234,12 +329,18 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 
             var attributes = Mapper.ToMap(classWithMemoryStream);
 
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+
             var deserialized = Mapper.ToObject<ClassWithNestedMemoryStream>(attributes);
+
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
 
             CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
             CollectionAssert.AreEquivalent(classWithMemoryStream.Nested.SomeStream.ToArray(), deserialized.Nested.SomeStream.ToArray());
-            Assert.That(attributes[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.Not.Null);
-            Assert.That(attributes[nameof(ClassWithNestedMemoryStream.Nested)].M[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.Not.Null);
+            Assert.That(attributes[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
+            Assert.That(attributes[nameof(ClassWithNestedMemoryStream.Nested)].M[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.Nested.SomeStream));
         }
 
         class ClassWithNestedMemoryStream

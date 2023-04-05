@@ -30,7 +30,7 @@ namespace NServiceBus.Persistence.DynamoDB
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
         {
             public SetConverter(JsonSerializerOptions options)
-                => optionsWithoutHashSetOfNumberConverter = options.FromWithout<HashSetStringConverter>();
+                => optionsWithoutHashSetStringConverter = options.FromWithout<HashSetStringConverter>();
 
             public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
@@ -57,7 +57,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetOfNumberConverter);
+                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetStringConverter);
 
                 reader.Read();
 
@@ -72,11 +72,11 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetOfNumberConverter);
+                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetStringConverter);
                 writer.WriteEndObject();
             }
 
-            readonly JsonSerializerOptions optionsWithoutHashSetOfNumberConverter;
+            readonly JsonSerializerOptions optionsWithoutHashSetStringConverter;
         }
 
         public static bool TryExtract(JsonProperty property, out List<string?>? strings)

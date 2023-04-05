@@ -16,6 +16,7 @@ namespace NServiceBus.Persistence.DynamoDB
         public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
             where TValue : class
         {
+            using var trackingState = new ClearTrackingState();
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? DefaultOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
@@ -28,6 +29,8 @@ namespace NServiceBus.Persistence.DynamoDB
             where TValue : class
         {
             Guard.AgainstNull(nameof(jsonTypeInfo), jsonTypeInfo);
+
+            using var trackingState = new ClearTrackingState();
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, jsonTypeInfo);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
@@ -39,6 +42,8 @@ namespace NServiceBus.Persistence.DynamoDB
         public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
         {
             Guard.AgainstNull(nameof(context), context);
+
+            using var trackingState = new ClearTrackingState();
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, context);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
@@ -49,6 +54,7 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
         {
+            using var trackingState = new ClearTrackingState();
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? DefaultOptions);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
@@ -63,24 +69,28 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
         {
+            using var trackingState = new ClearTrackingState();
             var jsonObject = ToNodeFromMap(attributeValues);
             return jsonObject.Deserialize(jsonTypeInfo);
         }
 
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
         {
+            using var trackingState = new ClearTrackingState();
             var jsonObject = ToNodeFromMap(attributeValues);
             return jsonObject.Deserialize<TValue>(options ?? DefaultOptions);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
         {
+            using var trackingState = new ClearTrackingState();
             var jsonObject = ToNodeFromMap(attributeValues);
             return jsonObject.Deserialize(returnType, options ?? DefaultOptions);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
         {
+            using var trackingState = new ClearTrackingState();
             var jsonObject = ToNodeFromMap(attributeValues);
             return jsonObject.Deserialize(returnType, context);
         }
@@ -210,5 +220,10 @@ namespace NServiceBus.Persistence.DynamoDB
         static readonly AttributeValue NullAttributeValue = new() { NULL = true };
         static readonly AttributeValue TrueAttributeValue = new() { BOOL = true };
         static readonly AttributeValue FalseAttributeValue = new() { BOOL = false };
+
+        readonly struct ClearTrackingState : IDisposable
+        {
+            public void Dispose() => MemoryStreamConverter.ClearTrackingState();
+        }
     }
 }
