@@ -64,33 +64,58 @@
             Assert.AreEqual(1, documents.Count);
         }
 
-        //[TestCase(true)]
-        //[TestCase(false)]
-        //public async Task Should_send_messages_and_store_document_in_raven_session_on_transactional_session_commit(bool outboxEnabled)
-        //{
-        //    var context = await Scenario.Define<Context>()
-        //        .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
-        //        {
-        //            using var scope = ctx.ServiceProvider.CreateScope();
-        //            using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
-        //            await transactionalSession.Open(new DynamoDBOpenSessionOptions());
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_send_messages_and_store_document_in_dynamo_session_on_transactional_session_commit(bool outboxEnabled)
+        {
+            var partitionKey = nameof(When_using_transactional_session) + Guid.NewGuid().ToString("N");
 
-        //            await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
+            var context = await Scenario.Define<Context>()
+                .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+                {
+                    using var scope = ctx.ServiceProvider.CreateScope();
+                    using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                    await transactionalSession.Open(new DynamoOpenSessionOptions());
 
-        //            var ravenSession = scope.ServiceProvider.GetRequiredService<IAsyncDocumentSession>();
-        //            var document = new TestDocument { Id = ctx.SessionId = transactionalSession.SessionId };
-        //            await ravenSession.StoreAsync(document);
+                    await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
-        //            await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
-        //        }))
-        //        .Done(c => c.MessageReceived)
-        //        .Run();
+                    var dynamoSession = scope.ServiceProvider.GetRequiredService<IDynamoDBStorageSession>();
+                    dynamoSession.Add(new TransactWriteItem()
+                    {
+                        Put = new Put()
+                        {
+                            TableName = SetupFixture.TableConfiguration.TableName,
+                            Item = new Dictionary<string, AttributeValue>()
+                            {
+                                { SetupFixture.TableConfiguration.PartitionKeyName, new AttributeValue(partitionKey) },
+                                { SetupFixture.TableConfiguration.SortKeyName, new AttributeValue(Guid.NewGuid().ToString()) },
+                                { "Test", new AttributeValue(nameof(Should_send_messages_and_store_document_in_synchronized_session_on_transactional_session_commit))}
+                            }
+                        }
+                    });
 
-        //    var documents = SetupFixture.DocumentStore.OpenSession(SetupFixture.DefaultDatabaseName)
-        //        .Query<TestDocument>()
-        //        .Where(d => d.Id == context.SessionId);
-        //    Assert.AreEqual(1, documents.Count());
-        //}
+                    await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+                }))
+                .Done(c => c.MessageReceived)
+                .Run();
+
+            var documents = await SetupFixture.DynamoDBClient.QueryAsync(new QueryRequest()
+            {
+                TableName = SetupFixture.TableConfiguration.TableName,
+                ConsistentRead = true,
+                KeyConditionExpression = "#pk = :pk",
+                ExpressionAttributeNames =
+                    new Dictionary<string, string>()
+                    {
+                        { "#pk", SetupFixture.TableConfiguration.PartitionKeyName }
+                    },
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
+                {
+                    { ":pk", new AttributeValue(partitionKey) }
+                }
+            });
+            Assert.AreEqual(1, documents.Count);
+        }
 
         [TestCase(true)]
         [TestCase(false)]
