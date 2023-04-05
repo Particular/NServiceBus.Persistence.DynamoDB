@@ -1,0 +1,11 @@
+namespace NServiceBus.TransactionalSession
+{
+    public class DynamoOpenSessionOptions : NServiceBus.TransactionalSession.OpenSessionOptions
+    {
+        public DynamoOpenSessionOptions() { }
+    }
+    public static class DynamoTransactionalSessionExtensions
+    {
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> EnableTransactionalSession(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
+    }
+}

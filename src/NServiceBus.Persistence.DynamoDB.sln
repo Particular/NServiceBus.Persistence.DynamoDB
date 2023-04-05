@@ -16,7 +16,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.Dyn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.DynamoDB.PersistenceTests", "NServiceBus.Persistence.DynamoDB.PersistenceTests\NServiceBus.Persistence.DynamoDB.PersistenceTests.csproj", "{36CC7BFD-1F72-4800-B696-2B1430D9D9F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests", "NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests\NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests.csproj", "{9F88D6EC-0659-4145-80B5-D2839F52A3E6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests", "NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests\NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests.csproj", "{9F88D6EC-0659-4145-80B5-D2839F52A3E6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.DynamoDB.TransactionalSession", "NServiceBus.Persistence.DynamoDB.TransactionalSession\NServiceBus.Persistence.DynamoDB.TransactionalSession.csproj", "{0CC08EA6-1E19-4155-8997-4D50565E392D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests", "NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests\NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests.csproj", "{D77F739B-53C7-4271-8552-4AE6CACACF6F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests", "NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests\NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests.csproj", "{EB66E88B-5B05-4D26-8FEF-739E325A14D6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +50,18 @@ Global
 		{9F88D6EC-0659-4145-80B5-D2839F52A3E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F88D6EC-0659-4145-80B5-D2839F52A3E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F88D6EC-0659-4145-80B5-D2839F52A3E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CC08EA6-1E19-4155-8997-4D50565E392D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CC08EA6-1E19-4155-8997-4D50565E392D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CC08EA6-1E19-4155-8997-4D50565E392D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CC08EA6-1E19-4155-8997-4D50565E392D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D77F739B-53C7-4271-8552-4AE6CACACF6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D77F739B-53C7-4271-8552-4AE6CACACF6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D77F739B-53C7-4271-8552-4AE6CACACF6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D77F739B-53C7-4271-8552-4AE6CACACF6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
