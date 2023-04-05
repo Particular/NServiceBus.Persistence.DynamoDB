@@ -6,6 +6,8 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     using System.IO;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
+    using Amazon.DynamoDBv2.Model;
     using NUnit.Framework;
 
     [TestFixture]
@@ -561,27 +563,53 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_respect_default_options_on_to_map()
         {
-            var classWithMemoryStream = new ClassWithMemoryStream
-            {
-                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
-            };
-
             // using the default options bypasses all custom converters
-            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream, JsonSerializerOptions.Default));
-            Assert.That(exception.Message, Contains.Substring("not supported on this stream."));
+            var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithMemoryStream
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World"))
+            }, JsonSerializerOptions.Default));
+            Assert.That(streamException.Message, Contains.Substring("not supported"));
+
+            var streamSetsException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithSetOfMemoryStream
+            {
+                HashSetOfMemoryStreams = new HashSet<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                },
+                ImmutableHashSetOfStreams = new HashSet<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                }.ToImmutableHashSet()
+            }, JsonSerializerOptions.Default));
+            Assert.That(streamSetsException.Message, Contains.Substring("not supported"));
         }
 
         [Test]
         public void Should_respect_default_options_on_to_object()
         {
-            var classWithMemoryStream = new ClassWithMemoryStream
-            {
-                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
-            };
-
             // using the default options bypasses all custom converters
-            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream, JsonSerializerOptions.Default));
-            Assert.That(exception.Message, Contains.Substring("not supported on this stream."));
+            var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToObject<ClassWithMemoryStream>(new Dictionary<string, AttributeValue>
+            {
+                { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
+            }, JsonSerializerOptions.Default));
+            Assert.That(streamException.Message, Contains.Substring("not supported"));
+
+            var streamSetsException = Assert.Throws<InvalidOperationException>(() => Mapper.ToObject<ClassWithMemoryStream>(new Dictionary<string, AttributeValue>
+            {
+                { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                } } },
+                { "ImmutableHashSetOfStreams", new AttributeValue { BS = new List<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                } }}
+            }, JsonSerializerOptions.Default));
+            Assert.That(streamSetsException.Message, Contains.Substring("not supported"));
         }
 
         [Test]
@@ -592,9 +620,23 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
             };
 
+            var options = new JsonSerializerOptions { Converters = { new CustomStreamConverter() } };
+
             // using the default options bypasses all custom converters
-            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream, JsonSerializerOptions.Default));
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+            {
+                Dictionary<string, AttributeValue> attributeValues = Mapper.ToMap(classWithMemoryStream, options);
+            });
             Assert.That(exception.Message, Contains.Substring("not supported on this stream."));
+        }
+
+        class CustomStreamConverter : JsonConverter<MemoryStream>
+        {
+            public override MemoryStream Read(ref Utf8JsonReader reader, Type typeToConvert,
+                JsonSerializerOptions options) => new(reader.GetBytesFromBase64());
+
+            public override void Write(Utf8JsonWriter writer, MemoryStream value, JsonSerializerOptions options)
+                => writer.WriteBase64StringValue(value.ToArray());
         }
     }
 }

@@ -3,6 +3,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.IO;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
@@ -63,25 +64,27 @@ namespace NServiceBus.Persistence.DynamoDB
 
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
         {
-            var jsonObject = ToNodeFromMap(attributeValues);
+            var jsonObject = ToNodeFromMap(attributeValues, jsonTypeInfo.Options);
             return jsonObject.Deserialize(jsonTypeInfo);
         }
 
         public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
         {
-            var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize<TValue>(options ?? DefaultOptions);
+            options ??= DefaultOptions;
+            var jsonObject = ToNodeFromMap(attributeValues, options);
+            return jsonObject.Deserialize<TValue>(options);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
         {
-            var jsonObject = ToNodeFromMap(attributeValues);
-            return jsonObject.Deserialize(returnType, options ?? DefaultOptions);
+            options ??= DefaultOptions;
+            var jsonObject = ToNodeFromMap(attributeValues, options);
+            return jsonObject.Deserialize(returnType, options);
         }
 
         public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
         {
-            var jsonObject = ToNodeFromMap(attributeValues);
+            var jsonObject = ToNodeFromMap(attributeValues, context.Options);
             return jsonObject.Deserialize(returnType, context);
         }
 
@@ -162,7 +165,7 @@ namespace NServiceBus.Persistence.DynamoDB
             return new AttributeValue { M = ToAttributeMap(element) };
         }
 
-        static JsonNode? ToNode(AttributeValue attributeValue) =>
+        static JsonNode? ToNode(AttributeValue attributeValue, JsonSerializerOptions jsonSerializerOptions) =>
             attributeValue switch
             {
                 // check the simple cases first
@@ -170,11 +173,13 @@ namespace NServiceBus.Persistence.DynamoDB
                 { NULL: true } => default,
                 { N: not null } => JsonNode.Parse(attributeValue.N),
                 { S: not null } => attributeValue.S,
-                { IsMSet: true, } => ToNodeFromMap(attributeValue.M),
-                { IsLSet: true } => ToNodeFromList(attributeValue.L),
+                { IsMSet: true, } => ToNodeFromMap(attributeValue.M, jsonSerializerOptions),
+                { IsLSet: true } => ToNodeFromList(attributeValue.L, jsonSerializerOptions),
                 // check the more complex cases last
-                { B: not null } => MemoryStreamConverter.ToNode(attributeValue.B),
-                { BS.Count: > 0 } => HashSetMemoryStreamConverter.ToNode(attributeValue.BS),
+                { B: not null } => jsonSerializerOptions.HasConverterFor<MemoryStream>() ?
+                    MemoryStreamConverter.ToNode(attributeValue.B) : throw new InvalidOperationException("MemoryStreams are not supported by the provided options."),
+                { BS.Count: > 0 } => jsonSerializerOptions.HasConverterFor<ISet<MemoryStream>>() ?
+                    HashSetMemoryStreamConverter.ToNode(attributeValue.BS) : throw new InvalidOperationException("Sets of MemoryStreams are not supported by the provided options."),
                 { SS.Count: > 0 } => HashSetStringConverter.ToNode(attributeValue.SS),
                 { NS.Count: > 0 } => HashSetOfNumberConverter.ToNode(attributeValue.NS),
                 _ => ThrowInvalidOperationExceptionForNonMappableAttribute()
@@ -184,7 +189,8 @@ namespace NServiceBus.Persistence.DynamoDB
         static JsonNode ThrowInvalidOperationExceptionForNonMappableAttribute()
             => throw new InvalidOperationException("Unable to convert the provided attribute value into a JsonElement");
 
-        static JsonNode ToNodeFromMap(Dictionary<string, AttributeValue> attributeValues)
+        static JsonNode ToNodeFromMap(Dictionary<string, AttributeValue> attributeValues,
+            JsonSerializerOptions jsonSerializerOptions)
         {
             var jsonObject = new JsonObject();
             foreach (var kvp in attributeValues)
@@ -192,17 +198,17 @@ namespace NServiceBus.Persistence.DynamoDB
                 AttributeValue attributeValue = kvp.Value;
                 string attributeName = kvp.Key;
 
-                jsonObject.Add(attributeName, ToNode(attributeValue));
+                jsonObject.Add(attributeName, ToNode(attributeValue, jsonSerializerOptions));
             }
             return jsonObject;
         }
 
-        static JsonNode ToNodeFromList(List<AttributeValue> attributeValues)
+        static JsonNode ToNodeFromList(List<AttributeValue> attributeValues, JsonSerializerOptions jsonSerializerOptions)
         {
             var array = new JsonArray();
             foreach (var attributeValue in attributeValues)
             {
-                array.Add(ToNode(attributeValue));
+                array.Add(ToNode(attributeValue, jsonSerializerOptions));
             }
             return array;
         }

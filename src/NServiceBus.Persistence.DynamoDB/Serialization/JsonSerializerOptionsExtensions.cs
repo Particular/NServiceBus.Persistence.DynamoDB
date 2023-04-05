@@ -27,5 +27,17 @@ namespace NServiceBus.Persistence.DynamoDB
             }
             return newOptions;
         }
+
+        public static bool HasConverterFor<TType>(this JsonSerializerOptions options)
+        {
+            foreach (var converter in options.Converters)
+            {
+                if (converter.CanConvert(typeof(TType)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
