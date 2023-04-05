@@ -14,6 +14,8 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
         {
             var builder = new EndpointConfiguration(endpointConfiguration.EndpointName);
 
+            builder.UseTransport<LearningTransport>();
+
             builder.Recoverability()
                 .Delayed(delayed => delayed.NumberOfRetries(0))
                 .Immediate(immediate => immediate.NumberOfRetries(0));
