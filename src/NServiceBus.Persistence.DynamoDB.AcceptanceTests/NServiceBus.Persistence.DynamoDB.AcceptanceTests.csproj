@@ -5,6 +5,7 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
     <LangVersion>10</LangVersion>
+    <RootNamespace>NServiceBus.AcceptanceTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
