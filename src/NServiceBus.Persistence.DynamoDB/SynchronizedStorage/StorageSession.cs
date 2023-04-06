@@ -74,9 +74,14 @@
 
         public void Dispose()
         {
-            disposed = true;
+            if (disposed)
+            {
+                return;
+            }
+
             // release lock as fire & forget
             _ = ReleaseLocksAsync();
+            disposed = true;
 
             async Task ReleaseLocksAsync()
             {
@@ -95,8 +100,6 @@
                         Logger.Warn("Failed to cleanup saga locks", e);
                     }
                 }
-
-                CleanupActions.Clear();
             }
         }
 
