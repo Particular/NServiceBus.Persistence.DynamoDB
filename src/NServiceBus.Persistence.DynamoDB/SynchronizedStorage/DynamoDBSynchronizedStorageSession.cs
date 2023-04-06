@@ -38,8 +38,7 @@
         }
 
         public ValueTask<bool> TryOpen(TransportTransaction transportTransaction, ContextBag context,
-            CancellationToken cancellationToken = default) =>
-            new ValueTask<bool>(false);
+            CancellationToken cancellationToken = default) => new(false);
 
         public Task Open(ContextBag contextBag, CancellationToken cancellationToken = default)
         {

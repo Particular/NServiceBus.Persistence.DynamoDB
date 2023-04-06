@@ -27,12 +27,14 @@
 
         public void Add(TransactWriteItem writeItem)
         {
+            ThrowIfDisposed();
             batch.Add(writeItem);
             CheckCapacity();
         }
 
         public void AddRange(IEnumerable<TransactWriteItem> writeItems)
         {
+            ThrowIfDisposed();
             batch.AddRange(writeItems);
             CheckCapacity();
         }
@@ -57,12 +59,10 @@
             var transactItemsRequest = new TransactWriteItemsRequest { TransactItems = batch };
             var response = await dynamoDbClient.TransactWriteItemsAsync(transactItemsRequest, cancellationToken).ConfigureAwait(false);
             batch.Clear();
-            // TODO: Check response
-            // TODO: Add retries
-            // TODO: Do we need to verify streams are disposed or is the SDK doing this?
+
             if (response.HttpStatusCode != HttpStatusCode.OK)
             {
-                throw new InvalidOperationException("Unable to complete transaction. Retrying");
+                throw new InvalidOperationException($"Unable to complete transaction (status code: {response.HttpStatusCode}.");
             }
 
             // The transaction operations already released any lock, don't clean them up explicitly
@@ -74,9 +74,14 @@
 
         public void Dispose()
         {
+            if (disposed)
+            {
+                return;
+            }
 
             // release lock as fire & forget
             _ = ReleaseLocksAsync();
+            disposed = true;
 
             async Task ReleaseLocksAsync()
             {
@@ -98,9 +103,19 @@
             }
         }
 
+        void ThrowIfDisposed()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(
+                    $"The storage session has already been disposed. Make sure to retrieve the current storage session from the `{nameof(IMessageHandlerContext)}.{nameof(IMessageHandlerContext.SynchronizedStorageSession)}` or by injecting `{nameof(ICompletableSynchronizedStorageSession)}`.");
+            }
+        }
+
         public ContextBag CurrentContextBag { get; set; }
 
         List<TransactWriteItem> batch = new List<TransactWriteItem>();
         readonly IAmazonDynamoDB dynamoDbClient;
+        bool disposed;
     }
 }
