@@ -95,6 +95,8 @@
                         Logger.Warn("Failed to cleanup saga locks", e);
                     }
                 }
+
+                CleanupActions.Clear();
             }
         }
 
