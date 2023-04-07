@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net472;net6.0</TargetFrameworks>
@@ -18,7 +18,7 @@
   <ItemGroup Label="Private dependencies">
     <PackageReference Include="Obsolete.Fody" Version="5.3.0" PrivateAssets="All" />
     <PackageReference Include="Particular.Packaging" Version="2.3.0" PrivateAssets="All" />
-    <PackageReference Include="PolySharp" Version="1.12.1" PrivateAssets="All" />
+    <PackageReference Include="PolySharp" Version="1.13.1" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
