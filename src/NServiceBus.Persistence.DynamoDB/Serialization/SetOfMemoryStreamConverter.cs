@@ -8,7 +8,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
-    sealed class HashSetMemoryStreamConverter : JsonConverterFactory
+    sealed class SetOfMemoryStreamConverter : JsonConverterFactory
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "HashSetMemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -31,7 +31,7 @@ namespace NServiceBus.Persistence.DynamoDB
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<MemoryStream>
         {
             public SetConverter(JsonSerializerOptions options)
-                => optionsWithoutHashSetMemoryStreamConverter = options.FromWithout<HashSetMemoryStreamConverter>();
+                => optionsWithoutSetOfMemoryStreamConverter = options.FromWithout<SetOfMemoryStreamConverter>();
 
             public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert,
                 JsonSerializerOptions options)
@@ -59,7 +59,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetMemoryStreamConverter);
+                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfMemoryStreamConverter);
 
                 reader.Read();
 
@@ -75,29 +75,26 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetMemoryStreamConverter);
+                JsonSerializer.Serialize(writer, value, optionsWithoutSetOfMemoryStreamConverter);
                 writer.WriteEndObject();
             }
 
-            readonly JsonSerializerOptions optionsWithoutHashSetMemoryStreamConverter;
+            readonly JsonSerializerOptions optionsWithoutSetOfMemoryStreamConverter;
         }
 
-        public static bool TryExtract(JsonProperty property, out List<MemoryStream?>? memoryStreams)
+        public static bool TryExtract(JsonElement element, out List<MemoryStream?>? memoryStreams)
         {
             memoryStreams = null;
-            if (!property.NameEquals(PropertyName))
+            if (!element.TryGetProperty(PropertyName, out var property))
             {
                 return false;
             }
 
-            memoryStreams = new List<MemoryStream?>(property.Value.GetArrayLength());
-            foreach (var innerElement in property.Value.EnumerateArray())
+            memoryStreams = new List<MemoryStream?>(property.GetArrayLength());
+            foreach (var streamElement in property.EnumerateArray())
             {
-                foreach (var streamElement in innerElement.EnumerateObject())
-                {
-                    _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
-                    memoryStreams.Add(stream);
-                }
+                _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
+                memoryStreams.Add(stream);
             }
             return true;
         }

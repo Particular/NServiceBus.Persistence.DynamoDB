@@ -7,7 +7,7 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
 
-    sealed class HashSetStringConverter : JsonConverterFactory
+    sealed class SetOfStringConverter : JsonConverterFactory
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "HashSetStringContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -30,7 +30,7 @@ namespace NServiceBus.Persistence.DynamoDB
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
         {
             public SetConverter(JsonSerializerOptions options)
-                => optionsWithoutHashSetStringConverter = options.FromWithout<HashSetStringConverter>();
+                => optionsWithoutSetOfStringConverter = options.FromWithout<SetOfStringConverter>();
 
             public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
@@ -57,7 +57,7 @@ namespace NServiceBus.Persistence.DynamoDB
                     throw new JsonException();
                 }
 
-                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutHashSetStringConverter);
+                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfStringConverter);
 
                 reader.Read();
 
@@ -72,23 +72,23 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(PropertyName);
-                JsonSerializer.Serialize(writer, value, optionsWithoutHashSetStringConverter);
+                JsonSerializer.Serialize(writer, value, optionsWithoutSetOfStringConverter);
                 writer.WriteEndObject();
             }
 
-            readonly JsonSerializerOptions optionsWithoutHashSetStringConverter;
+            readonly JsonSerializerOptions optionsWithoutSetOfStringConverter;
         }
 
-        public static bool TryExtract(JsonProperty property, out List<string?>? strings)
+        public static bool TryExtract(JsonElement element, out List<string?>? strings)
         {
             strings = null;
-            if (!property.NameEquals(PropertyName))
+            if (!element.TryGetProperty(PropertyName, out var property))
             {
                 return false;
             }
 
-            strings = new List<string?>(property.Value.GetArrayLength());
-            foreach (var innerElement in property.Value.EnumerateArray())
+            strings = new List<string?>(property.GetArrayLength());
+            foreach (var innerElement in property.EnumerateArray())
             {
                 strings.Add(innerElement.GetString());
             }

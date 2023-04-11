@@ -1,11 +1,14 @@
+#pragma warning disable CA1711
 namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.IO;
+    using System.Runtime.Serialization;
     using System.Text;
     using System.Text.Json;
+    using System.Text.Json.Serialization;
     using Amazon.DynamoDBv2.Model;
     using NUnit.Framework;
 
@@ -187,7 +190,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
         }
 
-        class ClassWithMemoryStream
+        public class ClassWithMemoryStream
         {
             public MemoryStream SomeStream { get; set; }
         }
@@ -216,7 +219,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 { "UnsupportedStream", new AttributeValue { B = null } },
             };
 
-            Assert.Throws<InvalidOperationException>(() => Mapper.ToObject<ClassWithMemoryStreamAndUnserializableValue>(attributeMap));
+            Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithMemoryStreamAndUnserializableValue>(attributeMap));
 
             // state should never leak
             Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
@@ -261,7 +264,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                 { "UnsupportedStream", new AttributeValue { B = null } },
             };
 
-            Assert.Throws<InvalidOperationException>(() => Mapper.ToObject<ClassWithSetOfMemoryStreamAndUnserializableValue>(attributeMap));
+            Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfMemoryStreamAndUnserializableValue>(attributeMap));
 
             // state should never leak
             Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
@@ -309,7 +312,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         // Sorted sets don't really make sense here
-        class ClassWithSetOfMemoryStream
+        public class ClassWithSetOfMemoryStream
         {
             public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; }
             public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; }
@@ -402,7 +405,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
         }
 
-        class ClassWithSetOfString
+        public class ClassWithSetOfString
         {
             public HashSet<string> HashSetOfString { get; set; }
             public SortedSet<string> SortedSetOfString { get; set; }
@@ -602,7 +605,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
         }
 
-        class ClassWithSetOfNumbers
+        public class ClassWithSetOfNumbers
         {
             public HashSet<int> Ints { get; set; }
             public SortedSet<double> Doubles { get; set; }
@@ -654,9 +657,237 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         [Test]
         public void Should_throw_for_non_object_root_types()
         {
-            var exception = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new List<int>()));
+            var exception = Assert.Throws<SerializationException>(() => Mapper.ToMap(new List<int>()));
 
             Assert.That(exception.Message, Does.StartWith("Unable to serialize the given type"));
         }
+
+        [Test]
+        public void Should_respect_options_argument_on_to_map()
+        {
+            // using the default options bypasses all custom converters
+            var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithMemoryStream
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            }, JsonSerializerOptions.Default));
+            Assert.That(streamException!.Message, Contains.Substring("not supported on this stream."));
+
+            var hashSetException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithSetOfMemoryStream
+            {
+                HashSetOfMemoryStreams = new HashSet<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                }
+            }, JsonSerializerOptions.Default));
+            Assert.That(hashSetException!.Message, Contains.Substring("not supported on this stream."));
+
+            var stringSetAttributes =
+                Mapper.ToMap(
+                    new ClassWithSetOfString
+                    {
+                        HashSetOfString = new HashSet<string> { "Hello World 1", "Hello World 2", }
+                    }, JsonSerializerOptions.Default);
+
+            Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
+            // Using the default serializer options, sets are converted to dynamo list types
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+
+            var numberSetAttributes =
+                Mapper.ToMap(
+                    new ClassWithSetOfNumbers
+                    {
+                        Ints = new HashSet<int> { 1, 2, }
+                    }, JsonSerializerOptions.Default);
+
+            Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
+            // Using the default serializer options, sets are converted to dynamo list types
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+        }
+
+        [Test]
+        public void Should_respect_default_context_on_to_map()
+        {
+            // using the default options bypasses all custom converters
+            var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithMemoryStream
+            {
+                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            }, MapperTestsSourceContext.Default.ClassWithMemoryStream));
+            Assert.That(streamException!.Message, Contains.Substring("not supported on this stream."));
+
+            var hashSetException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithSetOfMemoryStream
+            {
+                HashSetOfMemoryStreams = new HashSet<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                }
+            }, MapperTestsSourceContext.Default.ClassWithSetOfMemoryStream));
+            Assert.That(hashSetException!.Message, Contains.Substring("not supported on this stream."));
+
+            var stringSetAttributes =
+                Mapper.ToMap(
+                    new ClassWithSetOfString
+                    {
+                        HashSetOfString = new HashSet<string> { "Hello World 1", "Hello World 2", }
+                    }, MapperTestsSourceContext.Default.ClassWithSetOfString);
+
+            Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+
+            var numberSetAttributes =
+                Mapper.ToMap(
+                    new ClassWithSetOfNumbers
+                    {
+                        Ints = new HashSet<int> { 1, 2, }
+                    }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers);
+
+            Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+        }
+
+        [Test]
+        public void Should_respect_default_options_on_to_object()
+        {
+            // using the default options bypasses all custom converters
+            var streamException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } }
+            }, typeof(ClassWithMemoryStream), JsonSerializerOptions.Default));
+            Assert.That(streamException1!.Message, Contains.Substring("no converter to handle 'MemoryStream'"));
+
+            var streamException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithMemoryStream>(new Dictionary<string, AttributeValue>
+            {
+                { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } }
+            }, JsonSerializerOptions.Default));
+            Assert.That(streamException2!.Message, Contains.Substring("no converter to handle 'MemoryStream'"));
+
+            var setStreamException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                } } }
+            }, typeof(ClassWithSetOfMemoryStream), JsonSerializerOptions.Default));
+            Assert.That(setStreamException1!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
+
+            var setStreamException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfMemoryStream>(new Dictionary<string, AttributeValue>
+            {
+                { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                } } }
+            }, JsonSerializerOptions.Default));
+            Assert.That(setStreamException2!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
+
+            var setStringException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                {
+                    "HashSetOfString", new AttributeValue { SS = new List<string>
+                    {
+                        "Hello World 1",
+                        "Hello World 2",
+                    } }
+                }
+            }, typeof(ClassWithSetOfString), JsonSerializerOptions.Default));
+            Assert.That(setStringException1!.Message, Contains.Substring("no converter to handle 'Sets of String'"));
+
+            var setStringException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfString>(new Dictionary<string, AttributeValue>
+            {
+                {
+                    "HashSetOfString", new AttributeValue { SS = new List<string>
+                    {
+                        "Hello World 1",
+                        "Hello World 2",
+                    } }
+                }
+            }, JsonSerializerOptions.Default));
+            Assert.That(setStringException2!.Message, Contains.Substring("no converter to handle 'Sets of String'"));
+
+            var setNumberException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                {
+                    "Ints", new AttributeValue { NS = new List<string>
+                    {
+                        "1",
+                        "2",
+                    } }
+                }
+            }, typeof(ClassWithSetOfNumbers), JsonSerializerOptions.Default));
+            Assert.That(setNumberException1!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
+
+            var setNumberException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfNumbers>(new Dictionary<string, AttributeValue>
+            {
+                {
+                    "Ints", new AttributeValue { NS = new List<string>
+                    {
+                        "1",
+                        "2",
+                    } }
+                }
+            }, JsonSerializerOptions.Default));
+            Assert.That(setNumberException2!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
+        }
+
+        [Test]
+        public void Should_respect_default_context_on_to_object()
+        {
+            // using the default options bypasses all custom converters
+            var streamException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } }
+            }, MapperTestsSourceContext.Default.ClassWithMemoryStream));
+            Assert.That(streamException!.Message, Contains.Substring("no converter to handle 'MemoryStream'"));
+
+            var setStreamException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
+                {
+                    new(Encoding.UTF8.GetBytes("Hello World 1")),
+                    new(Encoding.UTF8.GetBytes("Hello World 2")),
+                } } }
+            }, MapperTestsSourceContext.Default.ClassWithSetOfMemoryStream));
+            Assert.That(setStreamException!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
+
+            var setStringException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                {
+                    "HashSetOfString", new AttributeValue { SS = new List<string>
+                    {
+                        "Hello World 1",
+                        "Hello World 2",
+                    } }
+                }
+            }, MapperTestsSourceContext.Default.ClassWithSetOfString));
+            Assert.That(setStringException!.Message, Contains.Substring("no converter to handle 'Sets of String'"));
+
+            var setNumberException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
+            {
+                {
+                    "Ints", new AttributeValue { NS = new List<string>
+                    {
+                        "1",
+                        "2",
+                    } }
+                }
+            }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers));
+            Assert.That(setNumberException!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
+        }
+    }
+
+    [JsonSourceGenerationOptions]
+    [JsonSerializable(typeof(MapperTests.ClassWithMemoryStream))]
+    [JsonSerializable(typeof(MapperTests.ClassWithSetOfMemoryStream))]
+    [JsonSerializable(typeof(MapperTests.ClassWithSetOfString))]
+    [JsonSerializable(typeof(MapperTests.ClassWithSetOfNumbers))]
+    partial class MapperTestsSourceContext : JsonSerializerContext
+    {
     }
 }
+#pragma warning restore CA1711
