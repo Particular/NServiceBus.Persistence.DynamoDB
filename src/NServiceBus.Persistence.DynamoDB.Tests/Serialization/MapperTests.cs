@@ -1,3 +1,4 @@
+#pragma warning disable CA1711
 namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
@@ -189,9 +190,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
         }
 
-#pragma warning disable CA1711
         public class ClassWithMemoryStream
-#pragma warning restore CA1711
         {
             public MemoryStream SomeStream { get; set; }
         }
@@ -313,9 +312,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         // Sorted sets don't really make sense here
-#pragma warning disable CA1711
         public class ClassWithSetOfMemoryStream
-#pragma warning restore CA1711
         {
             public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; }
             public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; }
@@ -666,7 +663,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         }
 
         [Test]
-        public void Should_respect_default_options_on_to_map()
+        public void Should_respect_options_argument_on_to_map()
         {
             // using the default options bypasses all custom converters
             var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithMemoryStream
@@ -693,6 +690,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                     }, JsonSerializerOptions.Default);
 
             Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
+            // Using the default serializer options, sets are converted to dynamo list types
             Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
             Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
 
@@ -704,6 +702,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
                     }, JsonSerializerOptions.Default);
 
             Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
+            // Using the default serializer options, sets are converted to dynamo list types
             Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
             Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
         }
@@ -891,3 +890,4 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
     {
     }
 }
+#pragma warning restore CA1711
