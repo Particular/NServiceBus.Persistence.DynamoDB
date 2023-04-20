@@ -10,11 +10,25 @@ namespace NServiceBus.Persistence.DynamoDB
     using System.Text.Json.Serialization.Metadata;
     using Amazon.DynamoDBv2.Model;
 
-    static class Mapper
+    /// <summary>
+    /// Maps objects to and from dictionaries of <see cref="string"/> and <see cref="AttributeValue"/>.
+    /// </summary>
+    public static class Mapper
     {
         static JsonSerializerOptions DefaultOptions { get; } = new(MapperOptions.Defaults);
 
-        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
+        /// <summary>
+        /// Maps a given <paramref name="value"/> to a dictionary of <see cref="AttributeValue"/> where the key
+        /// represents the property name and the value the mapped property value represented as an attribute value
+        /// </summary>
+        /// <param name="value">The value to map.</param>
+        /// <typeparam name="TValue">The value type.</typeparam>
+        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value)
+            where TValue : class =>
+            ToMap(value, default(JsonSerializerOptions));
+
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options)
             where TValue : class
         {
             using var trackingState = new ClearTrackingState();
@@ -26,7 +40,8 @@ namespace NServiceBus.Persistence.DynamoDB
             return ToAttributeMap(jsonDocument.RootElement);
         }
 
-        public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo)
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo)
             where TValue : class
         {
             Guard.AgainstNull(nameof(jsonTypeInfo), jsonTypeInfo);
@@ -40,7 +55,17 @@ namespace NServiceBus.Persistence.DynamoDB
             return ToAttributeMap(jsonDocument.RootElement);
         }
 
-        public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
+        /// <summary>
+        /// Maps a given <paramref name="value"/> to a dictionary of <see cref="AttributeValue"/> where the key
+        /// represents the property name and the value the mapped property value represented as an attribute value
+        /// </summary>
+        /// <param name="value">The value to map.</param>
+        /// <param name="type">The type of the value.</param>
+        public static Dictionary<string, AttributeValue> ToMap(object value, Type type)
+            => ToMap(value, type, default(JsonSerializerOptions));
+
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
         {
             Guard.AgainstNull(nameof(context), context);
 
@@ -53,7 +78,8 @@ namespace NServiceBus.Persistence.DynamoDB
             return ToAttributeMap(jsonDocument.RootElement);
         }
 
-        public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options)
         {
             using var trackingState = new ClearTrackingState();
             using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? DefaultOptions);
@@ -68,14 +94,26 @@ namespace NServiceBus.Persistence.DynamoDB
         static void ThrowForInvalidRoot(Type type)
             => throw new SerializationException($"Unable to serialize the given type '{type}' because the json kind is not of type 'JsonValueKind.Object'.");
 
-        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
+        /// <summary>
+        /// Maps a given dictionary of <see cref="AttributeValue"/> where the key
+        /// represents the property name and the value the mapped property value represented as an attribute value
+        /// to the specified <typeparamref name="TValue"/> type.
+        /// </summary>
+        /// <param name="attributeValues">The attribute values.</param>
+        /// <typeparam name="TValue">The value type to map to.</typeparam>
+        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
+            => ToObject<TValue>(attributeValues, default(JsonSerializerOptions));
+
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
         {
             using var trackingState = new ClearTrackingState();
             var jsonObject = ToNodeFromMap(attributeValues, jsonTypeInfo.Options);
             return jsonObject.Deserialize(jsonTypeInfo);
         }
 
-        public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options)
         {
             options ??= DefaultOptions;
             using var trackingState = new ClearTrackingState();
@@ -83,7 +121,18 @@ namespace NServiceBus.Persistence.DynamoDB
             return jsonObject.Deserialize<TValue>(options);
         }
 
-        public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
+        /// <summary>
+        /// Maps a given dictionary of <see cref="AttributeValue"/> where the key
+        /// represents the property name and the value the mapped property value represented as an attribute value
+        /// to the specified <paramref name="returnType"/> type.
+        /// </summary>
+        /// <param name="attributeValues">The attribute values.</param>
+        /// <param name="returnType">The return type to map to.</param>
+        public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType)
+            => ToObject(attributeValues, returnType, default(JsonSerializerOptions));
+
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options)
         {
             options ??= DefaultOptions;
             using var trackingState = new ClearTrackingState();
@@ -91,7 +140,8 @@ namespace NServiceBus.Persistence.DynamoDB
             return jsonObject.Deserialize(returnType, options);
         }
 
-        public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
+        // This method can be made public to support custom serialization options which also enables source gen support.
+        internal static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
         {
             using var trackingState = new ClearTrackingState();
             var jsonObject = ToNodeFromMap(attributeValues, context.Options);

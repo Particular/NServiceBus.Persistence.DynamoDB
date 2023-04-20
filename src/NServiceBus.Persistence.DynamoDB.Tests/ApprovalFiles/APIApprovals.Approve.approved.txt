@@ -30,6 +30,14 @@ namespace NServiceBus.Persistence.DynamoDB
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
     }
+    public static class Mapper
+    {
+        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap(object value, System.Type type) { }
+        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap<TValue>(TValue value)
+            where TValue :  class { }
+        public static object? ToObject(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Type returnType) { }
+        public static TValue? ToObject<TValue>(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues) { }
+    }
     public class OutboxPersistenceConfiguration
     {
         public OutboxPersistenceConfiguration() { }
