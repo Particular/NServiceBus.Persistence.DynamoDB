@@ -7,6 +7,7 @@
     using Amazon.DynamoDBv2.Model;
     using EndpointTemplates;
     using NUnit.Framework;
+    using Persistence.DynamoDB;
 
     public class When_injecting_shared_session
     {
@@ -19,25 +20,35 @@
                 .Done(c => c.MessageReceived)
                 .Run();
 
-            var items = await SetupFixture.DynamoDBClient.QueryAsync(new QueryRequest
+            var getItemRequest = new GetItemRequest
             {
-                TableName = SetupFixture.TableConfiguration.TableName,
                 ConsistentRead = true,
-                KeyConditionExpression = "#pk = :pk",
-                ExpressionAttributeNames =
-                    new Dictionary<string, string> { { "#pk", SetupFixture.TableConfiguration.PartitionKeyName } },
-                ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
+                Key = new Dictionary<string, AttributeValue>
                 {
-                    { ":pk", new AttributeValue(context.ItemPK) }
-                }
-            });
+                    { SetupFixture.TableConfiguration.PartitionKeyName, new AttributeValue { S = context.ItemPK } },
+                    { SetupFixture.TableConfiguration.SortKeyName, new AttributeValue { S = context.ItemSK } }
+                },
+                TableName = SetupFixture.TableConfiguration.TableName
+            };
 
-            Assert.AreEqual(1, items.Count);
+            var itemResponse = await SetupFixture.DynamoDBClient.GetItemAsync(getItemRequest);
+            var mappedDto = Mapper.ToObject<SomeDto>(itemResponse.Item);
+
+            Assert.AreEqual(typeof(EndpointAttachingTransactionOperations.TriggerMessageHandler).FullName, mappedDto.SomeData);
+            CollectionAssert.AreEqual(new List<int>
+            {
+                1,
+                2,
+                3,
+                4,
+                5
+            }, mappedDto.Ints);
         }
 
         class Context : ScenarioContext
         {
             public string ItemPK { get; } = Guid.NewGuid().ToString("N");
+            public string ItemSK { get; } = Guid.NewGuid().ToString("N");
             public bool MessageReceived { get; set; }
         }
 
@@ -45,11 +56,8 @@
         {
             public EndpointAttachingTransactionOperations() => EndpointSetup<DefaultServer>();
 
-            class TriggerMessageHandler : IHandleMessages<TriggerMessage>
+            internal class TriggerMessageHandler : IHandleMessages<TriggerMessage>
             {
-                readonly Context testContext;
-                readonly IDynamoDBStorageSession storageSession;
-
                 public TriggerMessageHandler(Context testContext, IDynamoDBStorageSession storageSession)
                 {
                     this.testContext = testContext;
@@ -58,30 +66,48 @@
 
                 public Task Handle(TriggerMessage message, IMessageHandlerContext context)
                 {
+                    var someDto = new SomeDto
+                    {
+                        SomeData = typeof(TriggerMessageHandler).FullName,
+                        Ints = new List<int>
+                        {
+                            1,
+                            2,
+                            3,
+                            4,
+                            5
+                        }
+                    };
+                    var itemMap = Mapper.ToMap(someDto);
+                    itemMap[SetupFixture.TableConfiguration.PartitionKeyName] = new AttributeValue(testContext.ItemPK);
+                    itemMap[SetupFixture.TableConfiguration.SortKeyName] = new AttributeValue(testContext.ItemSK);
+
                     storageSession.Add(new TransactWriteItem
                     {
                         Put = new Put
                         {
                             TableName = SetupFixture.TableConfiguration.TableName,
-                            Item = new Dictionary<string, AttributeValue>
-                            {
-                                {
-                                    SetupFixture.TableConfiguration.PartitionKeyName,
-                                    new AttributeValue(testContext.ItemPK)
-                                },
-                                { SetupFixture.TableConfiguration.SortKeyName, new AttributeValue("Session.Add") },
-                            }
+                            Item = itemMap
                         }
                     });
 
                     testContext.MessageReceived = true;
                     return Task.CompletedTask;
                 }
+
+                readonly Context testContext;
+                readonly IDynamoDBStorageSession storageSession;
             }
         }
 
         class TriggerMessage : IMessage
         {
+        }
+
+        class SomeDto
+        {
+            public string SomeData { get; set; }
+            public List<int> Ints { get; set; }
         }
     }
 }
