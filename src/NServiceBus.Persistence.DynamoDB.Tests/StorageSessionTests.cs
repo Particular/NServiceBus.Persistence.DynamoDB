@@ -1,8 +1,9 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
-    using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
+    using Amazon.DynamoDBv2;
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
     using NUnit.Framework;
@@ -13,42 +14,31 @@
         [Test]
         public void Dispose_should_call_cleanup_actions()
         {
-            var calledCleanupActions = new List<Guid>();
-            Task CleanupAction(Guid guid)
-            {
-                calledCleanupActions.Add(guid);
-                return Task.CompletedTask;
-            }
-
-            var action1 = Guid.NewGuid();
-            var action2 = Guid.NewGuid();
+            var action1 = new MockLockCleanup();
+            var action2 = new MockLockCleanup();
 
             var session = new StorageSession(new MockDynamoDBClient(), new ContextBag());
-            session.CleanupActions[action1] = (_, _) => CleanupAction(action1);
-            session.CleanupActions[action2] = (_, _) => CleanupAction(action2);
+            session.Add(action1);
+            session.Add(action2);
 
             // the cleanup happens async, but because we're never actually move away from sync code paths, we can immediately assert after calling dispose
             session.Dispose();
 
-            Assert.That(calledCleanupActions, Has.Count.EqualTo(2));
-            Assert.That(calledCleanupActions, Contains.Item(action1).And.Contains(action2));
+            Assert.That(action1.WasCalled, Is.True);
+            Assert.That(action2.WasCalled, Is.True);
         }
 
         [Test]
         public void Dispose_should_call_cleanup_actions_only_once()
         {
-            int counter = 0;
+            var action = new MockLockCleanup();
             var session = new StorageSession(new MockDynamoDBClient(), new ContextBag());
-            session.CleanupActions[Guid.NewGuid()] = (_, _) =>
-            {
-                counter++;
-                return Task.CompletedTask;
-            };
+            session.Add(action);
 
             session.Dispose();
             session.Dispose();
 
-            Assert.AreEqual(1, counter);
+            Assert.AreEqual(1, action.NumberOfTimesCalled);
         }
 
         [Test]
@@ -60,6 +50,21 @@
 
             Assert.Throws<ObjectDisposedException>(() => session.Add(new TransactWriteItem()));
             Assert.Throws<ObjectDisposedException>(() => session.AddRange(new[] { new TransactWriteItem(), new TransactWriteItem() }));
+        }
+
+        class MockLockCleanup : ILockCleanup
+        {
+            public Guid Id { get; } = Guid.NewGuid();
+            public bool PotentiallyNoLongerNecessary { get; set; }
+            public bool Deactivated { get; set; }
+            public bool WasCalled => NumberOfTimesCalled > 0;
+            public int NumberOfTimesCalled { get; private set; }
+
+            public Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default)
+            {
+                NumberOfTimesCalled++;
+                return Task.CompletedTask;
+            }
         }
     }
 }

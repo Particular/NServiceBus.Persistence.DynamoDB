@@ -8,13 +8,10 @@
     using Amazon.DynamoDBv2.Model;
     using Extensibility;
     using Sagas;
+    using static SagaMetadataAttributeNames;
 
     class SagaPersister : ISagaPersister
     {
-        const string SagaMetadataAttributeName = "NSERVICEBUS_METADATA";
-        const string SagaDataVersionAttributeName = "VERSION";
-        const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
-
         readonly SagaPersistenceConfiguration configuration;
         readonly string endpointIdentifier;
         readonly IAmazonDynamoDB dynamoDbClient;
@@ -64,6 +61,10 @@
             using var timedTokenSource = new CancellationTokenSource(configuration.LeaseAcquisitionTimeout);
             using var sharedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timedTokenSource.Token);
             cancellationToken = sharedTokenSource.Token;
+            var dynamoSession = (IDynamoDBStorageSessionInternal)synchronizedStorageSession;
+
+            var sagaPartitionKey = SagaPartitionKey(sagaId);
+            var sagaSortKey = SagaSortKey(sagaId);
 
             try
             {
@@ -75,8 +76,8 @@
                     {
                         Key = new Dictionary<string, AttributeValue>
                         {
-                            { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                            { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
+                            { configuration.Table.PartitionKeyName, new AttributeValue { S = sagaPartitionKey } },
+                            { configuration.Table.SortKeyName, new AttributeValue { S = sagaSortKey } }
                         },
                         UpdateExpression = "SET #lease = :lease_timeout",
                         ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
@@ -98,6 +99,7 @@
                         var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
                             .ConfigureAwait(false);
                         // we need to find out if the saga already exists or not
+                        // TODO: Can the first check ever be not true?
                         if (response.Attributes.ContainsKey(SagaMetadataAttributeName) && response.Attributes[SagaMetadataAttributeName].M.ContainsKey(SagaDataVersionAttributeName))
                         {
                             // the saga exists
@@ -105,64 +107,18 @@
 
                             // ensure we cleanup the lock even if no update/save operation is being committed
                             // note that a transactional batch can only contain a single operation per item in DynamoDB
-                            var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                            dynamoSession.CleanupSagaLock(sagaId, (client, cancellationToken) => client.UpdateItemAsync(new UpdateItemRequest
-                            {
-                                Key = new Dictionary<string, AttributeValue>
-                                {
-                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                                    { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
-                                },
-                                UpdateExpression = "SET #lease = :released_lease",
-                                ConditionExpression = "#lease = :current_lease AND #metadata.#version = :current_version", // only if the lock is still the same that we acquired.
-                                ExpressionAttributeNames =
-                                    new Dictionary<string, string>
-                                    {
-                                        { "#metadata", SagaMetadataAttributeName },
-                                        { "#lease", SagaLeaseAttributeName },
-                                        { "#version", SagaDataVersionAttributeName }
-                                    },
-                                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                                {
-                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } },
-                                    { ":released_lease", new AttributeValue { N = "-1" } },
-                                    { ":current_version", response.Attributes[SagaMetadataAttributeName].M[SagaDataVersionAttributeName] }
-                                },
-                                ReturnValues = ReturnValue.NONE,
-                                TableName = configuration.Table.TableName
-                            }, cancellationToken));
-
+                            dynamoSession.Add(new UpdateSagaLock(sagaId, configuration,
+                                sagaPartitionKey, sagaSortKey,
+                                response.Attributes[SagaLeaseAttributeName].N,
+                                response.Attributes[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N));
                             return sagaData;
                         }
-                        else
-                        {
-                            // it's a new saga (but we own the lock now)
 
-                            // we need to delete the entry containing the lock
-                            var dynamoSession = (DynamoDBSynchronizedStorageSession)synchronizedStorageSession;
-                            dynamoSession.CleanupSagaLock(sagaId, (client, cancellationToken) => client.DeleteItemAsync(new DeleteItemRequest
-                            {
-                                Key = new Dictionary<string, AttributeValue>
-                                {
-                                    { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                                    { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
-                                },
-                                ConditionExpression = "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
-                                ExpressionAttributeNames = new Dictionary<string, string>
-                                {
-                                    { "#metadata", SagaMetadataAttributeName },
-                                    { "#lease", SagaLeaseAttributeName },
-                                },
-                                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                                {
-                                    { ":current_lease", new AttributeValue { N = response.Attributes[SagaLeaseAttributeName].N } }
-                                },
-                                ReturnValues = ReturnValue.NONE,
-                                TableName = configuration.Table.TableName
-                            }, cancellationToken));
-
-                            return null;
-                        }
+                        // it's a new saga (but we own the lock now)
+                        // we need to delete the entry containing the lock
+                        dynamoSession.Add(new DeleteSagaLock(sagaId, configuration, sagaPartitionKey, sagaSortKey,
+                            response.Attributes[SagaLeaseAttributeName].N));
+                        return null;
                     }
                     catch (AmazonDynamoDBException e) when (e is ConditionalCheckFailedException or TransactionConflictException)
                     {
@@ -197,7 +153,8 @@
 
         public Task Save(IContainSagaData sagaData, SagaCorrelationProperty correlationProperty, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
         {
-            session.DynamoDBPersistenceSession().Add(new TransactWriteItem
+            var dynamoSession = (IDynamoDBStorageSessionInternal)session.DynamoDBPersistenceSession();
+            dynamoSession.Add(new TransactWriteItem
             {
                 Put = new Put
                 {
@@ -214,11 +171,11 @@
                 }
             });
 
+            // TODO: In theory this check would not be necessary.
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
-                var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
-                dynamoSession.MarkSagaLockAsReleasedOnCommit(sagaData.Id);
+                dynamoSession.MarkAsNoLongerNecessary(sagaData.Id);
             }
 
             return Task.CompletedTask;
@@ -229,7 +186,9 @@
             var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
             var nextVersion = currentVersion + 1;
 
-            session.DynamoDBPersistenceSession().Add(new TransactWriteItem
+            var dynamoSession = (IDynamoDBStorageSessionInternal)session.DynamoDBPersistenceSession();
+
+            dynamoSession.Add(new TransactWriteItem
             {
                 Put = new Put
                 {
@@ -248,11 +207,11 @@
                 }
             });
 
+            // TODO: In theory this check would not be necessary.
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
-                var dynamoSession = (DynamoDBSynchronizedStorageSession)session;
-                dynamoSession.MarkSagaLockAsReleasedOnCommit(sagaData.Id);
+                dynamoSession.MarkAsNoLongerNecessary(sagaData.Id);
             }
 
             return Task.CompletedTask;
@@ -265,14 +224,14 @@
             sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaData.Id) });
             sagaDataMap.Add(SagaMetadataAttributeName, new AttributeValue
             {
-                M = new Dictionary<string, AttributeValue>()
+                M = new Dictionary<string, AttributeValue>
                 {
                     { SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() } },
                     { "TYPE", new AttributeValue { S = sagaData.GetType().FullName } },
                     { "SCHEMA_VERSION", new AttributeValue { S = "1.0.0" } }
                 }
             });
-            // release lease on save
+            // released lease on save
             sagaDataMap.Add(SagaLeaseAttributeName, new AttributeValue { N = "-1" });
             return sagaDataMap;
         }
