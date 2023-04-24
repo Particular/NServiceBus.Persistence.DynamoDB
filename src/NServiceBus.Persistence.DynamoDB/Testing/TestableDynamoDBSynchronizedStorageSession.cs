@@ -1,13 +1,15 @@
 ﻿namespace NServiceBus.Testing
 {
+    using System;
     using System.Collections.Generic;
     using Amazon.DynamoDBv2.Model;
     using Persistence;
+    using Persistence.DynamoDB;
 
     /// <summary>
     /// A fake implementation for <see cref="SynchronizedStorageSession"/> for testing purposes.
     /// </summary>
-    public class TestableDynamoDBSynchronizedStorageSession : ISynchronizedStorageSession, IDynamoDBStorageSession
+    public class TestableDynamoDBSynchronizedStorageSession : ISynchronizedStorageSession, IDynamoDBStorageSessionInternal
     {
         readonly List<TransactWriteItem> transactWriteItems = new List<TransactWriteItem>();
 
@@ -28,5 +30,13 @@
 
         /// <inheritdoc />
         void IDynamoDBStorageSession.AddRange(IEnumerable<TransactWriteItem> writeItems) => transactWriteItems.AddRange(writeItems);
+
+        void IDynamoDBStorageSessionInternal.AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
+        {
+        }
+
+        void IDynamoDBStorageSessionInternal.MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId)
+        {
+        }
     }
 }

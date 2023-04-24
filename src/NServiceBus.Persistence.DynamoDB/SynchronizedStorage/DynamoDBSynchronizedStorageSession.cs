@@ -10,13 +10,8 @@
     using Outbox;
     using Transport;
 
-    class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSession
+    sealed class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSessionInternal
     {
-        StorageSession storageSession = null!;
-        bool commitOnComplete;
-        bool disposed;
-        readonly IAmazonDynamoDB client;
-
         public DynamoDBSynchronizedStorageSession(IDynamoDBClientProvider dynamoDbClientProvider)
             => client = dynamoDbClientProvider.Client;
 
@@ -73,8 +68,13 @@
 
         public void AddRange(IEnumerable<TransactWriteItem> writeItems) => storageSession.AddRange(writeItems);
 
-        public void MarkSagaLockAsReleasedOnCommit(Guid sagaId) => storageSession.SagaLocksReleased.Add(sagaId);
+        public void AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup) => storageSession.AddToBeExecutedWhenSessionDisposes(lockCleanup);
 
-        public void CleanupSagaLock(Guid sagaId, Func<IAmazonDynamoDB, CancellationToken, Task> cleanupAction) => storageSession.CleanupActions[sagaId] = cleanupAction;
+        public void MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId) => storageSession.MarkAsNoLongerNecessaryWhenSessionCommitted(lockCleanupId);
+
+        StorageSession storageSession = null!;
+        bool commitOnComplete;
+        bool disposed;
+        readonly IAmazonDynamoDB client;
     }
 }

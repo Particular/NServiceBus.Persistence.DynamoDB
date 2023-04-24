@@ -10,14 +10,9 @@
     using Extensibility;
     using Logging;
 
-    class StorageSession
+    class StorageSession : IDynamoDBStorageSessionInternal
     {
         static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
-
-        public HashSet<Guid> SagaLocksReleased = new();
-
-        //TODO optimize allocations by avoiding creation of the dictionary on OOC settings. Expect 1 saga to be the default.
-        public Dictionary<Guid, Func<IAmazonDynamoDB, CancellationToken, Task>> CleanupActions { get; } = new();
 
         public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
@@ -37,6 +32,22 @@
             ThrowIfDisposed();
             batch.AddRange(writeItems);
             CheckCapacity();
+        }
+
+        public void AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
+        {
+            ThrowIfDisposed();
+            lockCleanups ??= new Dictionary<Guid, ILockCleanup>();
+            lockCleanups.Add(lockCleanup.Id, lockCleanup);
+        }
+
+        public void MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId)
+        {
+            ThrowIfDisposed();
+            if (lockCleanups?.TryGetValue(lockCleanupId, out var lockCleanup) ?? false)
+            {
+                lockCleanup.NoLongerNecessaryWhenSessionCommitted = true;
+            }
         }
 
         void CheckCapacity()
@@ -65,11 +76,7 @@
                 throw new InvalidOperationException($"Unable to complete transaction (status code: {response.HttpStatusCode}.");
             }
 
-            // The transaction operations already released any lock, don't clean them up explicitly
-            foreach (var sagaId in SagaLocksReleased)
-            {
-                CleanupActions.Remove(sagaId);
-            }
+            committed = true;
         }
 
         public void Dispose()
@@ -80,25 +87,38 @@
             }
 
             // release lock as fire & forget
-            _ = ReleaseLocksAsync();
+            _ = ReleaseLocksAsync(CancellationToken.None);
             disposed = true;
+        }
 
-            async Task ReleaseLocksAsync()
+        async Task ReleaseLocksAsync(CancellationToken cancellationToken)
+        {
+            if (lockCleanups is null or { Count: 0 })
             {
-                // release any outstanding lock
+                return;
+            }
 
-                // Batches only support put/delete operations, no updates, therefore we execute all cleanups separately
-                foreach (var action in CleanupActions.Values)
+            // release any outstanding lock
+            // Batches only support put/delete operations, no updates, therefore we execute all cleanups separately
+            foreach (var action in lockCleanups.Values)
+            {
+                if (committed && action.NoLongerNecessaryWhenSessionCommitted)
                 {
-                    try
-                    {
-                        await action(dynamoDbClient, CancellationToken.None).ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        // ignore failures and let the lock release naturally due to the max lock duration
-                        Logger.Warn("Failed to cleanup saga locks", e);
-                    }
+                    continue;
+                }
+
+                try
+                {
+                    await action.Cleanup(dynamoDbClient, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // ignored
+                }
+                catch (Exception e)
+                {
+                    // ignore failures and let the lock release naturally due to the max lock duration
+                    Logger.Warn("Failed to cleanup saga locks", e);
                 }
             }
         }
@@ -114,8 +134,10 @@
 
         public ContextBag CurrentContextBag { get; set; }
 
-        List<TransactWriteItem> batch = new List<TransactWriteItem>();
+        List<TransactWriteItem> batch = new();
+        Dictionary<Guid, ILockCleanup>? lockCleanups;
         readonly IAmazonDynamoDB dynamoDbClient;
         bool disposed;
+        bool committed;
     }
 }
