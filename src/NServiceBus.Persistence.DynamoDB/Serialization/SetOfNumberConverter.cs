@@ -2,12 +2,14 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
+    using Amazon.DynamoDBv2.Model;
 
-    sealed class SetOfNumberConverter : JsonConverterFactory
+    sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "HashSetNumberContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -50,6 +52,36 @@ namespace NServiceBus.Persistence.DynamoDB
             return converter;
 
         }
+
+        public bool TryExtract(JsonElement element, [NotNullWhen(true)] out AttributeValue? attributeValue)
+        {
+            attributeValue = null;
+            if (!element.TryGetProperty(PropertyName, out var property))
+            {
+                return false;
+            }
+
+            var numbersAsStrings = new List<string?>(property.GetArrayLength());
+            foreach (var innerElement in property.EnumerateArray())
+            {
+                numbersAsStrings.Add(innerElement.ToString());
+            }
+            attributeValue = new AttributeValue { NS = numbersAsStrings };
+            return true;
+        }
+
+        public JsonNode ToNode(AttributeValue attributeValue)
+        {
+            var jsonObject = new JsonObject();
+            var array = new JsonArray();
+            foreach (var numberAsString in attributeValue.NS)
+            {
+                array.Add(JsonNode.Parse(numberAsString));
+            }
+            jsonObject.Add(PropertyName, array);
+            return jsonObject;
+        }
+
         sealed class SetConverter<TSet, TValue> : JsonConverter<TSet>
             where TSet : ISet<TValue>
             where TValue : struct
@@ -102,34 +134,6 @@ namespace NServiceBus.Persistence.DynamoDB
             }
 
             readonly JsonSerializerOptions optionsWithoutSetOfNumberConverter;
-        }
-
-        public static bool TryExtract(JsonElement element, out List<string?>? numbersAsStrings)
-        {
-            numbersAsStrings = null;
-            if (!element.TryGetProperty(PropertyName, out var property))
-            {
-                return false;
-            }
-
-            numbersAsStrings = new List<string?>(property.GetArrayLength());
-            foreach (var innerElement in property.EnumerateArray())
-            {
-                numbersAsStrings.Add(innerElement.ToString());
-            }
-            return true;
-        }
-
-        public static JsonNode ToNode(List<string> numbersAsStrings)
-        {
-            var jsonObject = new JsonObject();
-            var array = new JsonArray();
-            foreach (var numberAsString in numbersAsStrings)
-            {
-                array.Add(JsonNode.Parse(numberAsString));
-            }
-            jsonObject.Add(PropertyName, array);
-            return jsonObject;
         }
     }
 }
