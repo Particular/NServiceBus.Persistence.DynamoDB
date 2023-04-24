@@ -35,23 +35,21 @@
             {
                 return await ReadWithLock<TSagaData>(sagaId, context, session, cancellationToken).ConfigureAwait(false);
             }
-            else
-            {
-                // Using optimistic concurrency control
-                var getItemRequest = new GetItemRequest
-                {
-                    ConsistentRead = true,
-                    Key = new Dictionary<string, AttributeValue>
-                    {
-                        { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
-                        { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
-                    },
-                    TableName = configuration.Table.TableName
-                };
 
-                var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
-                return !response.IsItemSet ? default : Deserialize<TSagaData>(response.Item, context);
-            }
+            // Using optimistic concurrency control
+            var getItemRequest = new GetItemRequest
+            {
+                ConsistentRead = true,
+                Key = new Dictionary<string, AttributeValue>
+                {
+                    { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
+                    { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
+                },
+                TableName = configuration.Table.TableName
+            };
+
+            var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
+            return !response.IsItemSet ? default : Deserialize<TSagaData>(response.Item, context);
         }
 
         async Task<TSagaData?> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
