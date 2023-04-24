@@ -9,9 +9,7 @@ namespace NServiceBus.Persistence.DynamoDB
     {
         Guid Id { get; }
 
-        bool PotentiallyNoLongerNecessary { get; set; }
-
-        bool Deactivated { get; set; }
+        bool NoLongerNecessaryWhenSessionCommitted { get; set; }
 
         Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default);
     }

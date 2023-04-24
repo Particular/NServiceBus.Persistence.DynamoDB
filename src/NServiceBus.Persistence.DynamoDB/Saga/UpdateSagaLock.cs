@@ -20,8 +20,8 @@ namespace NServiceBus.Persistence.DynamoDB
             Id = sagaId;
         }
         public Guid Id { get; }
-        public bool PotentiallyNoLongerNecessary { get; set; }
-        public bool Deactivated { get; set; }
+        public bool NoLongerNecessaryWhenSessionCommitted { get; set; }
+
         public Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default) =>
             client.UpdateItemAsync(new UpdateItemRequest
             {

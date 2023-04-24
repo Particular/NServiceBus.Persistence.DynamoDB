@@ -55,8 +55,7 @@
         class MockLockCleanup : ILockCleanup
         {
             public Guid Id { get; } = Guid.NewGuid();
-            public bool PotentiallyNoLongerNecessary { get; set; }
-            public bool Deactivated { get; set; }
+            public bool NoLongerNecessaryWhenSessionCommitted { get; set; }
             public bool WasCalled => NumberOfTimesCalled > 0;
             public int NumberOfTimesCalled { get; private set; }
 

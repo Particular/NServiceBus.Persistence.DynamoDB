@@ -172,7 +172,7 @@
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
-                dynamoSession.MarkAsNoLongerNecessary(sagaData.Id);
+                dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(sagaData.Id);
             }
 
             return Task.CompletedTask;
@@ -208,7 +208,7 @@
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
-                dynamoSession.MarkAsNoLongerNecessary(sagaData.Id);
+                dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(sagaData.Id);
             }
 
             return Task.CompletedTask;

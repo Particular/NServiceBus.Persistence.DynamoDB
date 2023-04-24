@@ -72,7 +72,7 @@
 
         public void Add(ILockCleanup lockCleanup) => storageSession.Add(lockCleanup);
 
-        public void MarkAsNoLongerNecessary(Guid lockCleanupId) => storageSession.MarkAsNoLongerNecessary(lockCleanupId);
+        public void MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId) => storageSession.MarkAsNoLongerNecessaryWhenSessionCommitted(lockCleanupId);
 
         StorageSession storageSession = null!;
         bool commitOnComplete;

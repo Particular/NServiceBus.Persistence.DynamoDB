@@ -43,12 +43,12 @@
             lockCleanups.Add(lockCleanup.Id, lockCleanup);
         }
 
-        public void MarkAsNoLongerNecessary(Guid lockCleanupId)
+        public void MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId)
         {
             ThrowIfDisposed();
             if (lockCleanups?.TryGetValue(lockCleanupId, out var lockCleanup) ?? false)
             {
-                lockCleanup.PotentiallyNoLongerNecessary = true;
+                lockCleanup.NoLongerNecessaryWhenSessionCommitted = true;
             }
         }
 
@@ -78,21 +78,7 @@
                 throw new InvalidOperationException($"Unable to complete transaction (status code: {response.HttpStatusCode}.");
             }
 
-            DeactivateNoLongerNecessaryCleanups();
-        }
-
-        void DeactivateNoLongerNecessaryCleanups()
-        {
-            if (lockCleanups is null or { Count: 0 })
-            {
-                return;
-            }
-
-            // The transaction operations already released any lock, don't clean them up explicitly
-            foreach (var lockCleanup in lockCleanups.Values)
-            {
-                lockCleanup.Deactivated = lockCleanup.PotentiallyNoLongerNecessary;
-            }
+            committed = true;
         }
 
         public void Dispose()
@@ -118,7 +104,7 @@
             // Batches only support put/delete operations, no updates, therefore we execute all cleanups separately
             foreach (var action in lockCleanups.Values)
             {
-                if (action.Deactivated)
+                if (committed && action.NoLongerNecessaryWhenSessionCommitted)
                 {
                     continue;
                 }
@@ -154,5 +140,6 @@
         Dictionary<Guid, ILockCleanup>? lockCleanups;
         readonly IAmazonDynamoDB dynamoDbClient;
         bool disposed;
+        bool committed;
     }
 }

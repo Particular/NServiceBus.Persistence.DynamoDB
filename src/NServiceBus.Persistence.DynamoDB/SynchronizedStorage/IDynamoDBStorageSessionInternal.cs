@@ -6,6 +6,6 @@ namespace NServiceBus.Persistence.DynamoDB
     {
         void Add(ILockCleanup lockCleanup);
 
-        void MarkAsNoLongerNecessary(Guid lockCleanupId);
+        void MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId);
     }
 }
