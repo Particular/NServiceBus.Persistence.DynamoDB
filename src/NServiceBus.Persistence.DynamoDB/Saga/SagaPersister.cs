@@ -171,7 +171,6 @@
                 }
             });
 
-            // TODO: In theory this check would not be necessary.
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
