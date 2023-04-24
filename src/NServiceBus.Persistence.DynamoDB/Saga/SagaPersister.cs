@@ -98,9 +98,9 @@
                     {
                         var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
                             .ConfigureAwait(false);
-                        // we need to find out if the saga already exists or not
-                        // TODO: Can the first check ever be not true?
-                        if (response.Attributes.ContainsKey(SagaMetadataAttributeName) && response.Attributes[SagaMetadataAttributeName].M.ContainsKey(SagaDataVersionAttributeName))
+                        // we need to find out if the saga already exists or not and we do that by checking the whether the saga metadata attribute map exists
+                        if (response.Attributes.ContainsKey(SagaMetadataAttributeName) &&
+                            response.Attributes[SagaMetadataAttributeName].M.TryGetValue(SagaDataVersionAttributeName, out AttributeValue? versionAttributeValue))
                         {
                             // the saga exists
                             var sagaData = Deserialize<TSagaData>(response.Attributes, context);
@@ -110,7 +110,7 @@
                             dynamoSession.Add(new UpdateSagaLock(sagaId, configuration,
                                 sagaPartitionKey, sagaSortKey,
                                 response.Attributes[SagaLeaseAttributeName].N,
-                                response.Attributes[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N));
+                                versionAttributeValue.N));
                             return sagaData;
                         }
 
