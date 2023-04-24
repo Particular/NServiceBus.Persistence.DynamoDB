@@ -33,7 +33,7 @@
         {
             if (configuration.UsePessimisticLocking)
             {
-                return await ReadWithLock<TSagaData>(sagaId, context, session, cancellationToken).ConfigureAwait(false);
+                return await ReadWithLock<TSagaData>(sagaId, context, (IDynamoDBStorageSessionInternal)session, cancellationToken).ConfigureAwait(false);
             }
 
             // Using optimistic concurrency control
@@ -53,13 +53,12 @@
         }
 
         async Task<TSagaData?> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
-            ISynchronizedStorageSession synchronizedStorageSession, CancellationToken cancellationToken)
+            IDynamoDBStorageSessionInternal dynamoSession, CancellationToken cancellationToken)
             where TSagaData : class, IContainSagaData
         {
             using var timedTokenSource = new CancellationTokenSource(configuration.LeaseAcquisitionTimeout);
             using var sharedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timedTokenSource.Token);
             cancellationToken = sharedTokenSource.Token;
-            var dynamoSession = (IDynamoDBStorageSessionInternal)synchronizedStorageSession;
 
             var sagaPartitionKey = SagaPartitionKey(sagaId);
             var sagaSortKey = SagaSortKey(sagaId);
@@ -151,7 +150,7 @@
 
         public Task Save(IContainSagaData sagaData, SagaCorrelationProperty correlationProperty, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
         {
-            var dynamoSession = (IDynamoDBStorageSessionInternal)session.DynamoDBPersistenceSession();
+            var dynamoSession = (IDynamoDBStorageSessionInternal)session;
             dynamoSession.Add(new TransactWriteItem
             {
                 Put = new Put
@@ -183,8 +182,7 @@
             var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
             var nextVersion = currentVersion + 1;
 
-            var dynamoSession = (IDynamoDBStorageSessionInternal)session.DynamoDBPersistenceSession();
-
+            var dynamoSession = (IDynamoDBStorageSessionInternal)session;
             dynamoSession.Add(new TransactWriteItem
             {
                 Put = new Put
@@ -204,7 +202,6 @@
                 }
             });
 
-            // TODO: In theory this check would not be necessary.
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
@@ -237,7 +234,8 @@
         {
             var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
 
-            session.DynamoDBPersistenceSession().Add(new TransactWriteItem
+            var dynamoSession = (IDynamoDBStorageSessionInternal)session;
+            dynamoSession.Add(new TransactWriteItem
             {
                 Delete = new Delete
                 {
