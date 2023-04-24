@@ -82,7 +82,7 @@
                 null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage? DeserializeOutboxMessage(string messageId,
+        OutboxMessage DeserializeOutboxMessage(string messageId,
             int numberOfTransportOperations,
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {
