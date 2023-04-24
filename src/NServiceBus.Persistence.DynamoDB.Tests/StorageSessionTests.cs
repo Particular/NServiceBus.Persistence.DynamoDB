@@ -18,8 +18,8 @@
             var action2 = new MockLockCleanup();
 
             var session = new StorageSession(new MockDynamoDBClient(), new ContextBag());
-            session.Add(action1);
-            session.Add(action2);
+            session.AddToBeExecutedWhenSessionDisposes(action1);
+            session.AddToBeExecutedWhenSessionDisposes(action2);
 
             // the cleanup happens async, but because we're never actually move away from sync code paths, we can immediately assert after calling dispose
             session.Dispose();
@@ -33,7 +33,7 @@
         {
             var action = new MockLockCleanup();
             var session = new StorageSession(new MockDynamoDBClient(), new ContextBag());
-            session.Add(action);
+            session.AddToBeExecutedWhenSessionDisposes(action);
 
             session.Dispose();
             session.Dispose();

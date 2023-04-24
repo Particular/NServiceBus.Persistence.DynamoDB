@@ -68,9 +68,7 @@
 
         public void AddRange(IEnumerable<TransactWriteItem> writeItems) => storageSession.AddRange(writeItems);
 
-        public void MarkSagaLockAsReleasedOnCommit(Guid sagaId) => storageSession.SagaLocksReleased.Add(sagaId);
-
-        public void Add(ILockCleanup lockCleanup) => storageSession.Add(lockCleanup);
+        public void AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup) => storageSession.AddToBeExecutedWhenSessionDisposes(lockCleanup);
 
         public void MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId) => storageSession.MarkAsNoLongerNecessaryWhenSessionCommitted(lockCleanupId);
 

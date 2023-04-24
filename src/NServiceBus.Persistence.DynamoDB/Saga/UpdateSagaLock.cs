@@ -19,7 +19,9 @@ namespace NServiceBus.Persistence.DynamoDB
             this.currentVersion = currentVersion;
             Id = sagaId;
         }
+
         public Guid Id { get; }
+
         public bool NoLongerNecessaryWhenSessionCommitted { get; set; }
 
         public Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default) =>

@@ -14,8 +14,6 @@
     {
         static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
 
-        public HashSet<Guid> SagaLocksReleased = new();
-
         public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
             this.dynamoDbClient = dynamoDbClient;
@@ -36,7 +34,7 @@
             CheckCapacity();
         }
 
-        public void Add(ILockCleanup lockCleanup)
+        public void AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
         {
             ThrowIfDisposed();
             lockCleanups ??= new Dictionary<Guid, ILockCleanup>();

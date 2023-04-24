@@ -104,7 +104,7 @@
 
                             // ensure we cleanup the lock even if no update/save operation is being committed
                             // note that a transactional batch can only contain a single operation per item in DynamoDB
-                            dynamoSession.Add(new UpdateSagaLock(sagaId, configuration,
+                            dynamoSession.AddToBeExecutedWhenSessionDisposes(new UpdateSagaLock(sagaId, configuration,
                                 sagaPartitionKey, sagaSortKey,
                                 response.Attributes[SagaLeaseAttributeName].N,
                                 versionAttributeValue.N));
@@ -113,7 +113,7 @@
 
                         // it's a new saga (but we own the lock now)
                         // we need to delete the entry containing the lock
-                        dynamoSession.Add(new DeleteSagaLock(sagaId, configuration, sagaPartitionKey, sagaSortKey,
+                        dynamoSession.AddToBeExecutedWhenSessionDisposes(new DeleteSagaLock(sagaId, configuration, sagaPartitionKey, sagaSortKey,
                             response.Attributes[SagaLeaseAttributeName].N));
                         return null;
                     }
@@ -171,7 +171,7 @@
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
-                dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(sagaData.Id);
+                dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(lockCleanupId: sagaData.Id);
             }
 
             return Task.CompletedTask;
@@ -205,7 +205,7 @@
             if (configuration.UsePessimisticLocking)
             {
                 // we can't remove the action directly because the transaction was not completed yet
-                dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(sagaData.Id);
+                dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(lockCleanupId: sagaData.Id);
             }
 
             return Task.CompletedTask;

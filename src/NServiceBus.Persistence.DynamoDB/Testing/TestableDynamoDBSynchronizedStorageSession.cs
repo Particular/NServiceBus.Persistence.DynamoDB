@@ -31,7 +31,7 @@
         /// <inheritdoc />
         void IDynamoDBStorageSession.AddRange(IEnumerable<TransactWriteItem> writeItems) => transactWriteItems.AddRange(writeItems);
 
-        void IDynamoDBStorageSessionInternal.Add(ILockCleanup lockCleanup)
+        void IDynamoDBStorageSessionInternal.AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
         {
         }
 

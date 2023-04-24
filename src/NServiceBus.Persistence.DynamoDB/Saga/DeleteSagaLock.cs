@@ -20,6 +20,7 @@ namespace NServiceBus.Persistence.DynamoDB
         }
 
         public Guid Id { get; }
+
         public bool NoLongerNecessaryWhenSessionCommitted { get; set; }
 
         public Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default) =>
@@ -35,7 +36,8 @@ namespace NServiceBus.Persistence.DynamoDB
                 ExpressionAttributeNames =
                     new Dictionary<string, string>
                     {
-                        { "#metadata", SagaMetadataAttributeName }, { "#lease", SagaLeaseAttributeName },
+                        { "#metadata", SagaMetadataAttributeName },
+                        { "#lease", SagaLeaseAttributeName },
                     },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
