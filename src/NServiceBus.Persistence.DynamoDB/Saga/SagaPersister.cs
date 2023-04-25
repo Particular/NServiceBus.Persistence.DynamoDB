@@ -222,7 +222,7 @@
                 {
                     { SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() } },
                     { "TYPE", new AttributeValue { S = sagaData.GetType().FullName } },
-                    { "SCHEMA_VERSION", new AttributeValue { S = "1.0.0" } }
+                    { "SCHEMA_VERSION", new AttributeValue { S = "1.0" } }
                 }
             });
             // released lease on save

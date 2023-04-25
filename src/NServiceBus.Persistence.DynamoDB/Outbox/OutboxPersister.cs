@@ -162,6 +162,7 @@
                             },
                             { "Dispatched", new AttributeValue { BOOL = false } },
                             { "DispatchedAt", new AttributeValue { NULL = true } },
+                            { "SchemaVersion", new AttributeValue { S = "1.0" } },
                             { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } },
                         },
                         ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists

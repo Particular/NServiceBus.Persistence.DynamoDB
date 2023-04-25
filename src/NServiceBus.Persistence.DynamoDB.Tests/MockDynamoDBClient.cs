@@ -2,6 +2,7 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.DynamoDBv2;
@@ -34,6 +35,23 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
         {
             UpdateItemRequestsSent.Add(request);
             return Task.FromResult(UpdateItemRequestResponse(request));
+        }
+
+        public List<TransactWriteItemsRequest> TransactWriteRequestsSent { get; } = new();
+
+        public Func<TransactWriteItemsRequest, TransactWriteItemsResponse> TransactWriteRequestResponse = _ => new TransactWriteItemsResponse
+        {
+            HttpStatusCode = HttpStatusCode.OK
+        };
+
+        public Task<TransactWriteItemsResponse> TransactWriteItemsAsync(TransactWriteItemsRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // we need to take a defensive copy otherwise when batches are cleared the data is lost
+            var items = new List<TransactWriteItem>(request.TransactItems);
+            request.TransactItems = items;
+            TransactWriteRequestsSent.Add(request);
+            return Task.FromResult(TransactWriteRequestResponse(request));
         }
 
         #region NotImplemented
@@ -333,10 +351,6 @@ namespace NServiceBus.Persistence.DynamoDB.Tests
             throw new System.NotImplementedException();
 
         public TransactWriteItemsResponse TransactWriteItems(TransactWriteItemsRequest request) => throw new NotImplementedException();
-
-        public Task<TransactWriteItemsResponse> TransactWriteItemsAsync(TransactWriteItemsRequest request,
-            CancellationToken cancellationToken = new CancellationToken()) =>
-            throw new System.NotImplementedException();
 
         public UntagResourceResponse UntagResource(UntagResourceRequest request) => throw new NotImplementedException();
 

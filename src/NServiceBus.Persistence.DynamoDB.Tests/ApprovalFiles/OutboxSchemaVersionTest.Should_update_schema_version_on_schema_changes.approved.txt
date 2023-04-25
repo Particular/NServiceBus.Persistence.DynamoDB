@@ -1,0 +1,123 @@
+[
+  {
+    "ConditionCheck": null,
+    "Delete": null,
+    "Put": {
+      "ConditionExpression": "attribute_not_exists(#SK)",
+      "ExpressionAttributeNames": {
+        "#SK": "SK"
+      },
+      "ExpressionAttributeValues": {},
+      "Item": {
+        "PK": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": false,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": null,
+          "NS": [],
+          "NULL": false,
+          "S": "OUTBOX#SCHEMAVERSIONTEST#FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8",
+          "SS": []
+        },
+        "SK": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": false,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": null,
+          "NS": [],
+          "NULL": false,
+          "S": "OUTBOX#METADATA#FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8",
+          "SS": []
+        },
+        "TransportOperationsCount": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": false,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": "0",
+          "NS": [],
+          "NULL": false,
+          "S": null,
+          "SS": []
+        },
+        "Dispatched": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": true,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": null,
+          "NS": [],
+          "NULL": false,
+          "S": null,
+          "SS": []
+        },
+        "DispatchedAt": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": false,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": null,
+          "NS": [],
+          "NULL": true,
+          "S": null,
+          "SS": []
+        },
+        "SchemaVersion": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": false,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": null,
+          "NS": [],
+          "NULL": false,
+          "S": "1.0",
+          "SS": []
+        },
+        "ExpiresAt": {
+          "B": null,
+          "BOOL": false,
+          "IsBOOLSet": false,
+          "BS": [],
+          "L": [],
+          "IsLSet": false,
+          "M": {},
+          "IsMSet": false,
+          "N": null,
+          "NS": [],
+          "NULL": true,
+          "S": null,
+          "SS": []
+        }
+      },
+      "ReturnValuesOnConditionCheckFailure": null,
+      "TableName": "NServiceBus.Storage"
+    },
+    "Update": null
+  }
+]
