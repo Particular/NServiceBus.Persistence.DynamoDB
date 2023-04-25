@@ -46,9 +46,9 @@ namespace NServiceBus.Persistence.DynamoDB
     }
     public class SagaPersistenceConfiguration
     {
-        public System.TimeSpan LeaseDuration;
         public SagaPersistenceConfiguration() { }
         public System.TimeSpan LeaseAcquisitionTimeout { get; set; }
+        public System.TimeSpan LeaseDuration { get; set; }
         public NServiceBus.Persistence.DynamoDB.TableConfiguration Table { get; set; }
         public bool UsePessimisticLocking { get; set; }
     }
