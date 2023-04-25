@@ -31,13 +31,14 @@ namespace NServiceBus.Persistence.DynamoDB
         internal static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options)
             where TValue : class
         {
+            options ??= DefaultOptions;
             using var trackingState = new ClearTrackingState();
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options ?? DefaultOptions);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, options);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowForInvalidRoot(typeof(TValue));
             }
-            return ToAttributeMap(jsonDocument.RootElement);
+            return ToAttributeMap(jsonDocument.RootElement, options);
         }
 
         // This method can be made public to support custom serialization options which also enables source gen support.
@@ -52,7 +53,7 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 ThrowForInvalidRoot(typeof(TValue));
             }
-            return ToAttributeMap(jsonDocument.RootElement);
+            return ToAttributeMap(jsonDocument.RootElement, jsonTypeInfo.Options);
         }
 
         /// <summary>
@@ -75,19 +76,20 @@ namespace NServiceBus.Persistence.DynamoDB
             {
                 ThrowForInvalidRoot(type);
             }
-            return ToAttributeMap(jsonDocument.RootElement);
+            return ToAttributeMap(jsonDocument.RootElement, context.Options);
         }
 
         // This method can be made public to support custom serialization options which also enables source gen support.
         internal static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options)
         {
+            options ??= DefaultOptions;
             using var trackingState = new ClearTrackingState();
-            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options ?? DefaultOptions);
+            using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options);
             if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
             {
                 ThrowForInvalidRoot(type);
             }
-            return ToAttributeMap(jsonDocument.RootElement);
+            return ToAttributeMap(jsonDocument.RootElement, options);
         }
 
         [DoesNotReturn]
@@ -148,11 +150,11 @@ namespace NServiceBus.Persistence.DynamoDB
             return jsonObject.Deserialize(returnType, context);
         }
 
-        static AttributeValue ToAttributeFromElement(JsonElement element) =>
+        static AttributeValue ToAttributeFromElement(JsonElement element, JsonSerializerOptions options) =>
             element.ValueKind switch
             {
-                JsonValueKind.Object => ToAttributeFromObject(element),
-                JsonValueKind.Array => ToAttributeFromArray(element),
+                JsonValueKind.Object => ToAttributeFromObject(element, options),
+                JsonValueKind.Array => ToAttributeFromArray(element, options),
                 JsonValueKind.False => FalseAttributeValue,
                 JsonValueKind.True => TrueAttributeValue,
                 JsonValueKind.Null => NullAttributeValue,
@@ -166,13 +168,13 @@ namespace NServiceBus.Persistence.DynamoDB
         static AttributeValue ThrowInvalidOperationExceptionForInvalidValueKind(JsonValueKind valueKind)
             => throw new InvalidOperationException($"ValueKind '{valueKind}' could not be mapped.");
 
-        static Dictionary<string, AttributeValue> ToAttributeMap(JsonElement element)
+        static Dictionary<string, AttributeValue> ToAttributeMap(JsonElement element, JsonSerializerOptions options)
         {
             var dictionary = new Dictionary<string, AttributeValue>();
 
             foreach (var property in element.EnumerateObject())
             {
-                AttributeValue serializeElement = ToAttributeFromElement(property.Value);
+                AttributeValue serializeElement = ToAttributeFromElement(property.Value, options);
                 if (serializeElement.NULL)
                 {
                     continue;
@@ -183,40 +185,41 @@ namespace NServiceBus.Persistence.DynamoDB
             return dictionary;
         }
 
-        static AttributeValue ToAttributeFromArray(JsonElement element)
+        static AttributeValue ToAttributeFromArray(JsonElement element, JsonSerializerOptions options)
         {
             var values = new List<AttributeValue>(element.GetArrayLength());
             foreach (var innerElement in element.EnumerateArray())
             {
-                AttributeValue serializeElement = ToAttributeFromElement(innerElement);
+                AttributeValue serializeElement = ToAttributeFromElement(innerElement, options);
                 values.Add(serializeElement);
             }
             return new AttributeValue { L = values };
         }
 
-        static AttributeValue ToAttributeFromObject(JsonElement element)
+        static AttributeValue ToAttributeFromObject(JsonElement element, JsonSerializerOptions options)
         {
             // JsonElements of type Object might contain custom converted objects that should be mapped to dedicated DynamoDB value types
-            if (MemoryStreamConverter.TryExtract(element, out var stream))
+            if (options.TryGet<MemoryStreamConverter>(out var converter) && converter.TryExtract(element, out var attributeValue))
             {
-                return new AttributeValue { B = stream };
+                return attributeValue;
             }
 
-            if (SetOfMemoryStreamConverter.TryExtract(element, out var streamSet))
+            if (options.TryGet<SetOfMemoryStreamConverter>(out converter) && converter.TryExtract(element, out attributeValue))
             {
-                return new AttributeValue { BS = streamSet };
+                return attributeValue;
             }
 
-            if (SetOfNumberConverter.TryExtract(element, out var numberSEt))
+            if (options.TryGet<SetOfNumberConverter>(out converter) && converter.TryExtract(element, out attributeValue))
             {
-                return new AttributeValue { NS = numberSEt };
+                return attributeValue;
             }
 
-            if (SetOfStringConverter.TryExtract(element, out var stringSet))
+            if (options.TryGet<SetOfStringConverter>(out converter) && converter.TryExtract(element, out attributeValue))
             {
-                return new AttributeValue { SS = stringSet };
+                return attributeValue;
             }
-            return new AttributeValue { M = ToAttributeMap(element) };
+
+            return new AttributeValue { M = ToAttributeMap(element, options) };
         }
 
         static JsonNode? ToNode(AttributeValue attributeValue, JsonSerializerOptions jsonSerializerOptions) =>
@@ -230,10 +233,10 @@ namespace NServiceBus.Persistence.DynamoDB
                 { IsMSet: true, } => ToNodeFromMap(attributeValue.M, jsonSerializerOptions),
                 { IsLSet: true } => ToNodeFromList(attributeValue.L, jsonSerializerOptions),
                 // check the more complex cases last
-                { B: not null } => jsonSerializerOptions.Has<MemoryStreamConverter>() ? MemoryStreamConverter.ToNode(attributeValue.B) : ThrowForMissingConverter("MemoryStream"),
-                { BS.Count: > 0 } => jsonSerializerOptions.Has<SetOfMemoryStreamConverter>() ? SetOfMemoryStreamConverter.ToNode(attributeValue.BS) : ThrowForMissingConverter("Sets of MemoryStream"),
-                { SS.Count: > 0 } => jsonSerializerOptions.Has<SetOfStringConverter>() ? SetOfStringConverter.ToNode(attributeValue.SS) : ThrowForMissingConverter("Sets of String"),
-                { NS.Count: > 0 } => jsonSerializerOptions.Has<SetOfNumberConverter>() ? SetOfNumberConverter.ToNode(attributeValue.NS) : ThrowForMissingConverter("Sets of Number"),
+                { B: not null } => jsonSerializerOptions.TryGet<MemoryStreamConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("MemoryStream"),
+                { BS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfMemoryStreamConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of MemoryStream"),
+                { SS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfStringConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of String"),
+                { NS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfNumberConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of Number"),
                 _ => ThrowForNonMappableAttribute()
             };
 

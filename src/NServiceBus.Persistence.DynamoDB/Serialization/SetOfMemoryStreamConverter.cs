@@ -2,13 +2,15 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Reflection;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
+    using Amazon.DynamoDBv2.Model;
 
-    sealed class SetOfMemoryStreamConverter : JsonConverterFactory
+    sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConverter
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "HashSetMemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -28,7 +30,39 @@ namespace NServiceBus.Persistence.DynamoDB
             return converter;
         }
 
-        sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<MemoryStream>
+        public bool TryExtract(JsonElement element, [NotNullWhen(true)] out AttributeValue? attributeValue)
+        {
+            attributeValue = null;
+            if (!element.TryGetProperty(PropertyName, out var property))
+            {
+                return false;
+            }
+
+            var memoryStreams = new List<MemoryStream?>(property.GetArrayLength());
+            foreach (var streamElement in property.EnumerateArray())
+            {
+                _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
+                memoryStreams.Add(stream);
+            }
+
+            attributeValue = new AttributeValue { BS = memoryStreams };
+            return true;
+        }
+
+        public JsonNode ToNode(AttributeValue attributeValue)
+        {
+            var jsonObject = new JsonObject();
+            var streamHashSetContent = new JsonArray();
+            foreach (var memoryStream in attributeValue.BS)
+            {
+                streamHashSetContent.Add(MemoryStreamConverter.ToNode(memoryStream));
+            }
+            jsonObject.Add(PropertyName, streamHashSetContent);
+            return jsonObject;
+        }
+
+        sealed class SetConverter<TSet> : JsonConverter<TSet>
+            where TSet : ISet<MemoryStream>
         {
             public SetConverter(JsonSerializerOptions options)
                 => optionsWithoutSetOfMemoryStreamConverter = options.FromWithout<SetOfMemoryStreamConverter>();
@@ -80,35 +114,6 @@ namespace NServiceBus.Persistence.DynamoDB
             }
 
             readonly JsonSerializerOptions optionsWithoutSetOfMemoryStreamConverter;
-        }
-
-        public static bool TryExtract(JsonElement element, out List<MemoryStream?>? memoryStreams)
-        {
-            memoryStreams = null;
-            if (!element.TryGetProperty(PropertyName, out var property))
-            {
-                return false;
-            }
-
-            memoryStreams = new List<MemoryStream?>(property.GetArrayLength());
-            foreach (var streamElement in property.EnumerateArray())
-            {
-                _ = MemoryStreamConverter.TryExtract(streamElement, out var stream);
-                memoryStreams.Add(stream);
-            }
-            return true;
-        }
-
-        public static JsonNode ToNode(List<MemoryStream> memoryStreams)
-        {
-            var jsonObject = new JsonObject();
-            var streamHashSetContent = new JsonArray();
-            foreach (var memoryStream in memoryStreams)
-            {
-                streamHashSetContent.Add(MemoryStreamConverter.ToNode(memoryStream));
-            }
-            jsonObject.Add(PropertyName, streamHashSetContent);
-            return jsonObject;
         }
     }
 }

@@ -2,6 +2,7 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -31,23 +32,25 @@ namespace NServiceBus.Persistence.DynamoDB
             return newOptions;
         }
 
-        public static bool Has<TConverter>(this JsonSerializerOptions options)
-            where TConverter : JsonConverter
+        public static bool TryGet<TConverter>(this JsonSerializerOptions options, [NotNullWhen(true)] out IAttributeConverter? converter)
+            where TConverter : IAttributeConverter
         {
-            var cache = hasConverterCache.GetValue(options, static o => new ConcurrentDictionary<Type, bool>());
-            return cache.GetOrAdd(typeof(TConverter), static (t, o) =>
+            ConcurrentDictionary<Type, IAttributeConverter?> cache = attributeConverterCache.GetValue(options, static o => new ConcurrentDictionary<Type, IAttributeConverter?>());
+            var cachedConverter = cache.GetOrAdd(typeof(TConverter), static (_, o) =>
             {
                 foreach (var converter in o.Converters)
                 {
-                    if (converter is TConverter)
+                    if (converter is TConverter attributeConverter)
                     {
-                        return true;
+                        return attributeConverter;
                     }
                 }
-                return false;
+                return null;
             }, options);
+            converter = cachedConverter;
+            return converter is not null;
         }
 
-        static ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<Type, bool>> hasConverterCache = new();
+        static ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<Type, IAttributeConverter?>> attributeConverterCache = new();
     }
 }

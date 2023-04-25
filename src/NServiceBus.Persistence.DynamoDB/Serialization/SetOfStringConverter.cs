@@ -2,12 +2,14 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
+    using Amazon.DynamoDBv2.Model;
 
-    sealed class SetOfStringConverter : JsonConverterFactory
+    sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "HashSetStringContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -25,6 +27,35 @@ namespace NServiceBus.Persistence.DynamoDB
                 args: new object[] { options },
                 culture: null)!;
             return converter;
+        }
+
+        public bool TryExtract(JsonElement element, [NotNullWhen(true)] out AttributeValue? attributeValue)
+        {
+            attributeValue = null;
+            if (!element.TryGetProperty(PropertyName, out var property))
+            {
+                return false;
+            }
+
+            var strings = new List<string?>(property.GetArrayLength());
+            foreach (var innerElement in property.EnumerateArray())
+            {
+                strings.Add(innerElement.GetString());
+            }
+            attributeValue = new AttributeValue { SS = strings };
+            return true;
+        }
+
+        public JsonNode ToNode(AttributeValue attributeValue)
+        {
+            var jsonObject = new JsonObject();
+            var array = new JsonArray();
+            foreach (var value in attributeValue.SS)
+            {
+                array.Add(value);
+            }
+            jsonObject.Add(PropertyName, array);
+            return jsonObject;
         }
 
         sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
@@ -77,34 +108,6 @@ namespace NServiceBus.Persistence.DynamoDB
             }
 
             readonly JsonSerializerOptions optionsWithoutSetOfStringConverter;
-        }
-
-        public static bool TryExtract(JsonElement element, out List<string?>? strings)
-        {
-            strings = null;
-            if (!element.TryGetProperty(PropertyName, out var property))
-            {
-                return false;
-            }
-
-            strings = new List<string?>(property.GetArrayLength());
-            foreach (var innerElement in property.EnumerateArray())
-            {
-                strings.Add(innerElement.GetString());
-            }
-            return true;
-        }
-
-        public static JsonNode ToNode(List<string> strings)
-        {
-            var jsonObject = new JsonObject();
-            var array = new JsonArray();
-            foreach (var value in strings)
-            {
-                array.Add(value);
-            }
-            jsonObject.Add(PropertyName, array);
-            return jsonObject;
         }
     }
 }

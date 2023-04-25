@@ -2,13 +2,15 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Text.Json;
     using System.Text.Json.Nodes;
     using System.Text.Json.Serialization;
     using System.Threading;
+    using Amazon.DynamoDBv2.Model;
 
-    sealed class MemoryStreamConverter : JsonConverter<MemoryStream>
+    sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConverter
     {
         // This is a cryptic property name to make sure we never clash with the user data
         const string PropertyName = "MemoryStreamContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
@@ -57,6 +59,19 @@ namespace NServiceBus.Persistence.DynamoDB
             writer.WriteString(PropertyName, streamId);
             writer.WriteEndObject();
         }
+
+        public bool TryExtract(JsonElement element, [NotNullWhen(true)] out AttributeValue? attributeValue)
+        {
+            attributeValue = null;
+            if (!TryExtract(element, out MemoryStream? memoryStream))
+            {
+                return false;
+            }
+            attributeValue = new AttributeValue { B = memoryStream };
+            return true;
+        }
+
+        public JsonNode ToNode(AttributeValue attributeValue) => ToNode(attributeValue.B);
 
         public static bool TryExtract(JsonElement element, out MemoryStream? memoryStream)
         {
