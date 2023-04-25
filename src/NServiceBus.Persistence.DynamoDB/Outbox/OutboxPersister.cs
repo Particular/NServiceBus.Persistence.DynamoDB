@@ -78,11 +78,10 @@
             } while (response.LastEvaluatedKey.Count > 0);
 
             return foundOutboxMetadataEntry == null ?
-                //TODO: Should we check the response code to throw if there is an error (other than 404)
                 null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
         }
 
-        OutboxMessage? DeserializeOutboxMessage(string messageId,
+        OutboxMessage DeserializeOutboxMessage(string messageId,
             int numberOfTransportOperations,
             List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
         {

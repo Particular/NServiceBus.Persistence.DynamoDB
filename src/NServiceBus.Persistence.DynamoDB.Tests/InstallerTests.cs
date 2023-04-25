@@ -8,7 +8,6 @@
     using Amazon.DynamoDBv2;
     using NUnit.Framework;
 
-    //TODO would be nice to be able to tag the tables as tests for easier identification in AWS
     [TestFixture]
     public class InstallerTests
     {
