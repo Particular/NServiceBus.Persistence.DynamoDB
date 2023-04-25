@@ -29,7 +29,7 @@
         /// <summary>
         /// Defines the lease duration when using pessimistic locking.
         /// </summary>
-        public TimeSpan LeaseDuration = TimeSpan.FromSeconds(30); // based on SQS visibility timeout
+        public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromSeconds(30); // based on SQS visibility timeout
 
         /// <summary>
         /// How long the client should attempt to acquire a lock when using pessimistic locking before giving up.
