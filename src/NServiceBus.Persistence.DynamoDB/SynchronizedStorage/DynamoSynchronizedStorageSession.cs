@@ -10,15 +10,15 @@
     using Outbox;
     using Transport;
 
-    sealed class DynamoDBSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoDBStorageSessionInternal
+    sealed class DynamoSynchronizedStorageSession : ICompletableSynchronizedStorageSession, IDynamoStorageSessionInternal
     {
-        public DynamoDBSynchronizedStorageSession(IDynamoDBClientProvider dynamoDbClientProvider)
-            => client = dynamoDbClientProvider.Client;
+        public DynamoSynchronizedStorageSession(IDynamoClientProvider dynamoClientProvider)
+            => client = dynamoClientProvider.Client;
 
         public ValueTask<bool> TryOpen(IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            if (transaction is DynamoDBOutboxTransaction dynamoOutboxTransaction)
+            if (transaction is DynamoOutboxTransaction dynamoOutboxTransaction)
             {
                 storageSession = dynamoOutboxTransaction.StorageSession;
                 // because the synchronized storage session acts as decorator that forwards operations to the storage session

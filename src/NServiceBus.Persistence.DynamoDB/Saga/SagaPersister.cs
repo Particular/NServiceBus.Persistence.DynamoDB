@@ -33,7 +33,7 @@
         {
             if (configuration.UsePessimisticLocking)
             {
-                return await ReadWithLock<TSagaData>(sagaId, context, (IDynamoDBStorageSessionInternal)session, cancellationToken).ConfigureAwait(false);
+                return await ReadWithLock<TSagaData>(sagaId, context, (IDynamoStorageSessionInternal)session, cancellationToken).ConfigureAwait(false);
             }
 
             // Using optimistic concurrency control
@@ -53,7 +53,7 @@
         }
 
         async Task<TSagaData?> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
-            IDynamoDBStorageSessionInternal dynamoSession, CancellationToken cancellationToken)
+            IDynamoStorageSessionInternal dynamoSession, CancellationToken cancellationToken)
             where TSagaData : class, IContainSagaData
         {
             using var timedTokenSource = new CancellationTokenSource(configuration.LeaseAcquisitionTimeout);
@@ -150,7 +150,7 @@
 
         public Task Save(IContainSagaData sagaData, SagaCorrelationProperty correlationProperty, ISynchronizedStorageSession session, ContextBag context, CancellationToken cancellationToken = default)
         {
-            var dynamoSession = (IDynamoDBStorageSessionInternal)session;
+            var dynamoSession = (IDynamoStorageSessionInternal)session;
             dynamoSession.Add(new TransactWriteItem
             {
                 Put = new Put
@@ -182,7 +182,7 @@
             var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
             var nextVersion = currentVersion + 1;
 
-            var dynamoSession = (IDynamoDBStorageSessionInternal)session;
+            var dynamoSession = (IDynamoStorageSessionInternal)session;
             dynamoSession.Add(new TransactWriteItem
             {
                 Put = new Put
@@ -234,7 +234,7 @@
         {
             var currentVersion = context.Get<int>($"dynamo_version:{sagaData.Id}");
 
-            var dynamoSession = (IDynamoDBStorageSessionInternal)session;
+            var dynamoSession = (IDynamoStorageSessionInternal)session;
             dynamoSession.Add(new TransactWriteItem
             {
                 Delete = new Delete
@@ -264,7 +264,7 @@
             where TSagaData : class, IContainSagaData
         {
             // Saga ID needs to be calculated the same way as in SagaIdGenerator does
-            var sagaId = DynamoDBSagaIdGenerator.Generate(typeof(TSagaData), propertyName, propertyValue);
+            var sagaId = DynamoSagaIdGenerator.Generate(typeof(TSagaData), propertyName, propertyValue);
             return Get<TSagaData>(sagaId, session, context, cancellationToken);
         }
 

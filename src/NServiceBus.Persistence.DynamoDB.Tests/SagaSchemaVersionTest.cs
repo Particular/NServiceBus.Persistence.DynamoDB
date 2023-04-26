@@ -26,7 +26,7 @@
                 Originator = "OriginatorValue"
             };
 
-            var testableSession = new TestableDynamoDBSynchronizedStorageSession();
+            var testableSession = new TestableDynamoSynchronizedStorageSession();
             await sagaPersister.Save(sagaData,
                 new SagaCorrelationProperty(nameof(TestSagaData.CorrelationProperty), sagaData.CorrelationProperty),
                 testableSession, new ContextBag());

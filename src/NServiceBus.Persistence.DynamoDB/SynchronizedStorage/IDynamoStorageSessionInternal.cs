@@ -2,7 +2,7 @@ namespace NServiceBus.Persistence.DynamoDB
 {
     using System;
 
-    interface IDynamoDBStorageSessionInternal : IDynamoDBStorageSession
+    interface IDynamoStorageSessionInternal : IDynamoStorageSession
     {
         void AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup);
 

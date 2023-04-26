@@ -6,11 +6,11 @@
     using Extensibility;
     using Outbox;
 
-    class DynamoDBOutboxTransaction : IOutboxTransaction
+    class DynamoOutboxTransaction : IOutboxTransaction
     {
         public StorageSession StorageSession { get; }
 
-        public DynamoDBOutboxTransaction(IAmazonDynamoDB dynamoDbClient, ContextBag context)
+        public DynamoOutboxTransaction(IAmazonDynamoDB dynamoDbClient, ContextBag context)
         {
             StorageSession = new StorageSession(dynamoDbClient, context);
         }

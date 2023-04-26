@@ -12,10 +12,10 @@
 
         protected override void Setup(FeatureConfigurationContext context)
         {
-            context.Services.TryAddSingleton(context.Settings.Get<IDynamoDBClientProvider>());
+            context.Services.TryAddSingleton(context.Settings.Get<IDynamoClientProvider>());
 
-            context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoDBSynchronizedStorageSession>();
-            context.Services.AddScoped(sp => sp.GetRequiredService<ICompletableSynchronizedStorageSession>().DynamoDBPersistenceSession());
+            context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoSynchronizedStorageSession>();
+            context.Services.AddScoped(sp => sp.GetRequiredService<ICompletableSynchronizedStorageSession>().DynamoPersistenceSession());
         }
     }
 }

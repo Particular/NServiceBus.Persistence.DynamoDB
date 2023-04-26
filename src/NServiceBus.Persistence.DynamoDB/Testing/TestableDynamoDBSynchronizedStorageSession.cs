@@ -9,14 +9,14 @@
     /// <summary>
     /// A fake implementation for <see cref="SynchronizedStorageSession"/> for testing purposes.
     /// </summary>
-    public class TestableDynamoDBSynchronizedStorageSession : ISynchronizedStorageSession, IDynamoDBStorageSessionInternal
+    public class TestableDynamoSynchronizedStorageSession : ISynchronizedStorageSession, IDynamoStorageSessionInternal
     {
         readonly List<TransactWriteItem> transactWriteItems = new List<TransactWriteItem>();
 
         /// <summary>
-        /// Initializes a new <see cref="TestableDynamoDBSynchronizedStorageSession"/>.
+        /// Initializes a new <see cref="TestableDynamoSynchronizedStorageSession"/>.
         /// </summary>
-        public TestableDynamoDBSynchronizedStorageSession()
+        public TestableDynamoSynchronizedStorageSession()
         {
         }
 
@@ -26,16 +26,16 @@
         public IReadOnlyCollection<TransactWriteItem> TransactWriteItems => transactWriteItems;
 
         /// <inheritdoc />
-        void IDynamoDBStorageSession.Add(TransactWriteItem writeItem) => transactWriteItems.Add(writeItem);
+        void IDynamoStorageSession.Add(TransactWriteItem writeItem) => transactWriteItems.Add(writeItem);
 
         /// <inheritdoc />
-        void IDynamoDBStorageSession.AddRange(IEnumerable<TransactWriteItem> writeItems) => transactWriteItems.AddRange(writeItems);
+        void IDynamoStorageSession.AddRange(IEnumerable<TransactWriteItem> writeItems) => transactWriteItems.AddRange(writeItems);
 
-        void IDynamoDBStorageSessionInternal.AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
+        void IDynamoStorageSessionInternal.AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
         {
         }
 
-        void IDynamoDBStorageSessionInternal.MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId)
+        void IDynamoStorageSessionInternal.MarkAsNoLongerNecessaryWhenSessionCommitted(Guid lockCleanupId)
         {
         }
     }

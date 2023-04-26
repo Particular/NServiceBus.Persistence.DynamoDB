@@ -64,7 +64,7 @@
                         c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
                         c.EnableOutbox();
 
-                        c.UsePersistence<DynamoDBPersistence>().DisableTablesCreation();
+                        c.UsePersistence<DynamoPersistence>().DisableTablesCreation();
                     }))
                 .Done(c => c.EndpointsStarted)
                 .Run();
@@ -86,8 +86,8 @@
                 {
                     var testContext = r.ScenarioContext as Context;
 
-                    var persistence = c.UsePersistence<DynamoDBPersistence>();
-                    persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
+                    var persistence = c.UsePersistence<DynamoPersistence>();
+                    persistence.DynamoClient(SetupFixture.DynamoDBClient);
                     persistence.Outbox().Table.TableName = testContext.OutboxTableName;
                     persistence.Sagas().Table.TableName = testContext.SagaTableName;
 

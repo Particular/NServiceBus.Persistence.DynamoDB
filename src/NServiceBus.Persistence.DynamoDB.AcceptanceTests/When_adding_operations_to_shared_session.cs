@@ -85,7 +85,7 @@
 
                 public Task Handle(TriggerMessage message, IMessageHandlerContext context)
                 {
-                    var session = context.SynchronizedStorageSession.DynamoDBPersistenceSession();
+                    var session = context.SynchronizedStorageSession.DynamoPersistenceSession();
                     session.Add(new TransactWriteItem
                     {
                         Put = new Put

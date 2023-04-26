@@ -11,8 +11,8 @@
         /// <summary>
         /// Enables transactional session for this endpoint.
         /// </summary>
-        public static PersistenceExtensions<DynamoDBPersistence> EnableTransactionalSession(
-            this PersistenceExtensions<DynamoDBPersistence> persistenceExtensions)
+        public static PersistenceExtensions<DynamoPersistence> EnableTransactionalSession(
+            this PersistenceExtensions<DynamoPersistence> persistenceExtensions)
         {
             persistenceExtensions.GetSettings().EnableFeatureByDefault<DynamoTransactionalSession>();
             return persistenceExtensions;

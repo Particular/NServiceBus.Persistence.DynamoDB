@@ -5,28 +5,28 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(@"NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests, PublicKey=00240000048000009400000006020000002400005253413100040000010001007f16e21368ff041183fab592d9e8ed37e7be355e93323147a1d29983d6e591b04282e4da0c9e18bd901e112c0033925eb7d7872c2f1706655891c5c9d57297994f707d16ee9a8f40d978f064ee1ffc73c0db3f4712691b23bf596f75130f4ec978cf78757ec034625a5f27e6bb50c618931ea49f6f628fd74271c32959efb1c5")]
 namespace NServiceBus
 {
-    public class DynamoDBPersistence : NServiceBus.Persistence.PersistenceDefinition { }
-    public static class DynamoDBPersistenceConfig
+    public class DynamoPersistence : NServiceBus.Persistence.PersistenceDefinition { }
+    public static class DynamoPersistenceConfig
     {
-        public static void DisableTablesCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> DynamoDBClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, Amazon.DynamoDBv2.IAmazonDynamoDB dynamoDBClient) { }
-        public static NServiceBus.Persistence.DynamoDB.OutboxPersistenceConfiguration Outbox(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
-        public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions, NServiceBus.Persistence.DynamoDB.TableConfiguration sharedTableConfiguration) { }
+        public static void DisableTablesCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> DynamoClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions, Amazon.DynamoDBv2.IAmazonDynamoDB dynamoClient) { }
+        public static NServiceBus.Persistence.DynamoDB.OutboxPersistenceConfiguration Outbox(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
+        public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions, NServiceBus.Persistence.DynamoDB.TableConfiguration sharedTableConfiguration) { }
     }
-    public interface IDynamoDBStorageSession
+    public interface IDynamoStorageSession
     {
         void Add(Amazon.DynamoDBv2.Model.TransactWriteItem writeItem);
         void AddRange(System.Collections.Generic.IEnumerable<Amazon.DynamoDBv2.Model.TransactWriteItem> writeItems);
     }
     public static class SynchronizedStorageSessionExtensions
     {
-        public static NServiceBus.IDynamoDBStorageSession DynamoDBPersistenceSession(this NServiceBus.Persistence.ISynchronizedStorageSession session) { }
+        public static NServiceBus.IDynamoStorageSession DynamoPersistenceSession(this NServiceBus.Persistence.ISynchronizedStorageSession session) { }
     }
 }
 namespace NServiceBus.Persistence.DynamoDB
 {
-    public interface IDynamoDBClientProvider
+    public interface IDynamoClientProvider
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
     }
@@ -65,9 +65,9 @@ namespace NServiceBus.Persistence.DynamoDB
 }
 namespace NServiceBus.Testing
 {
-    public class TestableDynamoDBSynchronizedStorageSession : NServiceBus.IDynamoDBStorageSession, NServiceBus.Persistence.ISynchronizedStorageSession
+    public class TestableDynamoSynchronizedStorageSession : NServiceBus.IDynamoStorageSession, NServiceBus.Persistence.ISynchronizedStorageSession
     {
-        public TestableDynamoDBSynchronizedStorageSession() { }
+        public TestableDynamoSynchronizedStorageSession() { }
         public System.Collections.Generic.IReadOnlyCollection<Amazon.DynamoDBv2.Model.TransactWriteItem> TransactWriteItems { get; }
     }
 }

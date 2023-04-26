@@ -41,7 +41,7 @@ namespace NServiceBus.AcceptanceTests
             public EndpointThatHostsASaga() =>
                 EndpointSetup<DefaultServer>(c =>
                 {
-                    var persistence = c.UsePersistence<DynamoDBPersistence>();
+                    var persistence = c.UsePersistence<DynamoPersistence>();
                     var sagas = persistence.Sagas();
                     sagas.MapperOptions = new JsonSerializerOptions(sagas.MapperOptions)
                     {

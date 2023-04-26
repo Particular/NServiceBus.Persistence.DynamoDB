@@ -26,7 +26,7 @@
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
-                    var dynamoSession = transactionalSession.SynchronizedStorageSession.DynamoDBPersistenceSession();
+                    var dynamoSession = transactionalSession.SynchronizedStorageSession.DynamoPersistenceSession();
                     dynamoSession.Add(new TransactWriteItem()
                     {
                         Put = new Put()
@@ -79,7 +79,7 @@
 
                     await transactionalSession.SendLocal(new SampleMessage(), CancellationToken.None);
 
-                    var dynamoSession = scope.ServiceProvider.GetRequiredService<IDynamoDBStorageSession>();
+                    var dynamoSession = scope.ServiceProvider.GetRequiredService<IDynamoStorageSession>();
                     dynamoSession.Add(new TransactWriteItem()
                     {
                         Put = new Put()
@@ -131,7 +131,7 @@
                     {
                         await transactionalSession.Open(new DynamoOpenSessionOptions());
 
-                        var dynamoSession = transactionalSession.SynchronizedStorageSession.DynamoDBPersistenceSession();
+                        var dynamoSession = transactionalSession.SynchronizedStorageSession.DynamoPersistenceSession();
                         dynamoSession.Add(new TransactWriteItem()
                         {
                             Put = new Put()

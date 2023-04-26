@@ -25,7 +25,7 @@
             var sagaConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
 
             context.Services.AddSingleton<ISagaPersister>(provider => new SagaPersister(
-                provider.GetRequiredService<IDynamoDBClientProvider>().Client,
+                provider.GetRequiredService<IDynamoClientProvider>().Client,
                 sagaConfiguration,
                 context.Settings.EndpointName()));
         }

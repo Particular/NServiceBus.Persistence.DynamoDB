@@ -12,7 +12,7 @@
         public async Task Should_be_usable_with_testable_handler_context()
         {
             var handler = new Handler();
-            var testableSession = new TestableDynamoDBSynchronizedStorageSession();
+            var testableSession = new TestableDynamoSynchronizedStorageSession();
             await handler.Handle(new Handler.MyMessage(), new TestableMessageHandlerContext
             {
                 SynchronizedStorageSession = testableSession
@@ -25,7 +25,7 @@
         {
             public Task Handle(MyMessage message, IMessageHandlerContext context)
             {
-                var session = context.SynchronizedStorageSession.DynamoDBPersistenceSession();
+                var session = context.SynchronizedStorageSession.DynamoPersistenceSession();
 
                 session.Add(new TransactWriteItem());
                 session.AddRange(new[] { new TransactWriteItem(), new TransactWriteItem() });

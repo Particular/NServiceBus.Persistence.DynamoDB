@@ -24,7 +24,7 @@
 
             ValidateOutboxSettings(outboxConfiguration);
 
-            context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IDynamoDBClientProvider>().Client, outboxConfiguration, context.Settings.EndpointName()));
+            context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IDynamoClientProvider>().Client, outboxConfiguration, context.Settings.EndpointName()));
         }
 
         void ValidateOutboxSettings(OutboxPersistenceConfiguration outboxConfiguration)

@@ -24,8 +24,8 @@ namespace NServiceBus.TransactionalSession.AcceptanceTests
             // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
             builder.TypesToIncludeInScan(endpointConfiguration.GetTypesScopedByTestClass());
 
-            var persistence = builder.UsePersistence<DynamoDBPersistence>();
-            persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
+            var persistence = builder.UsePersistence<DynamoPersistence>();
+            persistence.DynamoClient(SetupFixture.DynamoDBClient);
             persistence.UseSharedTable(SetupFixture.TableConfiguration);
             persistence.EnableTransactionalSession();
 

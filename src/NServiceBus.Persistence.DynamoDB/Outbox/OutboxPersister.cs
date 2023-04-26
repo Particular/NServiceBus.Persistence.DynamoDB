@@ -28,7 +28,7 @@
         public Task<IOutboxTransaction> BeginTransaction(ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            var transaction = new DynamoDBOutboxTransaction(dynamoDbClient, context);
+            var transaction = new DynamoOutboxTransaction(dynamoDbClient, context);
 
             return Task.FromResult((IOutboxTransaction)transaction);
         }
@@ -237,7 +237,7 @@
         public Task Store(OutboxMessage message, IOutboxTransaction transaction, ContextBag context,
             CancellationToken cancellationToken = default)
         {
-            var outboxTransaction = (DynamoDBOutboxTransaction)transaction;
+            var outboxTransaction = (DynamoOutboxTransaction)transaction;
 
             outboxTransaction.StorageSession.AddRange(Serialize(message, context));
 
