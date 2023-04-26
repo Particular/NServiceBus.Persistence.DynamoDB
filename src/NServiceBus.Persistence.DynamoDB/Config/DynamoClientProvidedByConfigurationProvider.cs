@@ -6,7 +6,7 @@
     {
         public DynamoClientProvidedByConfigurationProvider(IAmazonDynamoDB client)
         {
-            Guard.AgainstNull(nameof(client), client);
+            Guard.ThrowIfNull(client);
 
             Client = client;
         }

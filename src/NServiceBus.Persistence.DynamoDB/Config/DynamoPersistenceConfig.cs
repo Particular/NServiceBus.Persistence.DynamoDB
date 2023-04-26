@@ -15,8 +15,8 @@
         /// <remarks>The lifetime of the provided client is assumed to be controlled by the caller of this method and thus the client will not be disposed.</remarks>
         public static PersistenceExtensions<DynamoPersistence> DynamoClient(this PersistenceExtensions<DynamoPersistence> persistenceExtensions, IAmazonDynamoDB dynamoClient)
         {
-            Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
-            Guard.AgainstNull(nameof(dynamoClient), dynamoClient);
+            Guard.ThrowIfNull(persistenceExtensions);
+            Guard.ThrowIfNull(dynamoClient);
 
             persistenceExtensions.GetSettings().Set<IDynamoClientProvider>(new DynamoClientProvidedByConfigurationProvider(dynamoClient));
             return persistenceExtensions;
@@ -27,8 +27,8 @@
         /// </summary>
         public static PersistenceExtensions<DynamoPersistence> UseSharedTable(this PersistenceExtensions<DynamoPersistence> persistenceExtensions, TableConfiguration sharedTableConfiguration)
         {
-            Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
-            Guard.AgainstNull(nameof(sharedTableConfiguration), sharedTableConfiguration);
+            Guard.ThrowIfNull(persistenceExtensions);
+            Guard.ThrowIfNull(sharedTableConfiguration);
 
             persistenceExtensions.Sagas().Table = sharedTableConfiguration with { };
             persistenceExtensions.Outbox().Table = sharedTableConfiguration with { };
@@ -40,7 +40,8 @@
         /// </summary>
         public static void DisableTablesCreation(this PersistenceExtensions<DynamoPersistence> persistenceExtensions)
         {
-            Guard.AgainstNull(nameof(persistenceExtensions), persistenceExtensions);
+            Guard.ThrowIfNull(persistenceExtensions);
+
             persistenceExtensions.Sagas().CreateTable = false;
             persistenceExtensions.Outbox().CreateTable = false;
         }

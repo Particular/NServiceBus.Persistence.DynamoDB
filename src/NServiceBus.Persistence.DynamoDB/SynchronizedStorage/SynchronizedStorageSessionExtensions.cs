@@ -14,7 +14,7 @@
         /// </summary>
         public static IDynamoStorageSession DynamoPersistenceSession(this ISynchronizedStorageSession session)
         {
-            Guard.AgainstNull(nameof(session), session);
+            Guard.ThrowIfNull(session);
 
             if (session is not IDynamoStorageSession dynamoSession)
             {
