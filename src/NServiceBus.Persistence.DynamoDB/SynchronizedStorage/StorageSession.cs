@@ -10,7 +10,7 @@
     using Extensibility;
     using Logging;
 
-    class StorageSession : IDynamoDBStorageSessionInternal
+    class StorageSession : IDynamoStorageSessionInternal
     {
         static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
 

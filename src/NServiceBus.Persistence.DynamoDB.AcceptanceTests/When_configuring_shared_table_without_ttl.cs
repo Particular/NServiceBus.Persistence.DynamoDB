@@ -15,7 +15,7 @@
                 Scenario.Define<ScenarioContext>()
                     .WithEndpoint<OutboxEndpoint>(e => e
                         .CustomConfig(c => c
-                            .UsePersistence<DynamoDBPersistence>()
+                            .UsePersistence<DynamoPersistence>()
                             .UseSharedTable(new TableConfiguration
                             {
                                 TimeToLiveAttributeName = null // using a table without TTL attribute defined

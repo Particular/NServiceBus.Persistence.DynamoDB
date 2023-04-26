@@ -16,8 +16,8 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
         // disable installers which are enabled by default in the standard endpoint templates
         configuration.GetSettings().Set("Installers.Enable", false);
 
-        var persistence = configuration.UsePersistence<DynamoDBPersistence>();
-        persistence.DynamoDBClient(SetupFixture.DynamoDBClient);
+        var persistence = configuration.UsePersistence<DynamoPersistence>();
+        persistence.DynamoClient(SetupFixture.DynamoDBClient);
         persistence.UseSharedTable(SetupFixture.TableConfiguration);
 
         persistence.Sagas().UsePessimisticLocking = true;

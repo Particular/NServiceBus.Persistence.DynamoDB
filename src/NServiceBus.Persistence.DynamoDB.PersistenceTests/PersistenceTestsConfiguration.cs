@@ -10,7 +10,7 @@
     using Persistence;
     using Persistence.DynamoDB;
 
-    public partial class PersistenceTestsConfiguration : IDynamoDBClientProvider
+    public partial class PersistenceTestsConfiguration : IDynamoClientProvider
     {
         static PersistenceTestsConfiguration()
         {
@@ -76,7 +76,7 @@
                 },
                 "PersistenceTest");
 
-            CreateStorageSession = () => new DynamoDBSynchronizedStorageSession(this);
+            CreateStorageSession = () => new DynamoSynchronizedStorageSession(this);
 
             return Task.CompletedTask;
         }

@@ -6,6 +6,6 @@ namespace NServiceBus.TransactionalSession
     }
     public static class DynamoTransactionalSessionExtensions
     {
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> EnableTransactionalSession(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoDBPersistence> persistenceExtensions) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> EnableTransactionalSession(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
     }
 }

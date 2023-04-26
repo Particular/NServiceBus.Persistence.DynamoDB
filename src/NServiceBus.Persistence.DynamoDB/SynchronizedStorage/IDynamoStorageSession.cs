@@ -6,7 +6,7 @@
     /// <summary>
     /// The DynamoDB storage session.
     /// </summary>
-    public interface IDynamoDBStorageSession
+    public interface IDynamoStorageSession
     {
         /// <summary>
         /// Adds an operation to the list of operations to be executed in a transaction

@@ -7,15 +7,15 @@
     /// <summary>
     /// Used to configure NServiceBus to use DynamoDB persistence.
     /// </summary>
-    public class DynamoDBPersistence : PersistenceDefinition
+    public class DynamoPersistence : PersistenceDefinition
     {
-        internal DynamoDBPersistence()
+        internal DynamoPersistence()
         {
             Defaults(s =>
             {
                 s.SetDefault(new OutboxPersistenceConfiguration());
                 s.SetDefault(new SagaPersistenceConfiguration());
-                s.SetDefault<IDynamoDBClientProvider>(new DefaultDynamoDbClientProviderProvider());
+                s.SetDefault<IDynamoClientProvider>(new DefaultDynamoClientProviderProvider());
                 s.EnableFeatureByDefault<InstallerFeature>();
             });
 

@@ -58,7 +58,7 @@
 
             internal class TriggerMessageHandler : IHandleMessages<TriggerMessage>
             {
-                public TriggerMessageHandler(Context testContext, IDynamoDBStorageSession storageSession)
+                public TriggerMessageHandler(Context testContext, IDynamoStorageSession storageSession)
                 {
                     this.testContext = testContext;
                     this.storageSession = storageSession;
@@ -96,7 +96,7 @@
                 }
 
                 readonly Context testContext;
-                readonly IDynamoDBStorageSession storageSession;
+                readonly IDynamoStorageSession storageSession;
             }
         }
 

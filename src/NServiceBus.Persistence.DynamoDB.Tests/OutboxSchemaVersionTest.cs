@@ -22,7 +22,7 @@
 
             var context = new ContextBag();
 
-            using var dynamoDbOutboxTransaction = new DynamoDBOutboxTransaction(client, context);
+            using var dynamoDbOutboxTransaction = new DynamoOutboxTransaction(client, context);
             using var outboxTransaction = await outboxPersister.BeginTransaction(context);
             await outboxPersister.Store(outboxMessage, dynamoDbOutboxTransaction, context);
             await outboxTransaction.Commit();

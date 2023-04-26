@@ -10,7 +10,7 @@
     using System.Text;
     using System.Text.Json;
 
-    static class DynamoDBSagaIdGenerator
+    static class DynamoSagaIdGenerator
     {
         public static Guid Generate(Type sagaEntityType, string correlationPropertyName, object correlationPropertyValue)
         {

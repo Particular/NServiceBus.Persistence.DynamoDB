@@ -12,7 +12,7 @@
                 throw new Exception("The DynamoDB saga persister doesn't support custom saga finders.");
             }
 
-            return DynamoDBSagaIdGenerator.Generate(context.SagaMetadata.SagaEntityType, context.CorrelationProperty.Name, context.CorrelationProperty.Value);
+            return DynamoSagaIdGenerator.Generate(context.SagaMetadata.SagaEntityType, context.CorrelationProperty.Name, context.CorrelationProperty.Value);
         }
     }
 }
