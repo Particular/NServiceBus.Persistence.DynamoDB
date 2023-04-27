@@ -1,21 +1,20 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB;
+
+using Features;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+class SynchronizedStorage : Feature
 {
-    using Features;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.DependencyInjection.Extensions;
+    public SynchronizedStorage() =>
+        // Depends on the core feature
+        DependsOn<Features.SynchronizedStorage>();
 
-    class SynchronizedStorage : Feature
+    protected override void Setup(FeatureConfigurationContext context)
     {
-        public SynchronizedStorage() =>
-            // Depends on the core feature
-            DependsOn<Features.SynchronizedStorage>();
+        context.Services.TryAddSingleton(context.Settings.Get<IDynamoClientProvider>());
 
-        protected override void Setup(FeatureConfigurationContext context)
-        {
-            context.Services.TryAddSingleton(context.Settings.Get<IDynamoClientProvider>());
-
-            context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoSynchronizedStorageSession>();
-            context.Services.AddScoped(sp => sp.GetRequiredService<ICompletableSynchronizedStorageSession>().DynamoPersistenceSession());
-        }
+        context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoSynchronizedStorageSession>();
+        context.Services.AddScoped(sp => sp.GetRequiredService<ICompletableSynchronizedStorageSession>().DynamoPersistenceSession());
     }
 }

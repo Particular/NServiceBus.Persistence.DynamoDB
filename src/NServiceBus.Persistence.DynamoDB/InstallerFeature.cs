@@ -1,19 +1,18 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB;
+
+using Features;
+using Microsoft.Extensions.DependencyInjection;
+
+class InstallerFeature : Feature
 {
-    using Features;
-    using Microsoft.Extensions.DependencyInjection;
-
-    class InstallerFeature : Feature
+    public InstallerFeature()
     {
-        public InstallerFeature()
-        {
-            DependsOn<SynchronizedStorage>();
-        }
+        DependsOn<SynchronizedStorage>();
+    }
 
-        protected override void Setup(FeatureConfigurationContext context)
-        {
-            var installer = new Installer(context.Settings.Get<IDynamoClientProvider>().Client);
-            context.Services.AddSingleton(installer);
-        }
+    protected override void Setup(FeatureConfigurationContext context)
+    {
+        var installer = new Installer(context.Settings.Get<IDynamoClientProvider>().Client);
+        context.Services.AddSingleton(installer);
     }
 }

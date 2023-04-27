@@ -1,113 +1,112 @@
-namespace NServiceBus.Persistence.DynamoDB
+namespace NServiceBus.Persistence.DynamoDB;
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using Amazon.DynamoDBv2.Model;
+
+sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
-    using System.Reflection;
-    using System.Text.Json;
-    using System.Text.Json.Nodes;
-    using System.Text.Json.Serialization;
-    using Amazon.DynamoDBv2.Model;
+    // This is a cryptic property name to make sure we never clash with the user data
+    const string PropertyName = "HashSetStringContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
 
-    sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
+    public override bool CanConvert(Type typeToConvert)
+        => typeToConvert.IsGenericType && typeof(ISet<string>).IsAssignableFrom(typeToConvert);
+
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
-        // This is a cryptic property name to make sure we never clash with the user data
-        const string PropertyName = "HashSetStringContent838D2F22-0D5B-4831-8C04-17C7A6329B31";
+        var converter = (JsonConverter)Activator.CreateInstance(
+            typeof(SetConverter<>)
+                .MakeGenericType(new Type[] { typeToConvert }),
+            BindingFlags.Instance | BindingFlags.Public,
+            binder: null,
+            args: new object[] { options },
+            culture: null)!;
+        return converter;
+    }
 
-        public override bool CanConvert(Type typeToConvert)
-            => typeToConvert.IsGenericType && typeof(ISet<string>).IsAssignableFrom(typeToConvert);
-
-        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    public bool TryExtract(JsonElement element, [NotNullWhen(true)] out AttributeValue? attributeValue)
+    {
+        attributeValue = null;
+        if (!element.TryGetProperty(PropertyName, out var property))
         {
-            var converter = (JsonConverter)Activator.CreateInstance(
-                typeof(SetConverter<>)
-                    .MakeGenericType(new Type[] { typeToConvert }),
-                BindingFlags.Instance | BindingFlags.Public,
-                binder: null,
-                args: new object[] { options },
-                culture: null)!;
-            return converter;
+            return false;
         }
 
-        public bool TryExtract(JsonElement element, [NotNullWhen(true)] out AttributeValue? attributeValue)
+        var strings = new List<string?>(property.GetArrayLength());
+        foreach (var innerElement in property.EnumerateArray())
         {
-            attributeValue = null;
-            if (!element.TryGetProperty(PropertyName, out var property))
+            strings.Add(innerElement.GetString());
+        }
+        attributeValue = new AttributeValue { SS = strings };
+        return true;
+    }
+
+    public JsonNode ToNode(AttributeValue attributeValue)
+    {
+        var jsonObject = new JsonObject();
+        var array = new JsonArray();
+        foreach (var value in attributeValue.SS)
+        {
+            array.Add(value);
+        }
+        jsonObject.Add(PropertyName, array);
+        return jsonObject;
+    }
+
+    sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
+    {
+        public SetConverter(JsonSerializerOptions options)
+            => optionsWithoutSetOfStringConverter = options.FromWithout<SetOfStringConverter>();
+
+        public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
             {
-                return false;
+                throw new JsonException();
             }
 
-            var strings = new List<string?>(property.GetArrayLength());
-            foreach (var innerElement in property.EnumerateArray())
+            reader.Read();
+            if (reader.TokenType != JsonTokenType.PropertyName)
             {
-                strings.Add(innerElement.GetString());
+                throw new JsonException();
             }
-            attributeValue = new AttributeValue { SS = strings };
-            return true;
+
+            string? propertyName = reader.GetString();
+            if (propertyName != PropertyName)
+            {
+                throw new JsonException();
+            }
+
+            reader.Read();
+            if (reader.TokenType != JsonTokenType.StartArray)
+            {
+                throw new JsonException();
+            }
+
+            var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfStringConverter);
+
+            reader.Read();
+
+            if (reader.TokenType != JsonTokenType.EndObject)
+            {
+                throw new JsonException();
+            }
+            return set;
         }
 
-        public JsonNode ToNode(AttributeValue attributeValue)
+        public override void Write(Utf8JsonWriter writer, TSet value, JsonSerializerOptions options)
         {
-            var jsonObject = new JsonObject();
-            var array = new JsonArray();
-            foreach (var value in attributeValue.SS)
-            {
-                array.Add(value);
-            }
-            jsonObject.Add(PropertyName, array);
-            return jsonObject;
+            writer.WriteStartObject();
+            writer.WritePropertyName(PropertyName);
+            JsonSerializer.Serialize(writer, value, optionsWithoutSetOfStringConverter);
+            writer.WriteEndObject();
         }
 
-        sealed class SetConverter<TSet> : JsonConverter<TSet> where TSet : ISet<string>
-        {
-            public SetConverter(JsonSerializerOptions options)
-                => optionsWithoutSetOfStringConverter = options.FromWithout<SetOfStringConverter>();
-
-            public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-            {
-                if (reader.TokenType != JsonTokenType.StartObject)
-                {
-                    throw new JsonException();
-                }
-
-                reader.Read();
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    throw new JsonException();
-                }
-
-                string? propertyName = reader.GetString();
-                if (propertyName != PropertyName)
-                {
-                    throw new JsonException();
-                }
-
-                reader.Read();
-                if (reader.TokenType != JsonTokenType.StartArray)
-                {
-                    throw new JsonException();
-                }
-
-                var set = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfStringConverter);
-
-                reader.Read();
-
-                if (reader.TokenType != JsonTokenType.EndObject)
-                {
-                    throw new JsonException();
-                }
-                return set;
-            }
-
-            public override void Write(Utf8JsonWriter writer, TSet value, JsonSerializerOptions options)
-            {
-                writer.WriteStartObject();
-                writer.WritePropertyName(PropertyName);
-                JsonSerializer.Serialize(writer, value, optionsWithoutSetOfStringConverter);
-                writer.WriteEndObject();
-            }
-
-            readonly JsonSerializerOptions optionsWithoutSetOfStringConverter;
-        }
+        readonly JsonSerializerOptions optionsWithoutSetOfStringConverter;
     }
 }
