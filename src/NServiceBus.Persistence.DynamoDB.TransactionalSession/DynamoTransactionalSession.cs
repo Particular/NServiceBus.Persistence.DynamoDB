@@ -1,6 +1,5 @@
-﻿namespace NServiceBus.TransactionalSession
+﻿namespace NServiceBus.TransactionalSession;
+
+sealed class DynamoTransactionalSession : TransactionalSession
 {
-    sealed class DynamoTransactionalSession : TransactionalSession
-    {
-    }
 }

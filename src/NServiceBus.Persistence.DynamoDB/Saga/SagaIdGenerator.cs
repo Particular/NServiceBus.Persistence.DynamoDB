@@ -1,18 +1,17 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB;
+
+using System;
+using Sagas;
+
+class SagaIdGenerator : ISagaIdGenerator
 {
-    using System;
-    using Sagas;
-
-    class SagaIdGenerator : ISagaIdGenerator
+    public Guid Generate(SagaIdGeneratorContext context)
     {
-        public Guid Generate(SagaIdGeneratorContext context)
+        if (context.CorrelationProperty == SagaCorrelationProperty.None)
         {
-            if (context.CorrelationProperty == SagaCorrelationProperty.None)
-            {
-                throw new Exception("The DynamoDB saga persister doesn't support custom saga finders.");
-            }
-
-            return DynamoSagaIdGenerator.Generate(context.SagaMetadata.SagaEntityType, context.CorrelationProperty.Name, context.CorrelationProperty.Value);
+            throw new Exception("The DynamoDB saga persister doesn't support custom saga finders.");
         }
+
+        return DynamoSagaIdGenerator.Generate(context.SagaMetadata.SagaEntityType, context.CorrelationProperty.Name, context.CorrelationProperty.Value);
     }
 }

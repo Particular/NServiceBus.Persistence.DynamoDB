@@ -1,21 +1,20 @@
-﻿namespace NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests
-{
-    using NServiceBus.TransactionalSession;
-    using NUnit.Framework;
-    using Particular.Approvals;
-    using PublicApiGenerator;
+﻿namespace NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests;
 
-    [TestFixture]
-    public class ApiApprovals
+using NServiceBus.TransactionalSession;
+using NUnit.Framework;
+using Particular.Approvals;
+using PublicApiGenerator;
+
+[TestFixture]
+public class ApiApprovals
+{
+    [Test]
+    public void Approve()
     {
-        [Test]
-        public void Approve()
+        var publicApi = typeof(DynamoOpenSessionOptions).Assembly.GeneratePublicApi(new ApiGeneratorOptions
         {
-            var publicApi = typeof(DynamoOpenSessionOptions).Assembly.GeneratePublicApi(new ApiGeneratorOptions
-            {
-                ExcludeAttributes = new[] { "System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute" }
-            });
-            Approver.Verify(publicApi);
-        }
+            ExcludeAttributes = new[] { "System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute" }
+        });
+        Approver.Verify(publicApi);
     }
 }

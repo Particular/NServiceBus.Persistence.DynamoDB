@@ -1,16 +1,15 @@
-﻿namespace NServiceBus.Persistence.DynamoDB
+﻿namespace NServiceBus.Persistence.DynamoDB;
+
+using Amazon.DynamoDBv2;
+
+sealed class DynamoClientProvidedByConfigurationProvider : IDynamoClientProvider
 {
-    using Amazon.DynamoDBv2;
-
-    sealed class DynamoClientProvidedByConfigurationProvider : IDynamoClientProvider
+    public DynamoClientProvidedByConfigurationProvider(IAmazonDynamoDB client)
     {
-        public DynamoClientProvidedByConfigurationProvider(IAmazonDynamoDB client)
-        {
-            Guard.ThrowIfNull(client);
+        Guard.ThrowIfNull(client);
 
-            Client = client;
-        }
-
-        public IAmazonDynamoDB Client { get; }
+        Client = client;
     }
+
+    public IAmazonDynamoDB Client { get; }
 }
