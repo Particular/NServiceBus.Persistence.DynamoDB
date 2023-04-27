@@ -10,6 +10,7 @@ using AcceptanceTesting.Customization;
 using Amazon.DynamoDBv2.Model;
 using EndpointTemplates;
 using NUnit.Framework;
+using static Persistence.DynamoDB.OutboxAttributeNames;
 
 public class When_sending_many_messages_with_outbox_enabled : NServiceBusAcceptanceTest
 {
@@ -52,8 +53,8 @@ public class When_sending_many_messages_with_outbox_enabled : NServiceBusAccepta
 
         var metadataAttributeMap = response.Items.Single();
         // Should be marked as dispatched
-        Assert.That(metadataAttributeMap["Dispatched"].BOOL, Is.True);
-        Assert.That(metadataAttributeMap["DispatchedAt"].S, Is.Not.Null);
+        Assert.That(metadataAttributeMap[Dispatched].BOOL, Is.True);
+        Assert.That(metadataAttributeMap[DispatchedAt].S, Is.Not.Null);
     }
 
     class Context : ScenarioContext
