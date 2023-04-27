@@ -37,9 +37,9 @@ public record TableConfiguration
     /// The attribute name for the Time to Live setting.
     /// </summary>
     /// <remarks>
-    /// The default value is <value>"ExpiresAt"</value>
+    /// The default value is <value>"EXPIRES_AT"</value>
     /// </remarks>
-    public string? TimeToLiveAttributeName { get; set; } = "ExpiresAt";
+    public string? TimeToLiveAttributeName { get; set; } = "EXPIRES_AT";
 
     /// <summary>
     /// The billing mode for this table

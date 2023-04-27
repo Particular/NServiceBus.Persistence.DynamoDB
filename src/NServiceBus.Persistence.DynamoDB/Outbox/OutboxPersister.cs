@@ -15,6 +15,7 @@ using Logging;
 using Outbox;
 using Transport;
 using TransportOperation = Outbox.TransportOperation;
+using static OutboxAttributeNames;
 
 class OutboxPersister : IOutboxStorage
 {
@@ -39,7 +40,7 @@ class OutboxPersister : IOutboxStorage
         var queryRequest = new QueryRequest
         {
             ConsistentRead = true,
-            KeyConditionExpression = $"#PK = :outboxId",
+            KeyConditionExpression = "#PK = :outboxId",
             ExpressionAttributeNames =
                 new Dictionary<string, string> { { "#PK", configuration.Table.PartitionKeyName } },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
@@ -63,9 +64,9 @@ class OutboxPersister : IOutboxStorage
                 var headerItem = response.Items[0];
                 // In case the metadata is not marked as dispatched we want to know the number of transport operations
                 // in order to pre-populate the lists etc accordingly
-                if (!headerItem["Dispatched"].BOOL)
+                if (!headerItem[Dispatched].BOOL)
                 {
-                    numberOfTransportOperations = Convert.ToInt32(headerItem["TransportOperationsCount"].N);
+                    numberOfTransportOperations = Convert.ToInt32(headerItem[OperationsCount].N);
                 }
                 responseItemsHasOutboxMetadataEntry = true;
             }
@@ -103,10 +104,10 @@ class OutboxPersister : IOutboxStorage
 
     TransportOperation DeserializeOperation(Dictionary<string, AttributeValue> attributeValues)
     {
-        var messageId = attributeValues["MessageId"].S;
-        var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues["Properties"]));
-        var headers = DeserializeStringDictionary(attributeValues["Headers"]);
-        var bodyMemory = GetAndTrackBodyMemory(attributeValues["Body"], properties);
+        var messageId = attributeValues[MessageId].S;
+        var properties = new DispatchProperties(DeserializeStringDictionary(attributeValues[Properties]));
+        var headers = DeserializeStringDictionary(attributeValues[Headers]);
+        var bodyMemory = GetAndTrackBodyMemory(attributeValues[Body], properties);
         return new TransportOperation(messageId, properties, bodyMemory, headers);
     }
 
@@ -157,12 +158,12 @@ class OutboxPersister : IOutboxStorage
                             new AttributeValue { S = OutboxMetadataSortKey(outboxMessage.MessageId) }
                         },
                         {
-                            "TransportOperationsCount",
+                            OperationsCount,
                             new AttributeValue { N = outboxMessage.TransportOperations.Length.ToString() }
                         },
-                        { "Dispatched", new AttributeValue { BOOL = false } },
-                        { "DispatchedAt", new AttributeValue { NULL = true } },
-                        { "SchemaVersion", new AttributeValue { S = "1.0" } },
+                        { Dispatched, new AttributeValue { BOOL = false } },
+                        { DispatchedAt, new AttributeValue { NULL = true } },
+                        { SchemaVersion, new AttributeValue { S = "1.0" } },
                         { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } },
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
@@ -185,9 +186,9 @@ class OutboxPersister : IOutboxStorage
                     {
                         {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(outboxMessage.MessageId)}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(outboxMessage.MessageId, n)}},
-                        {"MessageId", new AttributeValue {S = operation.MessageId}},
+                        {MessageId, new AttributeValue {S = operation.MessageId}},
                         {
-                            "Properties",
+                            Properties,
                             new AttributeValue
                             {
                                 M = SerializeStringDictionary(operation.Options),
@@ -195,14 +196,14 @@ class OutboxPersister : IOutboxStorage
                             }
                         },
                         {
-                            "Headers",
+                            Headers,
                             new AttributeValue
                             {
                                 M = SerializeStringDictionary(operation.Headers),
                                 IsMSet = true
                             }
                         },
-                        {"Body", new AttributeValue {B = bodyStream}},
+                        {Body, new AttributeValue {B = bodyStream}},
                         {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}}
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
@@ -263,8 +264,8 @@ class OutboxPersister : IOutboxStorage
             UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
             ExpressionAttributeNames = new Dictionary<string, string>
             {
-                {"#dispatched", "Dispatched"},
-                {"#dispatched_at", "DispatchedAt"},
+                {"#dispatched", Dispatched},
+                {"#dispatched_at", DispatchedAt},
                 {"#ttl", configuration.Table.TimeToLiveAttributeName!},
             },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
