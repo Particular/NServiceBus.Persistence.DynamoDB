@@ -67,11 +67,7 @@ public class When_sending_many_messages_with_outbox_enabled : NServiceBusAccepta
 
     class EndpointSendingManyMessages : EndpointConfigurationBuilder
     {
-        public EndpointSendingManyMessages() => EndpointSetup<DefaultServer>(e =>
-        {
-            e.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-            e.EnableOutbox();
-        });
+        public EndpointSendingManyMessages() => EndpointSetup<OutboxServer>();
 
         class KickOffHandler : IHandleMessages<KickOffMessage>
         {
