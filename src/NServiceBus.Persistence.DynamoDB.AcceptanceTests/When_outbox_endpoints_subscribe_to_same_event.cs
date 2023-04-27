@@ -33,11 +33,7 @@ public class When_outbox_endpoints_subscribe_to_same_event : NServiceBusAcceptan
 
     class SubscriberA : EndpointConfigurationBuilder
     {
-        public SubscriberA() => EndpointSetup<DefaultServer>(e =>
-        {
-            e.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-            e.EnableOutbox();
-        });
+        public SubscriberA() => EndpointSetup<OutboxServer>();
 
         class EventHandler : IHandleMessages<TestEvent>
         {
@@ -68,11 +64,7 @@ public class When_outbox_endpoints_subscribe_to_same_event : NServiceBusAcceptan
 
     class SubscriberB : EndpointConfigurationBuilder
     {
-        public SubscriberB() => EndpointSetup<DefaultServer>(e =>
-        {
-            e.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-            e.EnableOutbox();
-        });
+        public SubscriberB() => EndpointSetup<OutboxServer>();
 
         class EventHandler : IHandleMessages<TestEvent>
         {
