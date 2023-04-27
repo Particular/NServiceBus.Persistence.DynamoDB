@@ -21,7 +21,7 @@
           "N": null,
           "NS": [],
           "NULL": false,
-          "S": "OUTBOX#SCHEMAVERSIONTEST#FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8",
+          "S": "OUTBOX#SchemaVersionTest#FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8",
           "SS": []
         },
         "SK": {
@@ -39,7 +39,7 @@
           "S": "OUTBOX#METADATA#FFC8A2FD-0335-47C8-A29D-9EEA6C8445D8",
           "SS": []
         },
-        "OPERATIONS_COUNT": {
+        "OperationsCount": {
           "B": null,
           "BOOL": false,
           "IsBOOLSet": false,
@@ -54,7 +54,7 @@
           "S": null,
           "SS": []
         },
-        "DISPATCHED": {
+        "Dispatched": {
           "B": null,
           "BOOL": false,
           "IsBOOLSet": true,
@@ -69,7 +69,7 @@
           "S": null,
           "SS": []
         },
-        "DISPATCHED_AT": {
+        "DispatchedAt": {
           "B": null,
           "BOOL": false,
           "IsBOOLSet": false,
@@ -84,7 +84,7 @@
           "S": null,
           "SS": []
         },
-        "SCHEMA_VERSION": {
+        "SchemaVersion": {
           "B": null,
           "BOOL": false,
           "IsBOOLSet": false,
@@ -99,7 +99,7 @@
           "S": "1.0",
           "SS": []
         },
-        "EXPIRES_AT": {
+        "ExpiresAt": {
           "B": null,
           "BOOL": false,
           "IsBOOLSet": false,

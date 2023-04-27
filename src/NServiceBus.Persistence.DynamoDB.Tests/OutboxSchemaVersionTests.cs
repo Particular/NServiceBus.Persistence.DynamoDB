@@ -4,13 +4,14 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Amazon.DynamoDBv2.Model;
 using Extensibility;
 using NUnit.Framework;
 using Outbox;
 using Particular.Approvals;
 
 [TestFixture]
-public class OutboxSchemaVersionTest
+public class OutboxSchemaVersionTests
 {
     [Test]
     public async Task Should_update_schema_version_on_schema_changes()
@@ -34,5 +35,32 @@ public class OutboxSchemaVersionTest
         Approver.Verify(
             JsonSerializer.Serialize(client.TransactWriteRequestsSent.Single().TransactItems,
                 new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Theory]
+    [TestCase("SchemaVersionTest", "SomeMessageId")]
+    [TestCase("schemaversiontest", "somemessageid")]
+    [TestCase("SCHEMAVERSIONTEST", "SOMEMESSAGEID")]
+    public async Task Should_treat_identifier_and_message_id_case_sensitive(string endpointIdentifier, string messageId)
+    {
+        var client = new MockDynamoDBClient();
+        var outboxPersister = new OutboxPersister(client, new OutboxPersistenceConfiguration(), endpointIdentifier);
+
+        var outboxMessage = new OutboxMessage(messageId, Array.Empty<TransportOperation>());
+
+        var context = new ContextBag();
+
+        using var dynamoDbOutboxTransaction = new DynamoOutboxTransaction(client, context);
+        using var outboxTransaction = await outboxPersister.BeginTransaction(context);
+        await outboxPersister.Store(outboxMessage, dynamoDbOutboxTransaction, context);
+        await outboxTransaction.Commit();
+        await dynamoDbOutboxTransaction.Commit();
+
+        var put = client.TransactWriteRequestsSent.Single().TransactItems[0].Put;
+
+        StringAssert.Contains(endpointIdentifier, put.Item["PK"].S);
+        StringAssert.Contains(messageId, put.Item["PK"].S);
+
+        StringAssert.Contains(messageId, put.Item["SK"].S);
     }
 }

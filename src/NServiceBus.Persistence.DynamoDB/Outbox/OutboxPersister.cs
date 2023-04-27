@@ -23,7 +23,7 @@ class OutboxPersister : IOutboxStorage
     {
         this.dynamoDbClient = dynamoDbClient;
         this.configuration = configuration;
-        this.endpointIdentifier = endpointIdentifier.ToUpperInvariant();
+        this.endpointIdentifier = endpointIdentifier;
     }
 
     public Task<IOutboxTransaction> BeginTransaction(ContextBag context,
