@@ -2,7 +2,9 @@ namespace NServiceBus.Persistence.DynamoDB;
 
 static class SagaMetadataAttributeNames
 {
-    public const string SagaMetadataAttributeName = "NSERVICEBUS_METADATA";
-    public const string SagaDataVersionAttributeName = "VERSION";
-    public const string SagaLeaseAttributeName = "LEASE_TIMEOUT";
+    public const string Metadata = "NServiceBus_Metadata";
+    public const string Version = "Version";
+    public const string SagaDataType = "Type";
+    public const string SchemaVersion = nameof(SchemaVersion);
+    public const string LeaseTimeout = "NServiceBus_LeaseTimeout";
 }

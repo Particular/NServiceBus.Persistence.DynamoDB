@@ -11,7 +11,7 @@ using Sagas;
 using Testing;
 
 [TestFixture]
-public class SagaSchemaVersionTest
+public class SagaSchemaVersionTests
 {
     [Test]
     public async Task Should_update_schema_version_on_schema_changes()
@@ -37,6 +37,30 @@ public class SagaSchemaVersionTest
         Approver.Verify(
             JsonSerializer.Serialize(testableSession.TransactWriteItems.Single().Put.Item,
                 new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Theory]
+    [TestCase("SchemaVersionTest")]
+    [TestCase("schemaversiontest")]
+    [TestCase("SCHEMAVERSIONTEST")]
+    public async Task Should_treat_identifier_case_sensitive(string endpointIdentifier)
+    {
+        var sagaPersister = new SagaPersister(new MockDynamoDBClient(), new SagaPersistenceConfiguration(), endpointIdentifier);
+
+        var sagaData = new TestSagaData()
+        {
+            CorrelationProperty = "CorrelationPropertyValue",
+            Id = new Guid("b36125bf-f783-40c2-9eac-4c7433afa4fa"),
+            OriginalMessageId = "OriginalMessageIdValue",
+            Originator = "OriginatorValue"
+        };
+
+        var testableSession = new TestableDynamoSynchronizedStorageSession();
+        await sagaPersister.Save(sagaData,
+            new SagaCorrelationProperty(nameof(TestSagaData.CorrelationProperty), sagaData.CorrelationProperty),
+            testableSession, new ContextBag());
+
+        StringAssert.Contains(endpointIdentifier, testableSession.TransactWriteItems.Single().Put.Item["PK"].S);
     }
 
     class TestSagaData : ContainSagaData

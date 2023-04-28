@@ -25,7 +25,7 @@ class SagaPersister : ISagaPersister
     public SagaPersister(IAmazonDynamoDB dynamoDbClient, SagaPersistenceConfiguration configuration, string endpointIdentifier)
     {
         this.configuration = configuration;
-        this.endpointIdentifier = endpointIdentifier.ToUpperInvariant();
+        this.endpointIdentifier = endpointIdentifier;
         this.dynamoDbClient = dynamoDbClient;
     }
 
@@ -80,7 +80,7 @@ class SagaPersister : ISagaPersister
                     ConditionExpression = "attribute_not_exists(#lease) OR #lease < :now",
                     ExpressionAttributeNames = new Dictionary<string, string>
                     {
-                        { "#lease", SagaLeaseAttributeName }
+                        { "#lease", LeaseTimeout }
                     },
                     ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                     {
@@ -96,8 +96,8 @@ class SagaPersister : ISagaPersister
                     var response = await dynamoDbClient.UpdateItemAsync(updateItemRequest, cancellationToken)
                         .ConfigureAwait(false);
                     // we need to find out if the saga already exists or not and we do that by checking the whether the saga metadata attribute map exists
-                    if (response.Attributes.ContainsKey(SagaMetadataAttributeName) &&
-                        response.Attributes[SagaMetadataAttributeName].M.TryGetValue(SagaDataVersionAttributeName, out AttributeValue? versionAttributeValue))
+                    if (response.Attributes.ContainsKey(Metadata) &&
+                        response.Attributes[Metadata].M.TryGetValue(SagaMetadataAttributeNames.Version, out AttributeValue? versionAttributeValue))
                     {
                         // the saga exists
                         var sagaData = Deserialize<TSagaData>(response.Attributes, context);
@@ -106,7 +106,7 @@ class SagaPersister : ISagaPersister
                         // note that a transactional batch can only contain a single operation per item in DynamoDB
                         dynamoSession.AddToBeExecutedWhenSessionDisposes(new UpdateSagaLock(sagaId, configuration,
                             sagaPartitionKey, sagaSortKey,
-                            response.Attributes[SagaLeaseAttributeName].N,
+                            response.Attributes[LeaseTimeout].N,
                             versionAttributeValue.N));
                         return sagaData;
                     }
@@ -114,7 +114,7 @@ class SagaPersister : ISagaPersister
                     // it's a new saga (but we own the lock now)
                     // we need to delete the entry containing the lock
                     dynamoSession.AddToBeExecutedWhenSessionDisposes(new DeleteSagaLock(sagaId, configuration, sagaPartitionKey, sagaSortKey,
-                        response.Attributes[SagaLeaseAttributeName].N));
+                        response.Attributes[LeaseTimeout].N));
                     return null;
                 }
                 catch (AmazonDynamoDBException e) when (e is ConditionalCheckFailedException or TransactionConflictException)
@@ -143,7 +143,7 @@ class SagaPersister : ISagaPersister
         {
             return default;
         }
-        var currentVersion = int.Parse(attributeValues[SagaMetadataAttributeName].M[SagaDataVersionAttributeName].N);
+        var currentVersion = int.Parse(attributeValues[Metadata].M[SagaMetadataAttributeNames.Version].N);
         context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
         return sagaData;
     }
@@ -161,8 +161,8 @@ class SagaPersister : ISagaPersister
                 ConditionExpression = "attribute_not_exists(#metadata.#version)",
                 ExpressionAttributeNames = new Dictionary<string, string>
                 {
-                    { "#metadata", SagaMetadataAttributeName },
-                    { "#version", SagaDataVersionAttributeName }
+                    { "#metadata", Metadata },
+                    { "#version", SagaMetadataAttributeNames.Version }
                 },
                 TableName = configuration.Table.TableName,
             }
@@ -191,8 +191,8 @@ class SagaPersister : ISagaPersister
                 ConditionExpression = "#metadata.#version = :current_version", // fail if modified in the meantime
                 ExpressionAttributeNames = new Dictionary<string, string>
                 {
-                    { "#metadata", SagaMetadataAttributeName },
-                    { "#version", SagaDataVersionAttributeName }
+                    { "#metadata", Metadata },
+                    { "#version", SagaMetadataAttributeNames.Version }
                 },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
@@ -216,17 +216,17 @@ class SagaPersister : ISagaPersister
         var sagaDataMap = Mapper.ToMap(sagaData, sagaData.GetType(), configuration.MapperOptions);
         sagaDataMap.Add(configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaData.Id) });
         sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaData.Id) });
-        sagaDataMap.Add(SagaMetadataAttributeName, new AttributeValue
+        sagaDataMap.Add(Metadata, new AttributeValue
         {
             M = new Dictionary<string, AttributeValue>
             {
-                { SagaDataVersionAttributeName, new AttributeValue { N = version.ToString() } },
-                { "TYPE", new AttributeValue { S = sagaData.GetType().FullName } },
-                { "SCHEMA_VERSION", new AttributeValue { S = "1.0" } }
+                { SagaMetadataAttributeNames.Version, new AttributeValue { N = version.ToString() } },
+                { SagaDataType, new AttributeValue { S = sagaData.GetType().FullName } },
+                { SchemaVersion, new AttributeValue { S = "1.0" } }
             }
         });
         // released lease on save
-        sagaDataMap.Add(SagaLeaseAttributeName, new AttributeValue { N = "-1" });
+        sagaDataMap.Add(LeaseTimeout, new AttributeValue { N = "-1" });
         return sagaDataMap;
     }
 
@@ -247,8 +247,8 @@ class SagaPersister : ISagaPersister
                 ConditionExpression = "#metadata.#version = :current_version", // fail if modified in the meantime
                 ExpressionAttributeNames = new Dictionary<string, string>
                 {
-                    { "#metadata", SagaMetadataAttributeName },
-                    { "#version", SagaDataVersionAttributeName }
+                    { "#metadata", Metadata },
+                    { "#version", SagaMetadataAttributeNames.Version }
                 },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {

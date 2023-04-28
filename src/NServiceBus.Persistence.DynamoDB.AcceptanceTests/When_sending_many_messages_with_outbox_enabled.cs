@@ -32,8 +32,7 @@ public class When_sending_many_messages_with_outbox_enabled : NServiceBusAccepta
 
         Assert.AreEqual(99, context.MessagesReceived);
 
-        var endpointName = Conventions.EndpointNamingConvention(typeof(EndpointSendingManyMessages))
-            .ToUpperInvariant();
+        var endpointName = Conventions.EndpointNamingConvention(typeof(EndpointSendingManyMessages));
         var queryRequest = new QueryRequest
         {
             ConsistentRead = true,

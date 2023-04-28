@@ -36,8 +36,8 @@ sealed class DeleteSagaLock : ILockCleanup
             ExpressionAttributeNames =
                 new Dictionary<string, string>
                 {
-                    { "#metadata", SagaMetadataAttributeName },
-                    { "#lease", SagaLeaseAttributeName },
+                    { "#metadata", Metadata },
+                    { "#lease", LeaseTimeout },
                 },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {

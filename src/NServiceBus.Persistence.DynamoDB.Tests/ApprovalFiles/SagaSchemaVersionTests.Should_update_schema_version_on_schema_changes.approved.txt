@@ -71,7 +71,7 @@
     "N": null,
     "NS": [],
     "NULL": false,
-    "S": "SAGA#SCHEMAVERSIONTEST#ffc8a2fd-0335-47c8-a29d-9eea6c8445d8",
+    "S": "SAGA#SchemaVersionTest#ffc8a2fd-0335-47c8-a29d-9eea6c8445d8",
     "SS": []
   },
   "SK": {
@@ -89,7 +89,7 @@
     "S": "SAGA#ffc8a2fd-0335-47c8-a29d-9eea6c8445d8",
     "SS": []
   },
-  "NSERVICEBUS_METADATA": {
+  "NServiceBus_Metadata": {
     "B": null,
     "BOOL": false,
     "IsBOOLSet": false,
@@ -97,7 +97,7 @@
     "L": [],
     "IsLSet": false,
     "M": {
-      "VERSION": {
+      "Version": {
         "B": null,
         "BOOL": false,
         "IsBOOLSet": false,
@@ -112,7 +112,7 @@
         "S": null,
         "SS": []
       },
-      "TYPE": {
+      "Type": {
         "B": null,
         "BOOL": false,
         "IsBOOLSet": false,
@@ -124,10 +124,10 @@
         "N": null,
         "NS": [],
         "NULL": false,
-        "S": "NServiceBus.Persistence.DynamoDB.Tests.SagaSchemaVersionTest\u002BTestSagaData",
+        "S": "NServiceBus.Persistence.DynamoDB.Tests.SagaSchemaVersionTests\u002BTestSagaData",
         "SS": []
       },
-      "SCHEMA_VERSION": {
+      "SchemaVersion": {
         "B": null,
         "BOOL": false,
         "IsBOOLSet": false,
@@ -150,7 +150,7 @@
     "S": null,
     "SS": []
   },
-  "LEASE_TIMEOUT": {
+  "NServiceBus_LeaseTimeout": {
     "B": null,
     "BOOL": false,
     "IsBOOLSet": false,
