@@ -10,9 +10,6 @@ class InstallerFeature : Feature
         DependsOn<SynchronizedStorage>();
     }
 
-    protected override void Setup(FeatureConfigurationContext context)
-    {
-        var installer = new Installer(context.Settings.Get<IDynamoClientProvider>().Client);
-        context.Services.AddSingleton(installer);
-    }
+    protected override void Setup(FeatureConfigurationContext context) =>
+        context.Services.AddSingleton(sp => new Installer(sp.GetRequiredService<IDynamoClientProvider>().Client));
 }
