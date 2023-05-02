@@ -31,7 +31,7 @@ class OutboxPersister : IOutboxStorage
     {
         var transaction = new DynamoOutboxTransaction(dynamoDbClient, context);
 
-        return Task.FromResult((IOutboxTransaction)transaction);
+        return Task.FromResult<IOutboxTransaction>(transaction);
     }
 
     public async Task<OutboxMessage?> Get(string messageId, ContextBag context,
@@ -41,8 +41,10 @@ class OutboxPersister : IOutboxStorage
         {
             ConsistentRead = true,
             KeyConditionExpression = "#PK = :outboxId",
-            ExpressionAttributeNames =
-                new Dictionary<string, string> { { "#PK", configuration.Table.PartitionKeyName } },
+            ExpressionAttributeNames = new Dictionary<string, string>
+            {
+                { "#PK", configuration.Table.PartitionKeyName }
+            },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 { ":outboxId", new AttributeValue { S = OutboxPartitionKey(messageId) } }
@@ -84,7 +86,8 @@ class OutboxPersister : IOutboxStorage
 
     OutboxMessage DeserializeOutboxMessage(string messageId,
         int numberOfTransportOperations,
-        List<Dictionary<string, AttributeValue>>? transportOperationsAttributes, ContextBag contextBag)
+        List<Dictionary<string, AttributeValue>>? transportOperationsAttributes,
+        ContextBag contextBag)
     {
         // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
         // potential partial deletes
@@ -161,14 +164,16 @@ class OutboxPersister : IOutboxStorage
                             OperationsCount,
                             new AttributeValue { N = outboxMessage.TransportOperations.Length.ToString() }
                         },
-                        { Dispatched, new AttributeValue { BOOL = false } },
-                        { DispatchedAt, new AttributeValue { NULL = true } },
-                        { SchemaVersion, new AttributeValue { S = "1.0" } },
-                        { configuration.Table.TimeToLiveAttributeName!, new AttributeValue { NULL = true } },
+                        { Dispatched, FalseAttributeValue },
+                        { DispatchedAt, NullAttributeValue },
+                        { SchemaVersion, SchemaVersionAttributeValue },
+                        { configuration.Table.TimeToLiveAttributeName!, NullAttributeValue },
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
-                    ExpressionAttributeNames =
-                        new Dictionary<string, string> { { "#SK", configuration.Table.SortKeyName } },
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        { "#SK", configuration.Table.SortKeyName }
+                    },
                     TableName = configuration.Table.TableName,
                 }
             }
@@ -204,7 +209,7 @@ class OutboxPersister : IOutboxStorage
                             }
                         },
                         {Body, new AttributeValue {B = bodyStream}},
-                        {configuration.Table.TimeToLiveAttributeName!, new AttributeValue {NULL = true}}
+                        {configuration.Table.TimeToLiveAttributeName!, NullAttributeValue}
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                     ExpressionAttributeNames = new Dictionary<string, string>()
@@ -270,7 +275,7 @@ class OutboxPersister : IOutboxStorage
             },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                { ":dispatched", new AttributeValue {BOOL = true} },
+                { ":dispatched", TrueAttributeValue },
                 { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
                 { ":ttl", new AttributeValue {N = epochSeconds.ToString()} },
             },
@@ -320,6 +325,10 @@ class OutboxPersister : IOutboxStorage
     readonly string endpointIdentifier;
     readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = new();
     static readonly ILog Logger = LogManager.GetLogger<OutboxPersister>();
+    static readonly AttributeValue TrueAttributeValue = new AttributeValue { BOOL = true };
+    static readonly AttributeValue FalseAttributeValue = new AttributeValue { BOOL = false };
+    static readonly AttributeValue NullAttributeValue = new AttributeValue { NULL = true };
+    static readonly AttributeValue SchemaVersionAttributeValue = new AttributeValue { S = "1.0" };
 
     sealed class ReturnBuffer
     {
