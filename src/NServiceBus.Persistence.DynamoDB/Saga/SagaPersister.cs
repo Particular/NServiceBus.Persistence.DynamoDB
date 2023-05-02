@@ -260,6 +260,13 @@ class SagaPersister : ISagaPersister
                 TableName = configuration.Table.TableName,
             }
         });
+
+        if (configuration.UsePessimisticLocking)
+        {
+            // we can't remove the action directly because the transaction was not completed yet
+            dynamoSession.MarkAsNoLongerNecessaryWhenSessionCommitted(lockCleanupId: sagaData.Id);
+        }
+
         return Task.CompletedTask;
     }
 
