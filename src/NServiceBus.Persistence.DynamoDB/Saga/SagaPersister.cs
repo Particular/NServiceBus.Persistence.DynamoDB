@@ -12,6 +12,9 @@ using static SagaMetadataAttributeNames;
 
 class SagaPersister : ISagaPersister
 {
+    static readonly AttributeValue SchemaVersionAttributeValue = new AttributeValue { S = "1.0" };
+    static readonly AttributeValue ReleasedLeaseAttributeValue = new AttributeValue { N = "-1" };
+
     readonly SagaPersistenceConfiguration configuration;
     readonly string endpointIdentifier;
     readonly IAmazonDynamoDB dynamoDbClient;
@@ -222,11 +225,11 @@ class SagaPersister : ISagaPersister
             {
                 { SagaMetadataAttributeNames.Version, new AttributeValue { N = version.ToString() } },
                 { SagaDataType, new AttributeValue { S = sagaData.GetType().FullName } },
-                { SchemaVersion, new AttributeValue { S = "1.0" } }
+                { SchemaVersion, SchemaVersionAttributeValue }
             }
         });
         // released lease on save
-        sagaDataMap.Add(LeaseTimeout, new AttributeValue { N = "-1" });
+        sagaDataMap.Add(LeaseTimeout, ReleasedLeaseAttributeValue);
         return sagaDataMap;
     }
 
