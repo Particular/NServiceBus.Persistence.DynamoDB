@@ -180,11 +180,13 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
 
         var deserialized = Mapper.ToObject<ClassWithMemoryStream>(attributes);
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
 
         CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
         Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
@@ -208,6 +210,7 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
     }
 
     [Test]
@@ -223,6 +226,7 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
     }
 
     class ClassWithMemoryStreamAndUnserializableValue
@@ -249,6 +253,7 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
     }
 
     [Test]
@@ -268,6 +273,7 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
     }
 
     class ClassWithSetOfMemoryStreamAndUnserializableValue
@@ -298,11 +304,13 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
 
         var deserialized = Mapper.ToObject<ClassWithSetOfMemoryStream>(attributes);
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
 
         CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
         CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
@@ -334,11 +342,13 @@ public class MapperTests
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
 
         var deserialized = Mapper.ToObject<ClassWithNestedMemoryStream>(attributes);
 
         // state should never leak
         Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
 
         CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
         CollectionAssert.AreEquivalent(classWithMemoryStream.Nested.SomeStream.ToArray(), deserialized.Nested.SomeStream.ToArray());

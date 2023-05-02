@@ -36,12 +36,12 @@ sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConv
         }
 
         reader.Read();
-        if (reader.TokenType != JsonTokenType.String)
+        if (reader.TokenType != JsonTokenType.Number)
         {
             throw new JsonException();
         }
 
-        GetStream(reader.GetGuid(), out var stream);
+        GetStream(reader.GetUInt32(), out var stream);
 
         reader.Read();
 
@@ -54,9 +54,9 @@ sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConv
 
     public override void Write(Utf8JsonWriter writer, MemoryStream value, JsonSerializerOptions options)
     {
-        Guid streamId = TrackStream(value);
+        var streamId = TrackStream(value);
         writer.WriteStartObject();
-        writer.WriteString(PropertyName, streamId);
+        writer.WriteNumber(PropertyName, streamId);
         writer.WriteEndObject();
     }
 
@@ -81,7 +81,7 @@ sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConv
             return false;
         }
 
-        GetStream(property.GetGuid(), out memoryStream);
+        GetStream(property.GetUInt32(), out memoryStream);
         return true;
     }
 
@@ -97,9 +97,13 @@ sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConv
         {
             StreamMap.Value!.Clear();
         }
+        if (StreamId.IsValueCreated)
+        {
+            StreamId.Value = 0;
+        }
     }
 
-    static void GetStream(Guid streamId, out MemoryStream? memoryStream)
+    static void GetStream(uint streamId, out MemoryStream? memoryStream)
     {
         if (StreamMap.Value!.TryGetValue(streamId, out memoryStream))
         {
@@ -107,13 +111,14 @@ sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConv
         }
     }
 
-    static Guid TrackStream(MemoryStream memoryStream)
+    static uint TrackStream(MemoryStream memoryStream)
     {
-        var streamId = Guid.NewGuid();
+        var streamId = StreamId.Value++;
         StreamMap.Value!.Add(streamId, memoryStream);
         return streamId;
     }
 
     // internal for tests
-    internal static readonly ThreadLocal<Dictionary<Guid, MemoryStream>> StreamMap = new(() => new Dictionary<Guid, MemoryStream>());
+    internal static readonly ThreadLocal<uint> StreamId = new(() => 0);
+    internal static readonly ThreadLocal<Dictionary<uint, MemoryStream>> StreamMap = new(() => new Dictionary<uint, MemoryStream>());
 }
