@@ -31,7 +31,7 @@ public static class DynamoPersistenceConfig
         Guard.ThrowIfNull(sharedTableConfiguration);
 
         persistenceExtensions.Sagas().Table = sharedTableConfiguration with { };
-        persistenceExtensions.Outbox().Table = sharedTableConfiguration with { };
+        persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().Table = sharedTableConfiguration with { };
         return persistenceExtensions;
     }
 
@@ -43,16 +43,8 @@ public static class DynamoPersistenceConfig
         Guard.ThrowIfNull(persistenceExtensions);
 
         persistenceExtensions.Sagas().CreateTable = false;
-        persistenceExtensions.Outbox().CreateTable = false;
+        persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CreateTable = false;
     }
-
-    /// <summary>
-    /// Obtains the outbox persistence configuration options.
-    /// </summary>
-    /// <param name="persistenceExtensions"></param>
-    /// <returns></returns>
-    public static OutboxPersistenceConfiguration Outbox(this PersistenceExtensions<DynamoPersistence> persistenceExtensions) =>
-        persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>();
 
     /// <summary>
     /// Obtains the saga persistence configuration options.

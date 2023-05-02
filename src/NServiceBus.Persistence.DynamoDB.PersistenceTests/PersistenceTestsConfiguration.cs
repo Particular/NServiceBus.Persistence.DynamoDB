@@ -72,7 +72,7 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
             new OutboxPersistenceConfiguration
             {
                 Table = SetupFixture.OutboxTable,
-                TimeToLive = TimeSpan.FromSeconds(100)
+                TimeToKeepDeduplicationData = TimeSpan.FromSeconds(100)
             },
             "PersistenceTest");
 

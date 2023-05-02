@@ -256,7 +256,7 @@ class OutboxPersister : IOutboxStorage
         var opsCount = context.Get<int>($"dynamo_operations_count:{messageId}");
 
         var now = DateTime.UtcNow;
-        var expirationTime = now.Add(configuration.TimeToLive);
+        var expirationTime = now.Add(configuration.TimeToKeepDeduplicationData);
         int epochSeconds = AWSSDKUtils.ConvertToUnixEpochSeconds(expirationTime);
 
         var updateItem = new UpdateItemRequest
