@@ -22,9 +22,11 @@ public static class DynamoOutboxConfigurationExtensions
     /// <summary>
     /// Sets the time to live for outbox deduplication records. The default value is <value>7 days</value>.
     /// </summary>
-    public static OutboxSettings SetTimeToKeepDeduplicationData(this OutboxSettings outboxSettings, TimeSpan timeToLive)
+    public static OutboxSettings SetTimeToKeepDeduplicationData(this OutboxSettings outboxSettings, TimeSpan timeToKeepDeduplicationData)
     {
-        outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().TimeToKeepDeduplicationData = timeToLive;
+        Guard.ThrowIfNegativeOrZero(timeToKeepDeduplicationData);
+
+        outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().TimeToKeepDeduplicationData = timeToKeepDeduplicationData;
         return outboxSettings;
     }
 

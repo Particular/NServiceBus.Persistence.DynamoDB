@@ -28,7 +28,7 @@ namespace NServiceBus.Persistence.DynamoDB
     public static class DynamoOutboxConfigurationExtensions
     {
         public static NServiceBus.Outbox.OutboxSettings CreateTableWithInstaller(this NServiceBus.Outbox.OutboxSettings outboxSettings, bool createTable) { }
-        public static NServiceBus.Outbox.OutboxSettings SetTimeToKeepDeduplicationData(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.TimeSpan timeToLive) { }
+        public static NServiceBus.Outbox.OutboxSettings SetTimeToKeepDeduplicationData(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.TimeSpan timeToKeepDeduplicationData) { }
         public static NServiceBus.Outbox.OutboxSettings UseTable(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.Func<NServiceBus.Persistence.DynamoDB.TableConfiguration, NServiceBus.Persistence.DynamoDB.TableConfiguration> tableConfiguration) { }
     }
     public interface IDynamoClientProvider
