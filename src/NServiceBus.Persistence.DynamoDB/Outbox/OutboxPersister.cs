@@ -88,9 +88,17 @@ class OutboxPersister : IOutboxStorage
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
             {
                 transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
+                // because of phantom records potentially overlapping we check whether we have all the necessary
+                // operations and in case we would have more we stop evaluating. Technically this check isn't necessary
+                // because DeserializeOutboxMessage already account for numberOfTransportOperations but we want
+                // to prevent this list from growing beyond something we ever need.
+                if (transportOperationsAttributes.Count == numberOfTransportOperations)
+                {
+                    break;
+                }
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (foundOutboxMetadataEntry.GetValueOrDefault(false) && response.LastEvaluatedKey.Count > 0);
+        } while (foundOutboxMetadataEntry.GetValueOrDefault(false) && transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
         return foundOutboxMetadataEntry == null ?
             null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
@@ -102,7 +110,7 @@ class OutboxPersister : IOutboxStorage
         ContextBag contextBag)
     {
         // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
-        // potential partial deletes
+        // potential partial deletes/phantom records
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
         var operations = numberOfTransportOperations == 0
