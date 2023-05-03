@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.Model;
 using Extensibility;
 using NServiceBus.Outbox;
 using NUnit.Framework;
@@ -203,5 +204,80 @@ public class OutboxTests
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
         Assert.AreEqual(0, result.TransportOperations.Length);
+    }
+
+    [Test]
+    public async Task Should_fail_on_multiple_stores_for_same_id_with_metadata_available()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
+
+        var transportOperations = new TransportOperation[]
+        {
+            new(Guid.NewGuid().ToString(), new DispatchProperties(),
+                ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+        };
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        Assert.ThrowsAsync<TransactionCanceledException>(async () =>
+        {
+            ContextBag secondAttemptContextBag = configuration.GetContextBagForOutbox();
+            using var transaction = await configuration.OutboxStorage.BeginTransaction(secondAttemptContextBag);
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, secondAttemptContextBag);
+
+            await transaction.Commit();
+        });
+    }
+
+    [Test]
+    public async Task Should_allow_multiple_stores_for_same_id_when_metadata_expired()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
+
+        var transportOperations = new TransportOperation[]
+        {
+            new(Guid.NewGuid().ToString(), new DispatchProperties(),
+                ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+        };
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        var outboxTable = SetupFixture.OutboxTable;
+        await SetupFixture.DynamoDBClient.DeleteItemAsync(new DeleteItemRequest
+        {
+            Key = new Dictionary<string, AttributeValue>(2)
+            {
+                { outboxTable.PartitionKeyName, new AttributeValue($"OUTBOX#PersistenceTest#{incomingMessageId}") },
+                { outboxTable.SortKeyName, new AttributeValue($"OUTBOX#METADATA#{incomingMessageId}") }
+            },
+            TableName = outboxTable.TableName
+        });
+
+        ContextBag secondAttemptContextBag = configuration.GetContextBagForOutbox();
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(secondAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, secondAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
+        Assert.AreEqual(transportOperations.Length, result.TransportOperations.Length);
     }
 }
