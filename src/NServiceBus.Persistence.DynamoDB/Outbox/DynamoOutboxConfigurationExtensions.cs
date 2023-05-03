@@ -36,7 +36,7 @@ public static class DynamoOutboxConfigurationExtensions
     /// <summary>
     /// Determines whether the NServiceBus installer should create the Outbox table when enabled. The default value is <value>true</value>.
     /// </summary>
-    public static OutboxSettings CreateTableWithInstaller(this OutboxSettings outboxSettings, bool createTable)
+    public static OutboxSettings CreateTable(this OutboxSettings outboxSettings, bool createTable)
     {
         Guard.ThrowIfNull(outboxSettings);
 
