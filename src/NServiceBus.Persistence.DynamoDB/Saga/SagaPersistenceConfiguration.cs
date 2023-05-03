@@ -1,7 +1,8 @@
-﻿namespace NServiceBus.Persistence.DynamoDB;
+﻿namespace NServiceBus;
 
 using System;
 using System.Text.Json;
+using static Persistence.DynamoDB.MapperOptions;
 
 /// <summary>
 /// The saga persistence configuration options.
@@ -36,5 +37,5 @@ public class SagaPersistenceConfiguration
     /// </summary>
     public TimeSpan LeaseAcquisitionTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
-    internal JsonSerializerOptions MapperOptions { get; set; } = new(DynamoDB.MapperOptions.Defaults);
+    internal JsonSerializerOptions MapperOptions { get; set; } = new(Defaults);
 }

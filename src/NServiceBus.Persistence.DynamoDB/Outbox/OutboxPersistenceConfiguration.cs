@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Persistence.DynamoDB;
+﻿namespace NServiceBus;
 
 using System;
 

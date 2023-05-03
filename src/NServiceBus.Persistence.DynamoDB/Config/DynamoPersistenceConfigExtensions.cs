@@ -7,7 +7,7 @@ using Persistence.DynamoDB;
 /// <summary>
 /// Configuration extensions for DynamoDB Core API Persistence
 /// </summary>
-public static class DynamoPersistenceConfig
+public static class DynamoPersistenceConfigExtensions
 {
     /// <summary>
     /// Override the default AmazonDynamoDBClient creation by providing a pre-configured AmazonDynamoDBClient
@@ -30,7 +30,7 @@ public static class DynamoPersistenceConfig
         Guard.ThrowIfNull(persistenceExtensions);
         Guard.ThrowIfNull(sharedTableConfiguration);
 
-        persistenceExtensions.Sagas().Table = sharedTableConfiguration with { };
+        persistenceExtensions.GetSettings().GetOrCreate<SagaPersistenceConfiguration>().Table = sharedTableConfiguration with { };
         persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().Table = sharedTableConfiguration with { };
         return persistenceExtensions;
     }
@@ -42,13 +42,7 @@ public static class DynamoPersistenceConfig
     {
         Guard.ThrowIfNull(persistenceExtensions);
 
-        persistenceExtensions.Sagas().CreateTable = false;
+        persistenceExtensions.GetSettings().GetOrCreate<SagaPersistenceConfiguration>().CreateTable = false;
         persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CreateTable = false;
     }
-
-    /// <summary>
-    /// Obtains the saga persistence configuration options.
-    /// </summary>
-    public static SagaPersistenceConfiguration Sagas(this PersistenceExtensions<DynamoPersistence> persistenceExtensions) =>
-        persistenceExtensions.GetSettings().GetOrCreate<SagaPersistenceConfiguration>();
 }

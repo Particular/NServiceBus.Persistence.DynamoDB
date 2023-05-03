@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Persistence.DynamoDB;
+﻿namespace NServiceBus;
 
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;

@@ -5,32 +5,59 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo(@"NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests, PublicKey=00240000048000009400000006020000002400005253413100040000010001007f16e21368ff041183fab592d9e8ed37e7be355e93323147a1d29983d6e591b04282e4da0c9e18bd901e112c0033925eb7d7872c2f1706655891c5c9d57297994f707d16ee9a8f40d978f064ee1ffc73c0db3f4712691b23bf596f75130f4ec978cf78757ec034625a5f27e6bb50c618931ea49f6f628fd74271c32959efb1c5")]
 namespace NServiceBus
 {
+    public static class DynamoOutboxConfigurationExtensions
+    {
+        public static NServiceBus.Outbox.OutboxSettings CreateTableWithInstaller(this NServiceBus.Outbox.OutboxSettings outboxSettings, bool createTable) { }
+        public static NServiceBus.Outbox.OutboxSettings SetTimeToKeepDeduplicationData(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.TimeSpan timeToKeepDeduplicationData) { }
+        public static NServiceBus.Outbox.OutboxSettings UseTable(this NServiceBus.Outbox.OutboxSettings outboxSettings, NServiceBus.TableConfiguration tableConfiguration) { }
+    }
     public class DynamoPersistence : NServiceBus.Persistence.PersistenceDefinition { }
-    public static class DynamoPersistenceConfig
+    public static class DynamoPersistenceConfigExtensions
     {
         public static void DisableTablesCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
         public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> DynamoClient(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions, Amazon.DynamoDBv2.IAmazonDynamoDB dynamoClient) { }
-        public static NServiceBus.Persistence.DynamoDB.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
-        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions, NServiceBus.Persistence.DynamoDB.TableConfiguration sharedTableConfiguration) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> UseSharedTable(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions, NServiceBus.TableConfiguration sharedTableConfiguration) { }
+    }
+    public static class DynamoSagaConfigurationExtensions
+    {
+        public static NServiceBus.SagaPersistenceConfiguration Sagas(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
     }
     public interface IDynamoStorageSession
     {
         void Add(Amazon.DynamoDBv2.Model.TransactWriteItem writeItem);
         void AddRange(System.Collections.Generic.IEnumerable<Amazon.DynamoDBv2.Model.TransactWriteItem> writeItems);
     }
+    public class OutboxPersistenceConfiguration
+    {
+        public OutboxPersistenceConfiguration() { }
+        public NServiceBus.TableConfiguration Table { get; set; }
+        public System.TimeSpan TimeToKeepDeduplicationData { get; set; }
+    }
+    public class SagaPersistenceConfiguration
+    {
+        public SagaPersistenceConfiguration() { }
+        public System.TimeSpan LeaseAcquisitionTimeout { get; set; }
+        public System.TimeSpan LeaseDuration { get; set; }
+        public NServiceBus.TableConfiguration Table { get; set; }
+        public bool UsePessimisticLocking { get; set; }
+    }
     public static class SynchronizedStorageSessionExtensions
     {
         public static NServiceBus.IDynamoStorageSession DynamoPersistenceSession(this NServiceBus.Persistence.ISynchronizedStorageSession session) { }
     }
+    public class TableConfiguration : System.IEquatable<NServiceBus.TableConfiguration>
+    {
+        public TableConfiguration() { }
+        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
+        public string PartitionKeyName { get; set; }
+        public Amazon.DynamoDBv2.Model.ProvisionedThroughput? ProvisionedThroughput { get; set; }
+        public string SortKeyName { get; set; }
+        public string TableName { get; set; }
+        public string? TimeToLiveAttributeName { get; set; }
+    }
 }
 namespace NServiceBus.Persistence.DynamoDB
 {
-    public static class DynamoOutboxConfigurationExtensions
-    {
-        public static NServiceBus.Outbox.OutboxSettings CreateTableWithInstaller(this NServiceBus.Outbox.OutboxSettings outboxSettings, bool createTable) { }
-        public static NServiceBus.Outbox.OutboxSettings SetTimeToKeepDeduplicationData(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.TimeSpan timeToKeepDeduplicationData) { }
-        public static NServiceBus.Outbox.OutboxSettings UseTable(this NServiceBus.Outbox.OutboxSettings outboxSettings, NServiceBus.Persistence.DynamoDB.TableConfiguration tableConfiguration) { }
-    }
     public interface IDynamoClientProvider
     {
         Amazon.DynamoDBv2.IAmazonDynamoDB Client { get; }
@@ -42,30 +69,6 @@ namespace NServiceBus.Persistence.DynamoDB
             where TValue :  class { }
         public static object? ToObject(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Type returnType) { }
         public static TValue? ToObject<TValue>(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues) { }
-    }
-    public class OutboxPersistenceConfiguration
-    {
-        public OutboxPersistenceConfiguration() { }
-        public NServiceBus.Persistence.DynamoDB.TableConfiguration Table { get; set; }
-        public System.TimeSpan TimeToKeepDeduplicationData { get; set; }
-    }
-    public class SagaPersistenceConfiguration
-    {
-        public SagaPersistenceConfiguration() { }
-        public System.TimeSpan LeaseAcquisitionTimeout { get; set; }
-        public System.TimeSpan LeaseDuration { get; set; }
-        public NServiceBus.Persistence.DynamoDB.TableConfiguration Table { get; set; }
-        public bool UsePessimisticLocking { get; set; }
-    }
-    public class TableConfiguration : System.IEquatable<NServiceBus.Persistence.DynamoDB.TableConfiguration>
-    {
-        public TableConfiguration() { }
-        public Amazon.DynamoDBv2.BillingMode BillingMode { get; set; }
-        public string PartitionKeyName { get; set; }
-        public Amazon.DynamoDBv2.Model.ProvisionedThroughput? ProvisionedThroughput { get; set; }
-        public string SortKeyName { get; set; }
-        public string TableName { get; set; }
-        public string? TimeToLiveAttributeName { get; set; }
     }
 }
 namespace NServiceBus.Testing

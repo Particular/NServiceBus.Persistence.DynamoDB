@@ -1,8 +1,9 @@
-﻿namespace NServiceBus.Persistence.DynamoDB;
+﻿namespace NServiceBus;
 
 using System;
 using Configuration.AdvancedExtensibility;
 using Outbox;
+using Persistence.DynamoDB;
 
 /// <summary>
 /// Outbox configuration extensions for DynamoDB persistence.
