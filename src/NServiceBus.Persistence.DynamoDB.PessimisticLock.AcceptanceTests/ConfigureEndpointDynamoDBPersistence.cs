@@ -3,6 +3,7 @@ using NServiceBus;
 using NServiceBus.AcceptanceTesting.Support;
 using NServiceBus.AcceptanceTests;
 using NServiceBus.Configuration.AdvancedExtensibility;
+using NServiceBus.Persistence.DynamoDB;
 
 public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecution
 {

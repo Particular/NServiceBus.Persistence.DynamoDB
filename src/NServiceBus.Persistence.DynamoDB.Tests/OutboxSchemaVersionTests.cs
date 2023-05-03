@@ -4,7 +4,6 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Amazon.DynamoDBv2.Model;
 using Extensibility;
 using NUnit.Framework;
 using Outbox;

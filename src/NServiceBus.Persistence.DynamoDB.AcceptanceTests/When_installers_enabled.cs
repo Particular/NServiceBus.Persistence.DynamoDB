@@ -41,11 +41,11 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
     {
         var context = await Scenario.Define<Context>()
             .WithEndpoint<EndpointWithInstallers>(e => e
-                .CustomConfig(c =>
+                .CustomConfig((c, ctx) =>
                 {
                     c.DisableFeature<Features.Sagas>(); // disable sagas to simulate no saga on the endpoint
                     c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-                    c.EnableOutbox();
+                    c.EnableOutbox().UseTable(SetupFixture.TableConfiguration with { TableName = ctx.OutboxTableName });
                 }))
             .Done(c => c.EndpointsStarted)
             .Run();
@@ -59,10 +59,10 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
     {
         var context = await Scenario.Define<Context>()
             .WithEndpoint<EndpointWithInstallers>(e => e
-                .CustomConfig(c =>
+                .CustomConfig((c, ctx) =>
                 {
                     c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-                    c.EnableOutbox();
+                    c.EnableOutbox().UseTable(SetupFixture.TableConfiguration with { TableName = ctx.OutboxTableName });
 
                     c.UsePersistence<DynamoPersistence>().DisableTablesCreation();
                 }))
@@ -88,7 +88,6 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
 
                 var persistence = c.UsePersistence<DynamoPersistence>();
                 persistence.DynamoClient(SetupFixture.DynamoDBClient);
-                persistence.Outbox().Table.TableName = testContext.OutboxTableName;
                 persistence.Sagas().Table.TableName = testContext.SagaTableName;
 
                 c.EnableInstallers();

@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Persistence.DynamoDB;
+﻿namespace NServiceBus;
 
 using System;
 
@@ -13,9 +13,9 @@ public class OutboxPersistenceConfiguration
     public TableConfiguration Table { get; set; } = new TableConfiguration();
 
     /// <summary>
-    /// The Time to Live for outbox records.
+    /// The time to live for outbox deduplication records.
     /// </summary>
-    public TimeSpan TimeToLive { get; set; } = TimeSpan.FromDays(7);
+    public TimeSpan TimeToKeepDeduplicationData { get; set; } = TimeSpan.FromDays(7);
 
     /// <summary>
     /// Determines whether the NServiceBus installer should create the Outbox table when enabled.
