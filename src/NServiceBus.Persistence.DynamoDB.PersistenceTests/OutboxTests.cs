@@ -288,16 +288,7 @@ public class OutboxTests
             await transaction.Commit();
         }
 
-        var outboxTable = SetupFixture.OutboxTable;
-        await SetupFixture.DynamoDBClient.DeleteItemAsync(new DeleteItemRequest
-        {
-            Key = new Dictionary<string, AttributeValue>(2)
-            {
-                { outboxTable.PartitionKeyName, new AttributeValue($"OUTBOX#PersistenceTest#{incomingMessageId}") },
-                { outboxTable.SortKeyName, new AttributeValue($"OUTBOX#METADATA#{incomingMessageId}") }
-            },
-            TableName = outboxTable.TableName
-        });
+        await ExpireMetadataRecord(incomingMessageId);
 
         ContextBag secondAttemptContextBag = configuration.GetContextBagForOutbox();
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(secondAttemptContextBag))
@@ -310,5 +301,77 @@ public class OutboxTests
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
         Assert.AreEqual(transportOperations.Length, result.TransportOperations.Length);
+    }
+
+    [Test]
+    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_record_present()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
+
+        var transportOperations = new TransportOperation[]
+        {
+            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+        };
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        await ExpireMetadataRecord(incomingMessageId);
+
+        var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_records_beyond_query_size_limit_present()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag contextBag = configuration.GetContextBagForOutbox();
+
+        var r = new Random();
+        byte[] payload = new byte[100_000]; // 400 KB is the item size limit
+        r.NextBytes(payload);
+
+        // Query size limit is 1MB
+        var transportOperations = new TransportOperation[20];
+        for (int i = 0; i < transportOperations.Length; i++)
+        {
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
+                payload, new Dictionary<string, string>());
+        }
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag);
+
+            await transaction.Commit();
+        }
+
+        await ExpireMetadataRecord(incomingMessageId);
+
+        var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
+        Assert.That(result, Is.Null);
+    }
+
+    static async Task ExpireMetadataRecord(string incomingMessageId)
+    {
+        var outboxTable = SetupFixture.OutboxTable;
+        await SetupFixture.DynamoDBClient.DeleteItemAsync(new DeleteItemRequest
+        {
+            Key = new Dictionary<string, AttributeValue>(2)
+            {
+                { outboxTable.PartitionKeyName, new AttributeValue($"OUTBOX#PersistenceTest#{incomingMessageId}") },
+                { outboxTable.SortKeyName, new AttributeValue($"OUTBOX#METADATA#{incomingMessageId}") }
+            },
+            TableName = outboxTable.TableName
+        });
     }
 }
