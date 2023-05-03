@@ -208,8 +208,7 @@ class OutboxPersister : IOutboxStorage
                                 IsMSet = true
                             }
                         },
-                        {Body, new AttributeValue {B = bodyStream}},
-                        {configuration.Table.TimeToLiveAttributeName!, NullAttributeValue}
+                        {Body, new AttributeValue {B = bodyStream}}
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                     ExpressionAttributeNames = new Dictionary<string, string>(1)
