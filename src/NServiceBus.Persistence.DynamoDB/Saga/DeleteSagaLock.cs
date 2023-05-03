@@ -26,7 +26,7 @@ sealed class DeleteSagaLock : ILockCleanup
     public Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default) =>
         client.DeleteItemAsync(new DeleteItemRequest
         {
-            Key = new Dictionary<string, AttributeValue>
+            Key = new Dictionary<string, AttributeValue>(2)
             {
                 { configuration.Table.PartitionKeyName, new AttributeValue { S = sagaPartitionKey } },
                 { configuration.Table.SortKeyName, new AttributeValue { S = sagaSortKey } }
@@ -34,12 +34,12 @@ sealed class DeleteSagaLock : ILockCleanup
             ConditionExpression =
                 "#lease = :current_lease AND attribute_not_exists(#metadata)", // only if the lock is still the same that we acquired.
             ExpressionAttributeNames =
-                new Dictionary<string, string>
+                new Dictionary<string, string>(2)
                 {
                     { "#metadata", Metadata },
                     { "#lease", LeaseTimeout },
                 },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>(1)
             {
                 { ":current_lease", new AttributeValue { N = currentLease } }
             },

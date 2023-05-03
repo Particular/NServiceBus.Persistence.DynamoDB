@@ -45,7 +45,7 @@ class OutboxPersister : IOutboxStorage
             {
                 { "#PK", configuration.Table.PartitionKeyName }
             },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>(1)
             {
                 { ":outboxId", new AttributeValue { S = OutboxPartitionKey(messageId) } }
             },
@@ -150,7 +150,7 @@ class OutboxPersister : IOutboxStorage
             {
                 Put = new Put
                 {
-                    Item = new Dictionary<string, AttributeValue>
+                    Item = new Dictionary<string, AttributeValue>(7)
                     {
                         {
                             configuration.Table.PartitionKeyName,
@@ -170,7 +170,7 @@ class OutboxPersister : IOutboxStorage
                         { configuration.Table.TimeToLiveAttributeName!, NullAttributeValue },
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
-                    ExpressionAttributeNames = new Dictionary<string, string>
+                    ExpressionAttributeNames = new Dictionary<string, string>(1)
                     {
                         { "#SK", configuration.Table.SortKeyName }
                     },
@@ -187,7 +187,7 @@ class OutboxPersister : IOutboxStorage
             {
                 Put = new Put
                 {
-                    Item = new Dictionary<string, AttributeValue>
+                    Item = new Dictionary<string, AttributeValue>(6)
                     {
                         {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(outboxMessage.MessageId)}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(outboxMessage.MessageId, n)}},
@@ -208,11 +208,10 @@ class OutboxPersister : IOutboxStorage
                                 IsMSet = true
                             }
                         },
-                        {Body, new AttributeValue {B = bodyStream}},
-                        {configuration.Table.TimeToLiveAttributeName!, NullAttributeValue}
+                        {Body, new AttributeValue {B = bodyStream}}
                     },
                     ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
-                    ExpressionAttributeNames = new Dictionary<string, string>()
+                    ExpressionAttributeNames = new Dictionary<string, string>(1)
                     {
                         {"#SK", configuration.Table.SortKeyName}
                     },
@@ -261,19 +260,19 @@ class OutboxPersister : IOutboxStorage
 
         var updateItem = new UpdateItemRequest
         {
-            Key = new Dictionary<string, AttributeValue>
+            Key = new Dictionary<string, AttributeValue>(2)
             {
                 {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(messageId)}},
                 {configuration.Table.SortKeyName, new AttributeValue {S = OutboxMetadataSortKey(messageId)}}
             },
             UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
-            ExpressionAttributeNames = new Dictionary<string, string>
+            ExpressionAttributeNames = new Dictionary<string, string>(3)
             {
                 {"#dispatched", Dispatched},
                 {"#dispatched_at", DispatchedAt},
                 {"#ttl", configuration.Table.TimeToLiveAttributeName!},
             },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>(3)
             {
                 { ":dispatched", TrueAttributeValue },
                 { ":dispatched_at", new AttributeValue {S = now.ToString("s")} },
@@ -296,7 +295,7 @@ class OutboxPersister : IOutboxStorage
             {
                 DeleteRequest = new DeleteRequest
                 {
-                    Key = new Dictionary<string, AttributeValue>
+                    Key = new Dictionary<string, AttributeValue>(2)
                     {
                         {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(messageId)}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(messageId, i)}}
