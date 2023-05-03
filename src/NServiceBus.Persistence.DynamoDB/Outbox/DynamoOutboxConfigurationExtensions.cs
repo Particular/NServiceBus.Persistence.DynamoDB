@@ -12,10 +12,12 @@ public static class DynamoOutboxConfigurationExtensions
     /// <summary>
     /// Customize the configuration of the table used by the outbox persistence.
     /// </summary>
-    public static OutboxSettings UseTable(this OutboxSettings outboxSettings, Func<TableConfiguration, TableConfiguration> tableConfiguration)
+    public static OutboxSettings UseTable(this OutboxSettings outboxSettings, TableConfiguration tableConfiguration)
     {
-        OutboxPersistenceConfiguration outboxConfiguration = outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>();
-        outboxConfiguration.Table = tableConfiguration(outboxConfiguration.Table);
+        Guard.ThrowIfNull(outboxSettings);
+        Guard.ThrowIfNull(tableConfiguration);
+
+        outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().Table = tableConfiguration;
         return outboxSettings;
     }
 
@@ -35,6 +37,8 @@ public static class DynamoOutboxConfigurationExtensions
     /// </summary>
     public static OutboxSettings CreateTableWithInstaller(this OutboxSettings outboxSettings, bool createTable)
     {
+        Guard.ThrowIfNull(outboxSettings);
+
         outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CreateTable = createTable;
         return outboxSettings;
     }

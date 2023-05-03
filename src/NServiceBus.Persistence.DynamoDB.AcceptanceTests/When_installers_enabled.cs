@@ -45,11 +45,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
                 {
                     c.DisableFeature<Features.Sagas>(); // disable sagas to simulate no saga on the endpoint
                     c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-                    c.EnableOutbox().UseTable(table =>
-                    {
-                        table.TableName = ctx.OutboxTableName;
-                        return table;
-                    });
+                    c.EnableOutbox().UseTable(SetupFixture.TableConfiguration with { TableName = ctx.OutboxTableName });
                 }))
             .Done(c => c.EndpointsStarted)
             .Run();
@@ -66,11 +62,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
                 .CustomConfig((c, ctx) =>
                 {
                     c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
-                    c.EnableOutbox().UseTable(table =>
-                    {
-                        table.TableName = ctx.OutboxTableName;
-                        return table;
-                    });
+                    c.EnableOutbox().UseTable(SetupFixture.TableConfiguration with { TableName = ctx.OutboxTableName });
 
                     c.UsePersistence<DynamoPersistence>().DisableTablesCreation();
                 }))
