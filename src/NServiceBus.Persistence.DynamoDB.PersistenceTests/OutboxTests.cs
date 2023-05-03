@@ -181,6 +181,37 @@ public class OutboxTests
     }
 
     [Test]
+    public async Task Should_not_fail_when_dispatching_multiple_times()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag contextBag = configuration.GetContextBagForOutbox();
+
+        var transportOperations = new TransportOperation[24]; // 25 is the batch write limit
+        for (int i = 0; i < transportOperations.Length; i++)
+        {
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
+        }
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, contextBag);
+
+            await transaction.Commit();
+        }
+
+        await configuration.OutboxStorage.SetAsDispatched(incomingMessageId, contextBag);
+
+        var secondAttemptContextBag = configuration.GetContextBagForOutbox();
+        var result1 = await configuration.OutboxStorage.Get(incomingMessageId, secondAttemptContextBag);
+        await configuration.OutboxStorage.SetAsDispatched(incomingMessageId, secondAttemptContextBag);
+
+        var result2 = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
+        Assert.AreEqual(0, result1.TransportOperations.Length);
+        Assert.AreEqual(0, result2.TransportOperations.Length);
+    }
+
+    [Test]
     public async Task Should_delete_operations_when_set_as_dispatched_and_more_operations_than_max_batch_size()
     {
         var incomingMessageId = Guid.NewGuid().ToString();
