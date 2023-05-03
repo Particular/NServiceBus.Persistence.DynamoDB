@@ -37,6 +37,7 @@ class OutboxPersister : IOutboxStorage
     public async Task<OutboxMessage?> Get(string messageId, ContextBag context,
         CancellationToken cancellationToken = default)
     {
+        var outboxMetadataSortKey = OutboxMetadataSortKey(messageId);
         var queryRequest = new QueryRequest
         {
             ConsistentRead = true,
@@ -62,15 +63,26 @@ class OutboxPersister : IOutboxStorage
             bool responseItemsHasOutboxMetadataEntry = false;
             if (foundOutboxMetadataEntry == null && response.Items.Count >= 1)
             {
-                foundOutboxMetadataEntry = true;
-                var headerItem = response.Items[0];
-                // In case the metadata is not marked as dispatched we want to know the number of transport operations
-                // in order to pre-populate the lists etc accordingly
-                if (!headerItem[Dispatched].BOOL)
+                var potentialHeaderItem = response.Items[0];
+                // Batch delete of transport operations could leave phantom records and we might be reading those
+                if (potentialHeaderItem[configuration.Table.SortKeyName].S == outboxMetadataSortKey)
                 {
-                    numberOfTransportOperations = Convert.ToInt32(headerItem[OperationsCount].N);
+                    foundOutboxMetadataEntry = true;
+                    // In case the metadata is not marked as dispatched we want to know the number of transport operations
+                    // in order to pre-populate the lists etc accordingly
+                    if (!potentialHeaderItem[Dispatched].BOOL)
+                    {
+                        numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
+                    }
+                    responseItemsHasOutboxMetadataEntry = true;
                 }
-                responseItemsHasOutboxMetadataEntry = true;
+            }
+
+            // the metadata entry needs to be the first element within that partition key range. If it wasn't found
+            // let's skip further evaluation because we would be reading phantom records only.
+            if (!foundOutboxMetadataEntry.GetValueOrDefault(false))
+            {
+                continue;
             }
 
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
@@ -78,7 +90,7 @@ class OutboxPersister : IOutboxStorage
                 transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (response.LastEvaluatedKey.Count > 0);
+        } while (foundOutboxMetadataEntry.GetValueOrDefault(false) && response.LastEvaluatedKey.Count > 0);
 
         return foundOutboxMetadataEntry == null ?
             null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
