@@ -27,7 +27,7 @@ sealed class UpdateSagaLock : ILockCleanup
     public Task Cleanup(IAmazonDynamoDB client, CancellationToken cancellationToken = default) =>
         client.UpdateItemAsync(new UpdateItemRequest
         {
-            Key = new Dictionary<string, AttributeValue>
+            Key = new Dictionary<string, AttributeValue>(2)
             {
                 { configuration.Table.PartitionKeyName, new AttributeValue { S = sagaPartitionKey } },
                 { configuration.Table.SortKeyName, new AttributeValue { S = sagaSortKey } }
@@ -36,13 +36,13 @@ sealed class UpdateSagaLock : ILockCleanup
             ConditionExpression =
                 "#lease = :current_lease AND #metadata.#version = :current_version", // only if the lock is still the same that we acquired.
             ExpressionAttributeNames =
-                new Dictionary<string, string>
+                new Dictionary<string, string>(3)
                 {
                     { "#metadata", Metadata },
                     { "#lease", LeaseTimeout },
                     { "#version", SagaMetadataAttributeNames.Version }
                 },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>(3)
             {
                 { ":current_lease", new AttributeValue { N = currentLease } },
                 { ":released_lease", new AttributeValue { N = "-1" } },

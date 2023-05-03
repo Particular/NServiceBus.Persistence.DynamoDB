@@ -43,7 +43,7 @@ class SagaPersister : ISagaPersister
         var getItemRequest = new GetItemRequest
         {
             ConsistentRead = true,
-            Key = new Dictionary<string, AttributeValue>
+            Key = new Dictionary<string, AttributeValue>(2)
             {
                 { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
                 { configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaId) } }
@@ -74,7 +74,7 @@ class SagaPersister : ISagaPersister
                 //update creates a new item if it doesn't exist
                 var updateItemRequest = new UpdateItemRequest
                 {
-                    Key = new Dictionary<string, AttributeValue>
+                    Key = new Dictionary<string, AttributeValue>(2)
                     {
                         { configuration.Table.PartitionKeyName, new AttributeValue { S = sagaPartitionKey } },
                         { configuration.Table.SortKeyName, new AttributeValue { S = sagaSortKey } }
@@ -85,7 +85,7 @@ class SagaPersister : ISagaPersister
                     {
                         { "#lease", LeaseTimeout }
                     },
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>(2)
                     {
                         { ":now", new AttributeValue { N = now.ToFileTime().ToString() } },
                         { ":lease_timeout", new AttributeValue { N = now.Add(configuration.LeaseDuration).ToFileTime().ToString() } }
@@ -197,7 +197,7 @@ class SagaPersister : ISagaPersister
                     { "#metadata", Metadata },
                     { "#version", SagaMetadataAttributeNames.Version }
                 },
-                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>(1)
                 {
                     { ":current_version", new AttributeValue { N = currentVersion.ToString() } }
                 },
@@ -221,7 +221,7 @@ class SagaPersister : ISagaPersister
         sagaDataMap.Add(configuration.Table.SortKeyName, new AttributeValue { S = SagaSortKey(sagaData.Id) });
         sagaDataMap.Add(Metadata, new AttributeValue
         {
-            M = new Dictionary<string, AttributeValue>
+            M = new Dictionary<string, AttributeValue>(3)
             {
                 { SagaMetadataAttributeNames.Version, new AttributeValue { N = version.ToString() } },
                 { SagaDataType, new AttributeValue { S = sagaData.GetType().FullName } },
@@ -242,7 +242,7 @@ class SagaPersister : ISagaPersister
         {
             Delete = new Delete
             {
-                Key = new Dictionary<string, AttributeValue>
+                Key = new Dictionary<string, AttributeValue>(2)
                 {
                     {configuration.Table.PartitionKeyName, new AttributeValue {S = SagaPartitionKey(sagaData.Id)}},
                     {configuration.Table.SortKeyName, new AttributeValue {S = SagaSortKey(sagaData.Id)}}
@@ -253,7 +253,7 @@ class SagaPersister : ISagaPersister
                     { "#metadata", Metadata },
                     { "#version", SagaMetadataAttributeNames.Version }
                 },
-                ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>(1)
                 {
                     { ":current_version", new AttributeValue { N = currentVersion.ToString() } }
                 },
