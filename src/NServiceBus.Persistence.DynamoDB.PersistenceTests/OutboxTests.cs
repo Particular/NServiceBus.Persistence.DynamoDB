@@ -361,6 +361,102 @@ public class OutboxTests
         Assert.That(result, Is.Null);
     }
 
+    [Test]
+    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_record_overlap()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
+
+        var transportOperations = new TransportOperation[]
+        {
+            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+        };
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        await ExpireMetadataRecord(incomingMessageId);
+
+        var transportOperationMessageId1 = Guid.NewGuid().ToString();
+        var transportOperationMessageId2 = Guid.NewGuid().ToString();
+        transportOperations = new TransportOperation[]
+        {
+            new(transportOperationMessageId1, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(transportOperationMessageId2, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+        };
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
+        Assert.AreEqual(transportOperations.Length, result.TransportOperations.Length);
+        Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
+        Assert.That(result.TransportOperations[1].MessageId, Is.EqualTo(transportOperationMessageId2));
+    }
+
+    [Test]
+    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_record_overlap_beyond_query_size()
+    {
+        var incomingMessageId = Guid.NewGuid().ToString();
+        ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
+
+        var r = new Random();
+        byte[] payload = new byte[100_000]; // 400 KB is the item size limit
+        r.NextBytes(payload);
+
+        // Query size limit is 1MB
+        var transportOperations = new TransportOperation[20];
+        for (int i = 0; i < transportOperations.Length; i++)
+        {
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
+                payload, new Dictionary<string, string>());
+        }
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        await ExpireMetadataRecord(incomingMessageId);
+
+        var transportOperationMessageId1 = Guid.NewGuid().ToString();
+        var transportOperationMessageId2 = Guid.NewGuid().ToString();
+        transportOperations = new TransportOperation[]
+        {
+            new(transportOperationMessageId1, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(transportOperationMessageId2, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+        };
+
+        using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
+        {
+            var outboxMessage = new OutboxMessage(incomingMessageId, transportOperations);
+            await configuration.OutboxStorage.Store(outboxMessage, transaction, fistAttemptContextBag);
+
+            await transaction.Commit();
+        }
+
+        var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
+        Assert.AreEqual(transportOperations.Length, result.TransportOperations.Length);
+        Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
+        Assert.That(result.TransportOperations[1].MessageId, Is.EqualTo(transportOperationMessageId2));
+    }
+
     static async Task ExpireMetadataRecord(string incomingMessageId)
     {
         var outboxTable = SetupFixture.OutboxTable;
