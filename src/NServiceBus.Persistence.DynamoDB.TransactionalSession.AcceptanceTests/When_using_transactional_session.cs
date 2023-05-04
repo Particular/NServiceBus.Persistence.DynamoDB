@@ -214,11 +214,11 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
         {
             if ((bool)TestContext.CurrentContext.Test.Arguments[0]!)
             {
-                EndpointSetup<TransactionSessionDefaultServer>();
+                EndpointSetup<TransactionSessionWithOutboxEndpoint>();
             }
             else
             {
-                EndpointSetup<TransactionSessionWithOutboxEndpoint>();
+                EndpointSetup<TransactionSessionDefaultServer>();
             }
         }
 
