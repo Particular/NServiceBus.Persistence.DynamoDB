@@ -97,6 +97,69 @@ public class OutboxPersisterTests
         Assert.That(record.TransportOperations, Has.Length.EqualTo(1));
     }
 
+    [Test]
+    public async Task Should_return_record_when_data_present_and_paging_needed()
+    {
+        var called = 0;
+        client.QueryRequestResponse = r =>
+        {
+            called++;
+            if (called == 1)
+            {
+                return new QueryResponse
+                {
+                    Items = new List<Dictionary<string, AttributeValue>>
+                    {
+                        new()
+                        {
+                            { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
+                            { "SK", new AttributeValue("OUTBOX#METADATA#someMessageId") },
+                            { "Dispatched", new AttributeValue { BOOL = false } },
+                            { "OperationsCount", new AttributeValue { N = "2" } }
+                        },
+                        new()
+                        {
+                            { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
+                            { "SK", new AttributeValue("OUTBOX#OPERATION#someMessageId#0000") },
+                            { "MessageId", new AttributeValue("someTransportOperationId1") },
+                            { "Properties", new AttributeValue() },
+                            { "Headers", new AttributeValue() },
+                            { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
+                        },
+                    },
+                    LastEvaluatedKey = new Dictionary<string, AttributeValue>
+                    {
+                        { "SomeFakeEntry", new AttributeValue() }
+                    }
+                };
+            }
+
+            return new QueryResponse
+            {
+                Items = new List<Dictionary<string, AttributeValue>>
+                {
+                    new()
+                    {
+                        { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
+                        { "SK", new AttributeValue("OUTBOX#OPERATION#someMessageId#0001") },
+                        { "MessageId", new AttributeValue("someTransportOperationId2") },
+                        { "Properties", new AttributeValue() },
+                        { "Headers", new AttributeValue() },
+                        { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
+                    },
+                },
+            };
+        };
+
+        var contextBag = new ContextBag();
+
+        var record = await persister.Get("someMessageId", contextBag);
+
+        Assert.That(record, Is.Not.Null);
+        Assert.That(record.TransportOperations, Has.Length.EqualTo(2));
+        Assert.That(called, Is.EqualTo(2));
+    }
+
     MockDynamoDBClient client;
     OutboxPersister persister;
 }
