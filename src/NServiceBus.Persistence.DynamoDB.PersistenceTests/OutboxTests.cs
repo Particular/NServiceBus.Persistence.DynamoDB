@@ -304,7 +304,7 @@ public class OutboxTests
     }
 
     [Test]
-    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_record_present()
+    public async Task Should_ignore_phantom_records()
     {
         var incomingMessageId = Guid.NewGuid().ToString();
         ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
@@ -330,7 +330,7 @@ public class OutboxTests
     }
 
     [Test]
-    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_records_beyond_query_size_limit_present()
+    public async Task Should_ignore_phantom_records_beyond_query_size_limit()
     {
         var incomingMessageId = Guid.NewGuid().ToString();
         ContextBag contextBag = configuration.GetContextBagForOutbox();
@@ -362,7 +362,7 @@ public class OutboxTests
     }
 
     [Test]
-    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_record_overlap()
+    public async Task Should_overwrite_existing_phantom_records()
     {
         var incomingMessageId = Guid.NewGuid().ToString();
         ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
@@ -408,7 +408,7 @@ public class OutboxTests
     }
 
     [Test]
-    public async Task Should_return_fresh_entry_when_metadata_expired_but_phantom_record_overlap_beyond_query_size()
+    public async Task Should_overwrite_existing_phantom_records_beyond_query_size_limit()
     {
         var incomingMessageId = Guid.NewGuid().ToString();
         ContextBag fistAttemptContextBag = configuration.GetContextBagForOutbox();
