@@ -54,6 +54,16 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         return Task.FromResult(TransactWriteRequestResponse(request));
     }
 
+    public List<QueryRequest> QueryRequestsSent { get; } = new();
+
+    public Func<QueryRequest, QueryResponse> QueryRequestResponse = _ => new QueryResponse();
+
+    public Task<QueryResponse> QueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
+    {
+        QueryRequestsSent.Add(request);
+        return Task.FromResult(QueryRequestResponse(request));
+    }
+
     #region NotImplemented
 
     public BatchWriteItemResponse BatchWriteItem(BatchWriteItemRequest request) => throw new NotImplementedException();
@@ -311,7 +321,6 @@ public class MockDynamoDBClient : IAmazonDynamoDB
     public Task<PutItemResponse> PutItemAsync(PutItemRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
     public QueryResponse Query(QueryRequest request) => throw new NotImplementedException();
 
-    public Task<QueryResponse> QueryAsync(QueryRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
     public RestoreTableFromBackupResponse RestoreTableFromBackup(RestoreTableFromBackupRequest request) => throw new NotImplementedException();
 
     public Task<RestoreTableFromBackupResponse> RestoreTableFromBackupAsync(RestoreTableFromBackupRequest request,

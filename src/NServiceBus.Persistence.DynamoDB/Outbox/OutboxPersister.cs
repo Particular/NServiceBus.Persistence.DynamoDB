@@ -37,6 +37,7 @@ class OutboxPersister : IOutboxStorage
     public async Task<OutboxMessage?> Get(string messageId, ContextBag context,
         CancellationToken cancellationToken = default)
     {
+        var outboxMetadataSortKey = OutboxMetadataSortKey(messageId);
         var queryRequest = new QueryRequest
         {
             ConsistentRead = true,
@@ -62,23 +63,42 @@ class OutboxPersister : IOutboxStorage
             bool responseItemsHasOutboxMetadataEntry = false;
             if (foundOutboxMetadataEntry == null && response.Items.Count >= 1)
             {
-                foundOutboxMetadataEntry = true;
-                var headerItem = response.Items[0];
-                // In case the metadata is not marked as dispatched we want to know the number of transport operations
-                // in order to pre-populate the lists etc accordingly
-                if (!headerItem[Dispatched].BOOL)
+                var potentialHeaderItem = response.Items[0];
+                // Batch delete of transport operations could leave phantom records and we might be reading those
+                if (potentialHeaderItem[configuration.Table.SortKeyName].S == outboxMetadataSortKey)
                 {
-                    numberOfTransportOperations = Convert.ToInt32(headerItem[OperationsCount].N);
+                    foundOutboxMetadataEntry = true;
+                    // In case the metadata is not marked as dispatched we want to know the number of transport operations
+                    // in order to pre-populate the lists etc accordingly
+                    if (!potentialHeaderItem[Dispatched].BOOL)
+                    {
+                        numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
+                    }
+                    responseItemsHasOutboxMetadataEntry = true;
                 }
-                responseItemsHasOutboxMetadataEntry = true;
+            }
+
+            // the metadata entry needs to be the first element within that partition key range. If it wasn't found
+            // let's skip further evaluation because we would be reading phantom records only.
+            if (!foundOutboxMetadataEntry.GetValueOrDefault(false))
+            {
+                break;
             }
 
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
             {
                 transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
+                // because of phantom records potentially overlapping we check whether we have all the necessary
+                // operations and in case we would have more we stop evaluating. Technically this check isn't necessary
+                // because DeserializeOutboxMessage already account for numberOfTransportOperations but we want
+                // to prevent this list from growing beyond something we ever need.
+                if (transportOperationsAttributes.Count == numberOfTransportOperations)
+                {
+                    break;
+                }
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (response.LastEvaluatedKey.Count > 0);
+        } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
         return foundOutboxMetadataEntry == null ?
             null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
@@ -89,8 +109,6 @@ class OutboxPersister : IOutboxStorage
         List<Dictionary<string, AttributeValue>>? transportOperationsAttributes,
         ContextBag contextBag)
     {
-        // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
-        // potential partial deletes
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
         var operations = numberOfTransportOperations == 0
@@ -210,7 +228,6 @@ class OutboxPersister : IOutboxStorage
                         },
                         {Body, new AttributeValue {B = bodyStream}}
                     },
-                    ConditionExpression = "attribute_not_exists(#SK)", //Fail if already exists
                     ExpressionAttributeNames = new Dictionary<string, string>(1)
                     {
                         {"#SK", configuration.Table.SortKeyName}
