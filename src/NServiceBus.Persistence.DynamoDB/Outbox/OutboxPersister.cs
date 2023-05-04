@@ -82,7 +82,7 @@ class OutboxPersister : IOutboxStorage
             // let's skip further evaluation because we would be reading phantom records only.
             if (!foundOutboxMetadataEntry.GetValueOrDefault(false))
             {
-                continue;
+                break;
             }
 
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
@@ -98,7 +98,7 @@ class OutboxPersister : IOutboxStorage
                 }
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (foundOutboxMetadataEntry.GetValueOrDefault(false) && transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
+        } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
         return foundOutboxMetadataEntry == null ?
             null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
@@ -109,8 +109,6 @@ class OutboxPersister : IOutboxStorage
         List<Dictionary<string, AttributeValue>>? transportOperationsAttributes,
         ContextBag contextBag)
     {
-        // Using numberOfTransportOperations instead of transportOperationsAttributes.Count to account for
-        // potential partial deletes/phantom records
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
         var operations = numberOfTransportOperations == 0
