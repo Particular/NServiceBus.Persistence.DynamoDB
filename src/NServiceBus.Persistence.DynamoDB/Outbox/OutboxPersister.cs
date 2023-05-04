@@ -54,14 +54,14 @@ class OutboxPersister : IOutboxStorage
         };
         QueryResponse? response = null;
         int numberOfTransportOperations = 0;
-        bool? foundOutboxMetadataEntry = null;
+        bool foundOutboxMetadataEntry = false;
         List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
         do
         {
             queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
             response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
             bool responseItemsHasOutboxMetadataEntry = false;
-            if (foundOutboxMetadataEntry == null && response.Items.Count >= 1)
+            if (!foundOutboxMetadataEntry && response.Items.Count >= 1)
             {
                 var potentialHeaderItem = response.Items[0];
                 // Batch delete of transport operations could leave phantom records and we might be reading those
@@ -80,7 +80,7 @@ class OutboxPersister : IOutboxStorage
 
             // the metadata entry needs to be the first element within that partition key range. If it wasn't found
             // let's skip further evaluation because we would be reading phantom records only.
-            if (!foundOutboxMetadataEntry.GetValueOrDefault(false))
+            if (!foundOutboxMetadataEntry)
             {
                 break;
             }
@@ -100,7 +100,7 @@ class OutboxPersister : IOutboxStorage
             }
         } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        return foundOutboxMetadataEntry == null ?
+        return !foundOutboxMetadataEntry ?
             null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
     }
 
