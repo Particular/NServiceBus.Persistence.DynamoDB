@@ -228,10 +228,6 @@ class OutboxPersister : IOutboxStorage
                         },
                         {Body, new AttributeValue {B = bodyStream}}
                     },
-                    ExpressionAttributeNames = new Dictionary<string, string>(1)
-                    {
-                        {"#SK", configuration.Table.SortKeyName}
-                    },
                     TableName = configuration.Table.TableName
                 }
             });
