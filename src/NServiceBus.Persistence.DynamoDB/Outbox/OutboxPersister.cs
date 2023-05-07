@@ -67,13 +67,13 @@ class OutboxPersister : IOutboxStorage
                 // Batch delete of transport operations could leave phantom records and we might be reading those
                 if (potentialHeaderItem[configuration.Table.SortKeyName].S == outboxMetadataSortKey)
                 {
-                    foundOutboxMetadataEntry = true;
                     // In case the metadata is not marked as dispatched we want to know the number of transport operations
                     // in order to pre-populate the lists etc accordingly
                     if (!potentialHeaderItem[Dispatched].BOOL)
                     {
                         numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
                     }
+                    foundOutboxMetadataEntry = true;
                     responseItemsHasOutboxMetadataEntry = true;
                 }
             }
@@ -85,9 +85,11 @@ class OutboxPersister : IOutboxStorage
                 break;
             }
 
+            // in the worst case we allocate an empty list that is not required but this is still simpler
+            // than having multiple exit conditions
+            transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
             {
-                transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
                 // because of phantom records potentially overlapping we check whether we have all the necessary
                 // operations and in case we would have more we stop evaluating. Technically this check isn't necessary
                 // because DeserializeOutboxMessage already account for numberOfTransportOperations but we want
