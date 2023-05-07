@@ -67,23 +67,13 @@ class OutboxPersister : IOutboxStorage
                 // Batch delete of transport operations could leave phantom records and we might be reading those
                 if (potentialHeaderItem[configuration.Table.SortKeyName].S == outboxMetadataSortKey)
                 {
+                    foundOutboxMetadataEntry = true;
                     // In case the metadata is not marked as dispatched we want to know the number of transport operations
                     // in order to pre-populate the lists etc accordingly
                     if (!potentialHeaderItem[Dispatched].BOOL)
                     {
                         numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
                     }
-
-                    if (numberOfTransportOperations > 0)
-                    {
-                        transportOperationsAttributes = new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
-                    }
-                    else
-                    {
-                        return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
-                    }
-
-                    foundOutboxMetadataEntry = true;
                     responseItemsHasOutboxMetadataEntry = true;
                 }
             }
@@ -92,16 +82,17 @@ class OutboxPersister : IOutboxStorage
             // let's skip further evaluation because we would be reading phantom records only.
             if (!foundOutboxMetadataEntry)
             {
-                return null;
+                break;
             }
 
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
             {
+                transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
                 // because of phantom records potentially overlapping we check whether we have all the necessary
                 // operations and in case we would have more we stop evaluating. Technically this check isn't necessary
                 // because DeserializeOutboxMessage already account for numberOfTransportOperations but we want
                 // to prevent this list from growing beyond something we ever need.
-                if (transportOperationsAttributes!.Count == numberOfTransportOperations)
+                if (transportOperationsAttributes.Count == numberOfTransportOperations)
                 {
                     break;
                 }
@@ -109,7 +100,8 @@ class OutboxPersister : IOutboxStorage
             }
         } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
+        return !foundOutboxMetadataEntry ?
+            null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
     }
 
     OutboxMessage DeserializeOutboxMessage(string messageId,
