@@ -165,45 +165,45 @@ public class OutboxPersisterTests
     public async Task Should_return_record_even_if_metadata_and_transport_operations_are_paged_apart()
     {
         string messageId = Guid.NewGuid().ToString();
-        var tableConfig = new OutboxPersistenceConfiguration();
-        var mockDynamoDbClient = new MockDynamoDBClient();
         var responses = new Queue<QueryResponse>();
         // First response contains metadata entry but no transport operation
         responses.Enqueue(new QueryResponse
         {
-            Items = new List<Dictionary<string, AttributeValue>>()
+            Items = new List<Dictionary<string, AttributeValue>>
             {
                 {
-                    new Dictionary<string, AttributeValue>()
+                    new()
                     {
                         {
-                            tableConfig.Table.SortKeyName, new AttributeValue($"OUTBOX#METADATA#{messageId}")
+                            "SK", new AttributeValue($"OUTBOX#METADATA#{messageId}")
                         },
-                        { "Dispatched", new AttributeValue() { BOOL = false } },
-                        { "OperationsCount", new AttributeValue() { N = "1" } }
+                        { "Dispatched", new AttributeValue { BOOL = false } },
+                        { "OperationsCount", new AttributeValue { N = "1" } }
                     }
                 }
             },
-            LastEvaluatedKey = new Dictionary<string, AttributeValue>() { { "idk", new AttributeValue("idk") } }
+            LastEvaluatedKey = new Dictionary<string, AttributeValue> { { "idk", new AttributeValue("idk") } }
         });
-        responses.Enqueue(new QueryResponse()
+        responses.Enqueue(new QueryResponse
         {
-            Items = new List<Dictionary<string, AttributeValue>>()
+            Items = new List<Dictionary<string, AttributeValue>>
             {
                 {
-                    new Dictionary<string, AttributeValue>()
+                    new()
                     {
                         { "MessageId", new AttributeValue(Guid.NewGuid().ToString())},
-                        { "Properties", new AttributeValue() { M = new Dictionary<string, AttributeValue>(0)} },
-                        { "Headers", new AttributeValue() { M = new Dictionary<string, AttributeValue>(0)} },
-                        { "Body", new AttributeValue() { B = new MemoryStream() } }
+                        { "Properties", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
+                        { "Headers", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
+                        { "Body", new AttributeValue { B = new MemoryStream() } }
                     }
                 }
             },
         });
-        mockDynamoDbClient.QueryRequestResponse = request => responses.Dequeue();
-        var storage = new OutboxPersister(mockDynamoDbClient, new OutboxPersistenceConfiguration(), "bla");
-        var result = await storage.Get(messageId, new ContextBag());
+        client.QueryRequestResponse = _ => responses.Dequeue();
+
+        var contextBag = new ContextBag();
+
+        var result = await persister.Get(messageId, contextBag);
 
         Assert.NotNull(result);
         Assert.AreEqual(1, result.TransportOperations.Length);
