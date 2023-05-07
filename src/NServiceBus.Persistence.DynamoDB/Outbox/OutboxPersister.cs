@@ -54,40 +54,42 @@ class OutboxPersister : IOutboxStorage
         };
         QueryResponse? response = null;
         int numberOfTransportOperations = 0;
-        bool? foundOutboxMetadataEntry = null;
+        bool foundOutboxMetadataEntry = false;
         List<Dictionary<string, AttributeValue>>? transportOperationsAttributes = null;
         do
         {
             queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
             response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
             bool responseItemsHasOutboxMetadataEntry = false;
-            if (foundOutboxMetadataEntry == null && response.Items.Count >= 1)
+            if (!foundOutboxMetadataEntry && response.Items.Count >= 1)
             {
                 var potentialHeaderItem = response.Items[0];
                 // Batch delete of transport operations could leave phantom records and we might be reading those
                 if (potentialHeaderItem[configuration.Table.SortKeyName].S == outboxMetadataSortKey)
                 {
-                    foundOutboxMetadataEntry = true;
                     // In case the metadata is not marked as dispatched we want to know the number of transport operations
                     // in order to pre-populate the lists etc accordingly
                     if (!potentialHeaderItem[Dispatched].BOOL)
                     {
                         numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
                     }
+                    foundOutboxMetadataEntry = true;
                     responseItemsHasOutboxMetadataEntry = true;
                 }
             }
 
             // the metadata entry needs to be the first element within that partition key range. If it wasn't found
             // let's skip further evaluation because we would be reading phantom records only.
-            if (!foundOutboxMetadataEntry.GetValueOrDefault(false))
+            if (!foundOutboxMetadataEntry)
             {
                 break;
             }
 
+            // in the worst case we allocate an empty list that is not required but this is still simpler
+            // than having multiple exit conditions
+            transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
             for (int i = responseItemsHasOutboxMetadataEntry ? 1 : 0; i < response.Items.Count; i++)
             {
-                transportOperationsAttributes ??= new List<Dictionary<string, AttributeValue>>(numberOfTransportOperations);
                 // because of phantom records potentially overlapping we check whether we have all the necessary
                 // operations and in case we would have more we stop evaluating. Technically this check isn't necessary
                 // because DeserializeOutboxMessage already account for numberOfTransportOperations but we want
@@ -100,7 +102,7 @@ class OutboxPersister : IOutboxStorage
             }
         } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        return foundOutboxMetadataEntry == null ?
+        return !foundOutboxMetadataEntry ?
             null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
     }
 
