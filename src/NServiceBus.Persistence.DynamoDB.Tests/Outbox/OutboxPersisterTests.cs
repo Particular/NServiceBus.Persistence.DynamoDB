@@ -174,9 +174,8 @@ public class OutboxPersisterTests
                 {
                     new()
                     {
-                        {
-                            "SK", new AttributeValue($"OUTBOX#METADATA#{messageId}")
-                        },
+                        { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
+                        { "SK", new AttributeValue($"OUTBOX#METADATA#{messageId}") },
                         { "Dispatched", new AttributeValue { BOOL = false } },
                         { "OperationsCount", new AttributeValue { N = "1" } }
                     }
@@ -191,6 +190,8 @@ public class OutboxPersisterTests
                 {
                     new()
                     {
+                        { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
+                        { "SK", new AttributeValue("OUTBOX#OPERATION#someMessageId#0000")},
                         { "MessageId", new AttributeValue(Guid.NewGuid().ToString())},
                         { "Properties", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
                         { "Headers", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
@@ -247,9 +248,8 @@ public class OutboxPersisterTests
                 {
                     new()
                     {
-                        {
-                            "SK", new AttributeValue($"OUTBOX#METADATA#someMessageId")
-                        },
+                        { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
+                        { "SK", new AttributeValue($"OUTBOX#METADATA#someMessageId") },
                         { "Dispatched", new AttributeValue { BOOL = false } },
                         { "OperationsCount", new AttributeValue { N = "2" } }
                     }
@@ -264,6 +264,8 @@ public class OutboxPersisterTests
                 {
                     new()
                     {
+                        { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
+                        { "SK", new AttributeValue("OUTBOX#OPERATION#someMessageId#0000")},
                         { "MessageId", new AttributeValue(Guid.NewGuid().ToString())},
                         { "Properties", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
                         { "Headers", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
