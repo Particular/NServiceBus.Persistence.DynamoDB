@@ -100,15 +100,24 @@ class OutboxPersister : IOutboxStorage
                 }
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
+        } while (transportOperationsAttributes.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        return !foundOutboxMetadataEntry ?
-            null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
+        if (!foundOutboxMetadataEntry)
+        {
+            return null;
+        }
+
+        if (transportOperationsAttributes!.Count != numberOfTransportOperations)
+        {
+            throw new PartialOutboxResultException(messageId, transportOperationsAttributes!.Count, numberOfTransportOperations);
+        }
+
+        return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes!, context);
     }
 
     OutboxMessage DeserializeOutboxMessage(string messageId,
         int numberOfTransportOperations,
-        List<Dictionary<string, AttributeValue>>? transportOperationsAttributes,
+        List<Dictionary<string, AttributeValue>> transportOperationsAttributes,
         ContextBag contextBag)
     {
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
@@ -119,7 +128,7 @@ class OutboxPersister : IOutboxStorage
 
         for (int i = 0; i < numberOfTransportOperations; i++)
         {
-            operations[i] = DeserializeOperation(transportOperationsAttributes![i]);
+            operations[i] = DeserializeOperation(transportOperationsAttributes[i]);
         }
 
         return new OutboxMessage(messageId, operations);
