@@ -231,7 +231,7 @@ public class OutboxPersisterTests
         var contextBag = new ContextBag();
 
         var exception = Assert.ThrowsAsync<PartialOutboxResultException>(async () => await persister.Get("someMessageId", contextBag));
-        Assert.That(exception!.Message, Does.Contain("Partial outbox results retrieved with 0 instead of 1 transport operation while attempting to load the outbox records for the message id 'someMessageId'."));
+        Assert.That(exception!.Message, Does.Contain("Partial outbox results retrieved with 0 instead of 1 transport operations while attempting to load the outbox records for message ID 'someMessageId'."));
     }
 
     [Test]
@@ -279,7 +279,7 @@ public class OutboxPersisterTests
         var contextBag = new ContextBag();
 
         var exception = Assert.ThrowsAsync<PartialOutboxResultException>(async () => await persister.Get("someMessageId", contextBag));
-        Assert.That(exception!.Message, Does.Contain("Partial outbox results retrieved with 1 instead of 2 transport operation while attempting to load the outbox records for the message id 'someMessageId'."));
+        Assert.That(exception!.Message, Does.Contain("Partial outbox results retrieved with 1 instead of 2 transport operations while attempting to load the outbox records for message ID 'someMessageId'."));
     }
 
     [Test]

@@ -15,7 +15,7 @@ public class PartialOutboxResultException : Exception
     /// Initializes a new instance of <see cref="PartialOutboxResultException" />.
     /// </summary>
     public PartialOutboxResultException(string messageId, int transportOperationsRetrieved, int expectedNumberOfTransportOperations) : base(
-        $"Partial outbox results retrieved with {transportOperationsRetrieved} instead of {expectedNumberOfTransportOperations} transport operation while attempting to load the outbox records for the message id '{messageId}'. This problem can occur due to read-committed isolation levels between transactional write items and query operations. Retrying this message should resolve the issue.")
+        $"Partial outbox results retrieved with {transportOperationsRetrieved} instead of {expectedNumberOfTransportOperations} transport operations while attempting to load the outbox records for message ID '{messageId}'. This problem can occur due to read-committed isolation levels between transactional write items and query operations. Retrying this message should resolve the issue.")
     {
     }
 
