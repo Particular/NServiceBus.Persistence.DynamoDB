@@ -8,6 +8,7 @@ static class RecoverabilityPolicy
 {
     public static RecoverabilityAction Invoke(RecoverabilityConfig config, ErrorContext errorContext)
     {
+        // due to read-committed isolation level we allow retries for partial results on the outbox get
         if (errorContext.Exception is PartialOutboxResultException && errorContext.DelayedDeliveriesPerformed < 3)
         {
             return RecoverabilityAction.DelayedRetry(TimeSpan.FromSeconds(errorContext.DelayedDeliveriesPerformed * 1));
