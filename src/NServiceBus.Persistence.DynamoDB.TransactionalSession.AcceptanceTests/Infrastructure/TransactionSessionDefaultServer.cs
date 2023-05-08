@@ -18,7 +18,8 @@ public class TransactionSessionDefaultServer : IEndpointSetupTemplate
 
         builder.Recoverability()
             .Delayed(delayed => delayed.NumberOfRetries(0))
-            .Immediate(immediate => immediate.NumberOfRetries(0));
+            .Immediate(immediate => immediate.NumberOfRetries(0))
+            .CustomPolicy(RecoverabilityPolicy.Invoke);
         builder.SendFailedMessagesTo("error");
 
         // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
