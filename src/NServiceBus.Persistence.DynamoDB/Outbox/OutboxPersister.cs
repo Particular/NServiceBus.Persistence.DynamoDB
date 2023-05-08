@@ -82,7 +82,7 @@ class OutboxPersister : IOutboxStorage
             // let's skip further evaluation because we would be reading phantom records only.
             if (!foundOutboxMetadataEntry)
             {
-                break;
+                return null;
             }
 
             // in the worst case we allocate an empty list that is not required but this is still simpler
@@ -102,8 +102,7 @@ class OutboxPersister : IOutboxStorage
             }
         } while (transportOperationsAttributes.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        return !foundOutboxMetadataEntry ?
-            null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes!, context);
+        return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
     }
 
     OutboxMessage DeserializeOutboxMessage(string messageId,
