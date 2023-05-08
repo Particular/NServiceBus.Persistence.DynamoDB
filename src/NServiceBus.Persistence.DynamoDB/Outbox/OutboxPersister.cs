@@ -102,17 +102,8 @@ class OutboxPersister : IOutboxStorage
             }
         } while (transportOperationsAttributes.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        if (!foundOutboxMetadataEntry)
-        {
-            return null;
-        }
-
-        if (transportOperationsAttributes!.Count != numberOfTransportOperations)
-        {
-            throw new PartialOutboxResultException(messageId, transportOperationsAttributes!.Count, numberOfTransportOperations);
-        }
-
-        return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes!, context);
+        return !foundOutboxMetadataEntry ?
+            null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes!, context);
     }
 
     OutboxMessage DeserializeOutboxMessage(string messageId,
@@ -120,6 +111,11 @@ class OutboxPersister : IOutboxStorage
         List<Dictionary<string, AttributeValue>> transportOperationsAttributes,
         ContextBag contextBag)
     {
+        if (transportOperationsAttributes.Count != numberOfTransportOperations)
+        {
+            throw new PartialOutboxResultException(messageId, transportOperationsAttributes!.Count, numberOfTransportOperations);
+        }
+
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
         var operations = numberOfTransportOperations == 0
