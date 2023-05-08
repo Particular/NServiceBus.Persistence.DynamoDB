@@ -18,7 +18,8 @@ public class TransactionSessionDefaultServer : IEndpointSetupTemplate
 
         builder.Recoverability()
             .Delayed(delayed => delayed.NumberOfRetries(0))
-            .Immediate(immediate => immediate.NumberOfRetries(0));
+            // due to read-committed isolation level we allow retries for partial results on the outbox get
+            .Immediate(immediate => immediate.NumberOfRetries(1));
         builder.SendFailedMessagesTo("error");
 
         // scan types at the end so that all types used by the configuration have been loaded into the AppDomain

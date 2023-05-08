@@ -82,7 +82,7 @@ class OutboxPersister : IOutboxStorage
             // let's skip further evaluation because we would be reading phantom records only.
             if (!foundOutboxMetadataEntry)
             {
-                break;
+                return null;
             }
 
             // in the worst case we allocate an empty list that is not required but this is still simpler
@@ -100,17 +100,21 @@ class OutboxPersister : IOutboxStorage
                 }
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (transportOperationsAttributes?.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
+        } while (transportOperationsAttributes.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
 
-        return !foundOutboxMetadataEntry ?
-            null : DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
+        return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
     }
 
     OutboxMessage DeserializeOutboxMessage(string messageId,
         int numberOfTransportOperations,
-        List<Dictionary<string, AttributeValue>>? transportOperationsAttributes,
+        List<Dictionary<string, AttributeValue>> transportOperationsAttributes,
         ContextBag contextBag)
     {
+        if (transportOperationsAttributes.Count != numberOfTransportOperations)
+        {
+            throw new PartialOutboxResultException(messageId, transportOperationsAttributes!.Count, numberOfTransportOperations);
+        }
+
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
         var operations = numberOfTransportOperations == 0
@@ -119,7 +123,7 @@ class OutboxPersister : IOutboxStorage
 
         for (int i = 0; i < numberOfTransportOperations; i++)
         {
-            operations[i] = DeserializeOperation(transportOperationsAttributes![i]);
+            operations[i] = DeserializeOperation(transportOperationsAttributes[i]);
         }
 
         return new OutboxMessage(messageId, operations);
