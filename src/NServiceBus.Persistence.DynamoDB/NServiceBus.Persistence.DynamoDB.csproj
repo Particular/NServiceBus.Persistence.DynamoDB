@@ -11,7 +11,7 @@
 
   <ItemGroup Label="Public dependencies">
     <PackageReference Include="NServiceBus" Version="[8.0.0, 9.0.0)" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="[3.7.102.31, 4.0.0)" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="[3.7.103, 4.0.0)" />
     <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
   
