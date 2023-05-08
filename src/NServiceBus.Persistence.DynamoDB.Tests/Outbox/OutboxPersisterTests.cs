@@ -210,6 +210,77 @@ public class OutboxPersisterTests
     }
 
     [Test]
+    public void Should_throw_when_transport_operations_not_complete()
+    {
+        // There is a metadata record but no transport operations returned
+        // this can happen due to read-committed isolation levels
+        client.QueryRequestResponse = r => new QueryResponse
+        {
+            Items = new List<Dictionary<string, AttributeValue>> {
+                new()
+                {
+                    { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
+                    { "SK", new AttributeValue("OUTBOX#METADATA#someMessageId")},
+                    { "Dispatched", new AttributeValue { BOOL = false }},
+                    { "OperationsCount", new AttributeValue { N = "1" }}
+                }
+            }
+        };
+
+        var contextBag = new ContextBag();
+
+        var exception = Assert.ThrowsAsync<PartialOutboxResultException>(async () => await persister.Get("someMessageId", contextBag));
+        Assert.That(exception!.Message, Does.Contain("Partial outbox results retrieved with 0 instead of 1 transport operation while attempting to load the outbox records for the message id 'someMessageId'."));
+    }
+
+    [Test]
+    public void Should_throw_when_transport_operations_not_complete_even_when_paging()
+    {
+        // There is a metadata record but no transport operations returned
+        // this can happen due to read-committed isolation levels
+        var responses = new Queue<QueryResponse>();
+        // First response contains metadata entry but no transport operation
+        responses.Enqueue(new QueryResponse
+        {
+            Items = new List<Dictionary<string, AttributeValue>>
+            {
+                {
+                    new()
+                    {
+                        {
+                            "SK", new AttributeValue($"OUTBOX#METADATA#someMessageId")
+                        },
+                        { "Dispatched", new AttributeValue { BOOL = false } },
+                        { "OperationsCount", new AttributeValue { N = "2" } }
+                    }
+                }
+            },
+            LastEvaluatedKey = new Dictionary<string, AttributeValue> { { "idk", new AttributeValue("idk") } }
+        });
+        responses.Enqueue(new QueryResponse
+        {
+            Items = new List<Dictionary<string, AttributeValue>>
+            {
+                {
+                    new()
+                    {
+                        { "MessageId", new AttributeValue(Guid.NewGuid().ToString())},
+                        { "Properties", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
+                        { "Headers", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
+                        { "Body", new AttributeValue { B = new MemoryStream() } }
+                    }
+                }
+            },
+        });
+        client.QueryRequestResponse = _ => responses.Dequeue();
+
+        var contextBag = new ContextBag();
+
+        var exception = Assert.ThrowsAsync<PartialOutboxResultException>(async () => await persister.Get("someMessageId", contextBag));
+        Assert.That(exception!.Message, Does.Contain("Partial outbox results retrieved with 1 instead of 2 transport operation while attempting to load the outbox records for the message id 'someMessageId'."));
+    }
+
+    [Test]
     public async Task Should_ignore_phantom_records_without_metadata()
     {
         client.QueryRequestResponse = r => new QueryResponse
