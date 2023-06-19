@@ -15,6 +15,6 @@ class SynchronizedStorage : Feature
         context.Services.TryAddSingleton(context.Settings.Get<IDynamoClientProvider>());
 
         context.Services.AddScoped<ICompletableSynchronizedStorageSession, DynamoSynchronizedStorageSession>();
-        context.Services.AddScoped(sp => (sp.GetService<ISynchronizedStorageSession>() as IDynamoStorageSession)!);
+        context.Services.AddScoped(sp => (sp.GetService<ICompletableSynchronizedStorageSession>() as IDynamoStorageSession)!);
     }
 }
