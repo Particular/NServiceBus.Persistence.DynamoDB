@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="GitHubActionsTestLogger" Version="2.3.2" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.200.20" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.200.23" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1" />
     <PackageReference Include="NServiceBus.Testing" Version="8.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
