@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
+using Endpoint = Amazon.Runtime.Endpoints.Endpoint;
 
 public class MockDynamoDBClient : IAmazonDynamoDB
 {
@@ -422,6 +423,8 @@ public class MockDynamoDBClient : IAmazonDynamoDB
     public Task<UpdateTimeToLiveResponse> UpdateTimeToLiveAsync(UpdateTimeToLiveRequest request,
         CancellationToken cancellationToken = new CancellationToken()) =>
         throw new System.NotImplementedException();
+
+    public Endpoint DetermineServiceOperationEndpoint(AmazonWebServiceRequest request) => throw new NotImplementedException();
 
     public IDynamoDBv2PaginatorFactory Paginators { get; }
     #endregion
