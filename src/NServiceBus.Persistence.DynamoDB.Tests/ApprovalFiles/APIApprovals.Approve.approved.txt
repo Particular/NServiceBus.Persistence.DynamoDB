@@ -73,7 +73,6 @@ namespace NServiceBus.Persistence.DynamoDB
     [System.Serializable]
     public class PartialOutboxResultException : System.Exception
     {
-        protected PartialOutboxResultException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public PartialOutboxResultException(string messageId, int transportOperationsRetrieved, int expectedNumberOfTransportOperations) { }
     }
 }
