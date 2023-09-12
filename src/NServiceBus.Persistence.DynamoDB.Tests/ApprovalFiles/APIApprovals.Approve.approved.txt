@@ -70,7 +70,6 @@ namespace NServiceBus.Persistence.DynamoDB
         public static object? ToObject(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Type returnType) { }
         public static TValue? ToObject<TValue>(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues) { }
     }
-    [System.Serializable]
     public class PartialOutboxResultException : System.Exception
     {
         public PartialOutboxResultException(string messageId, int transportOperationsRetrieved, int expectedNumberOfTransportOperations) { }

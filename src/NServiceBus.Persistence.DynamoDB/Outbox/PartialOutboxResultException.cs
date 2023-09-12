@@ -7,7 +7,6 @@ using System;
 ///
 /// Retrying should resolve this problem.
 /// </summary>
-[Serializable]
 public class PartialOutboxResultException : Exception
 {
     /// <summary>
