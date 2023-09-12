@@ -24,7 +24,7 @@
     <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\ClientFactory.cs" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(PkgNServiceBus_AcceptanceTests_Sources)' != ''">
     <Compile Remove="$(PkgNServiceBus_AcceptanceTests_Sources)\**\ConfigureEndpointInMemoryPersistence.cs" />
     <Compile Remove="$(PkgNServiceBus_AcceptanceTests_Sources)\**\ConfigureEndpointLearningPersistence.cs" />
     <Compile Remove="$(PkgNServiceBus_AcceptanceTests_Sources)\**\ConventionEnforcementTests.cs" />
