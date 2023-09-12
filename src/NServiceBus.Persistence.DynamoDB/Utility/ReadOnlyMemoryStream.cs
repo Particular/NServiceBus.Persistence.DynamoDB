@@ -34,7 +34,6 @@ sealed class ReadOnlyMemoryStream : MemoryStream
         return bytesToCopy;
     }
 
-#if NET
     public override int Read(Span<byte> buffer)
     {
         var bytesToCopy = Math.Min(memory.Length - position, buffer.Length);
@@ -49,7 +48,6 @@ sealed class ReadOnlyMemoryStream : MemoryStream
         position += bytesToCopy;
         return bytesToCopy;
     }
-#endif
 
     public override byte[] ToArray() => memory.ToArray();
 

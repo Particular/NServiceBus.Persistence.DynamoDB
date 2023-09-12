@@ -1,36 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net472;net6.0;net7.0</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
-    <LangVersion>10</LangVersion>
     <RootNamespace>NServiceBus.AcceptanceTests</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.201.7" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" />
-    <PackageReference Include="NServiceBus.Testing" Version="8.1.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-    <PackageReference Include="Nunit" Version="3.13.3" />
-    <PackageReference Include="NServiceBus.AcceptanceTests.Sources" Version="8.1.2" GeneratePathProperty="true" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Persistence.DynamoDB\NServiceBus.Persistence.DynamoDB.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.201.7" />
+    <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0-preview-23424-02" />
+    <PackageReference Include="NServiceBus.AcceptanceTests.Sources" Version="9.0.0-alpha.2" GeneratePathProperty="true" />
+    <PackageReference Include="NServiceBus.Testing" Version="9.0.0-alpha.1" />
+    <PackageReference Include="Nunit" Version="3.13.3" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\ClientFactory.cs" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(PkgNServiceBus_AcceptanceTests_Sources)' != ''">
     <Compile Remove="$(PkgNServiceBus_AcceptanceTests_Sources)\**\ConfigureEndpointInMemoryPersistence.cs" />
     <Compile Remove="$(PkgNServiceBus_AcceptanceTests_Sources)\**\ConfigureEndpointLearningPersistence.cs" />
     <Compile Remove="$(PkgNServiceBus_AcceptanceTests_Sources)\**\ConventionEnforcementTests.cs" />
