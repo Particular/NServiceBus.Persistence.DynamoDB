@@ -19,11 +19,7 @@ class SagaPersister : ISagaPersister
     readonly string endpointIdentifier;
     readonly IAmazonDynamoDB dynamoDbClient;
 
-#if NET
     Random Random => Random.Shared;
-#else
-    Random Random { get; } = new();
-#endif
 
     public SagaPersister(IAmazonDynamoDB dynamoDbClient, SagaPersistenceConfiguration configuration, string endpointIdentifier)
     {
