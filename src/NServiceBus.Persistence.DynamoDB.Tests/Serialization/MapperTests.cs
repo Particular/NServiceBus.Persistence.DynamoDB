@@ -637,9 +637,9 @@ public class MapperTests
 
         var classWithCyclicReference = new ClassWithCyclicReference();
 
-        reference.References = new List<ClassWithCyclicReference> { classWithCyclicReference };
+        reference.References = [classWithCyclicReference];
 
-        classWithCyclicReference.References = new List<ClassWithCyclicReference> { reference };
+        classWithCyclicReference.References = [reference];
 
         Assert.Throws<JsonException>(() => Mapper.ToMap(classWithCyclicReference));
     }
@@ -657,9 +657,9 @@ public class MapperTests
         var classWithoutCyclicReference = new ClassWithCyclicReference();
         var anotherClass = new ClassWithCyclicReference();
 
-        reference.References = new List<ClassWithCyclicReference> { classWithoutCyclicReference };
+        reference.References = [classWithoutCyclicReference];
 
-        classWithoutCyclicReference.References = new List<ClassWithCyclicReference> { anotherClass };
+        classWithoutCyclicReference.References = [anotherClass];
 
         Assert.DoesNotThrow(() => Mapper.ToMap(classWithoutCyclicReference));
     }
