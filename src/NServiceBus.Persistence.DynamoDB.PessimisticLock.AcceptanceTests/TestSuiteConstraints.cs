@@ -1,9 +1,10 @@
 ﻿namespace NServiceBus.AcceptanceTests;
 
+using System.Runtime.CompilerServices;
 using AcceptanceTesting;
 using AcceptanceTesting.Support;
 
-public partial class TestSuiteConstraints
+public class TestSuiteConstraints : ITestSuiteConstraints
 {
     public bool SupportsDtc { get; } = false;
     public bool SupportsCrossQueueTransactions { get; } = true;
@@ -15,4 +16,7 @@ public partial class TestSuiteConstraints
     public IConfigureEndpointTestExecution CreateTransportConfiguration() => new ConfigureEndpointAcceptanceTestingTransport(true, true);
 
     public IConfigureEndpointTestExecution CreatePersistenceConfiguration() => new ConfigureEndpointDynamoDBPersistence();
+
+    [ModuleInitializer]
+    public static void Init() => ITestSuiteConstraints.Current = new TestSuiteConstraints();
 }
