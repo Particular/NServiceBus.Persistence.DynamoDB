@@ -3,6 +3,7 @@
 using System;
 using System.Threading.Tasks;
 using AcceptanceTesting;
+using AcceptanceTesting.EndpointTemplates;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using EndpointTemplates;

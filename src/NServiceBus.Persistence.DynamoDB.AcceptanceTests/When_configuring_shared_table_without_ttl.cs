@@ -2,6 +2,7 @@
 
 using System;
 using AcceptanceTesting;
+using AcceptanceTesting.EndpointTemplates;
 using EndpointTemplates;
 using NUnit.Framework;
 using Persistence.DynamoDB;

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AcceptanceTesting;
+using AcceptanceTesting.EndpointTemplates;
 using Amazon.DynamoDBv2.Model;
 using EndpointTemplates;
 using NUnit.Framework;

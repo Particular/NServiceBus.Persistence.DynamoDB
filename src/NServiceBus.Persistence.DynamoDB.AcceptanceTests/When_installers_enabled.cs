@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AcceptanceTesting;
+using AcceptanceTesting.EndpointTemplates;
 using EndpointTemplates;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
