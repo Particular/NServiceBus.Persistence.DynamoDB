@@ -70,7 +70,7 @@ public class OutboxPersisterTests
     {
         client.QueryRequestResponse = r => new QueryResponse
         {
-            Items = new List<Dictionary<string, AttributeValue>> {
+            Items = [
                 new()
                 {
                     { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
@@ -87,7 +87,7 @@ public class OutboxPersisterTests
                     { "Headers", new AttributeValue()},
                     { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World"))}},
                 },
-            }
+            ]
         };
 
         var contextBag = new ContextBag();
@@ -109,8 +109,8 @@ public class OutboxPersisterTests
             {
                 return new QueryResponse
                 {
-                    Items = new List<Dictionary<string, AttributeValue>>
-                    {
+                    Items =
+                    [
                         new()
                         {
                             { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
@@ -127,7 +127,7 @@ public class OutboxPersisterTests
                             { "Headers", new AttributeValue() },
                             { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
                         },
-                    },
+                    ],
                     LastEvaluatedKey = new Dictionary<string, AttributeValue>
                     {
                         { "SomeFakeEntry", new AttributeValue() }
@@ -137,8 +137,8 @@ public class OutboxPersisterTests
 
             return new QueryResponse
             {
-                Items = new List<Dictionary<string, AttributeValue>>
-                {
+                Items =
+                [
                     new()
                     {
                         { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
@@ -148,7 +148,7 @@ public class OutboxPersisterTests
                         { "Headers", new AttributeValue() },
                         { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
                     },
-                },
+                ],
             };
         };
 
@@ -217,7 +217,7 @@ public class OutboxPersisterTests
         // this can happen due to read-committed isolation levels
         client.QueryRequestResponse = r => new QueryResponse
         {
-            Items = new List<Dictionary<string, AttributeValue>> {
+            Items = [
                 new()
                 {
                     { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
@@ -225,7 +225,7 @@ public class OutboxPersisterTests
                     { "Dispatched", new AttributeValue { BOOL = false }},
                     { "OperationsCount", new AttributeValue { N = "1" }}
                 }
-            }
+            ]
         };
 
         var contextBag = new ContextBag();
@@ -287,7 +287,7 @@ public class OutboxPersisterTests
     {
         client.QueryRequestResponse = r => new QueryResponse
         {
-            Items = new List<Dictionary<string, AttributeValue>> {
+            Items = [
                 new()
                 {
                     { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
@@ -297,7 +297,7 @@ public class OutboxPersisterTests
                     { "Headers", new AttributeValue()},
                     { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World"))}},
                 },
-            }
+            ]
         };
 
         var contextBag = new ContextBag();
@@ -318,8 +318,8 @@ public class OutboxPersisterTests
             {
                 return new QueryResponse
                 {
-                    Items = new List<Dictionary<string, AttributeValue>>
-                    {
+                    Items =
+                    [
                         new()
                         {
                             { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
@@ -329,7 +329,7 @@ public class OutboxPersisterTests
                             { "Headers", new AttributeValue() },
                             { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
                         },
-                    },
+                    ],
                     LastEvaluatedKey = new Dictionary<string, AttributeValue>
                     {
                         { "SomeFakeEntry", new AttributeValue() }
@@ -339,8 +339,8 @@ public class OutboxPersisterTests
 
             return new QueryResponse
             {
-                Items = new List<Dictionary<string, AttributeValue>>
-                {
+                Items =
+                [
                     new()
                     {
                         { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId") },
@@ -350,7 +350,7 @@ public class OutboxPersisterTests
                         { "Headers", new AttributeValue() },
                         { "Body", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
                     },
-                },
+                ],
             };
         };
 

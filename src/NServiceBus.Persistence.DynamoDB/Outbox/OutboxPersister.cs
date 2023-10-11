@@ -341,7 +341,7 @@ class OutboxPersister : IOutboxStorage
     readonly IAmazonDynamoDB dynamoDbClient;
     readonly OutboxPersistenceConfiguration configuration;
     readonly string endpointIdentifier;
-    readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = new();
+    readonly ConditionalWeakTable<DispatchProperties, ReturnBuffer> bufferTracking = [];
     static readonly ILog Logger = LogManager.GetLogger<OutboxPersister>();
     static readonly AttributeValue TrueAttributeValue = new AttributeValue { BOOL = true };
     static readonly AttributeValue FalseAttributeValue = new AttributeValue { BOOL = false };

@@ -16,7 +16,7 @@ public class MockDynamoDBClient : IAmazonDynamoDB
 
     public IClientConfig Config => config;
 
-    public List<BatchWriteItemRequest> BatchWriteRequestsSent { get; } = new();
+    public List<BatchWriteItemRequest> BatchWriteRequestsSent { get; } = [];
 
     public Func<BatchWriteItemRequest, BatchWriteItemResponse> BatchWriteRequestResponse = _ => new BatchWriteItemResponse();
 
@@ -29,7 +29,7 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         return Task.FromResult(BatchWriteRequestResponse(request));
     }
 
-    public List<UpdateItemRequest> UpdateItemRequestsSent { get; } = new();
+    public List<UpdateItemRequest> UpdateItemRequestsSent { get; } = [];
 
     public Func<UpdateItemRequest, UpdateItemResponse> UpdateItemRequestResponse = _ => new UpdateItemResponse();
     public Task<UpdateItemResponse> UpdateItemAsync(UpdateItemRequest request, CancellationToken cancellationToken = default)
@@ -38,7 +38,7 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         return Task.FromResult(UpdateItemRequestResponse(request));
     }
 
-    public List<TransactWriteItemsRequest> TransactWriteRequestsSent { get; } = new();
+    public List<TransactWriteItemsRequest> TransactWriteRequestsSent { get; } = [];
 
     public Func<TransactWriteItemsRequest, TransactWriteItemsResponse> TransactWriteRequestResponse = _ => new TransactWriteItemsResponse
     {
@@ -55,7 +55,7 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         return Task.FromResult(TransactWriteRequestResponse(request));
     }
 
-    public List<QueryRequest> QueryRequestsSent { get; } = new();
+    public List<QueryRequest> QueryRequestsSent { get; } = [];
 
     public Func<QueryRequest, QueryResponse> QueryRequestResponse = _ => new QueryResponse();
 

@@ -51,5 +51,5 @@ static class JsonSerializerOptionsExtensions
         return converter is not null;
     }
 
-    static ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<Type, IAttributeConverter?>> attributeConverterCache = new();
+    static ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<Type, IAttributeConverter?>> attributeConverterCache = [];
 }

@@ -485,10 +485,10 @@ public class WriteRequestBatchExecutionTests
         public IReadOnlyCollection<string> WarnMessages => warnMessages;
         public IReadOnlyCollection<string> ErrorMessages => errorMessages;
 
-        List<string> debugMessages = new();
-        List<string> infoMessages = new();
-        List<string> warnMessages = new();
-        List<string> errorMessages = new();
+        List<string> debugMessages = [];
+        List<string> infoMessages = [];
+        List<string> warnMessages = [];
+        List<string> errorMessages = [];
     }
 
     MockDynamoDBClient client;

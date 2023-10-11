@@ -46,8 +46,8 @@ public class OutboxTests
 
         var transportOperations = new TransportOperation[]
         {
-            new(Guid.NewGuid().ToString(), new DispatchProperties(),
-                payload, new Dictionary<string, string>())
+            new(Guid.NewGuid().ToString(), [],
+                payload, [])
         };
 
         using var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag);
@@ -70,8 +70,8 @@ public class OutboxTests
         var transportOperations = new TransportOperation[15];
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
-                payload, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [],
+                payload, []);
         }
 
         using var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag);
@@ -89,7 +89,7 @@ public class OutboxTests
         var transportOperations = new TransportOperation[100]; // 100 items is the transaction limit, we generate n+1 items in the persister
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []);
         }
 
         using var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag);
@@ -109,7 +109,7 @@ public class OutboxTests
         var transportOperations = new TransportOperation[99]; // 100 items is the transaction limit, we generate n+1 items in the persister
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
@@ -138,8 +138,8 @@ public class OutboxTests
         var transportOperations = new TransportOperation[20];
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
-                payload, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [],
+                payload, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
@@ -163,7 +163,7 @@ public class OutboxTests
         var transportOperations = new TransportOperation[24]; // 25 is the batch write limit
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
@@ -189,7 +189,7 @@ public class OutboxTests
         var transportOperations = new TransportOperation[24]; // 25 is the batch write limit
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
@@ -220,7 +220,7 @@ public class OutboxTests
         var transportOperations = new TransportOperation[99]; // 25 is the batch write limit and 100 the tx limit
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
@@ -245,8 +245,8 @@ public class OutboxTests
 
         var transportOperations = new TransportOperation[]
         {
-            new(Guid.NewGuid().ToString(), new DispatchProperties(),
-                ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+            new(Guid.NewGuid().ToString(), [],
+                ReadOnlyMemory<byte>.Empty, [])
         };
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
@@ -276,8 +276,8 @@ public class OutboxTests
 
         var transportOperations = new TransportOperation[]
         {
-            new(Guid.NewGuid().ToString(), new DispatchProperties(),
-                ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+            new(Guid.NewGuid().ToString(), [],
+                ReadOnlyMemory<byte>.Empty, [])
         };
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
@@ -311,8 +311,8 @@ public class OutboxTests
 
         var transportOperations = new TransportOperation[]
         {
-            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
-            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+            new(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []),
+            new(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, [])
         };
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
@@ -343,8 +343,8 @@ public class OutboxTests
         var transportOperations = new TransportOperation[20];
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
-                payload, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [],
+                payload, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(contextBag))
@@ -369,10 +369,10 @@ public class OutboxTests
 
         var transportOperations = new TransportOperation[]
         {
-            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
-            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
-            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
-            new(Guid.NewGuid().ToString(), new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>())
+            new(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []),
+            new(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []),
+            new(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, []),
+            new(Guid.NewGuid().ToString(), [], ReadOnlyMemory<byte>.Empty, [])
         };
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
@@ -389,8 +389,8 @@ public class OutboxTests
         var transportOperationMessageId2 = Guid.NewGuid().ToString();
         transportOperations = new TransportOperation[]
         {
-            new(transportOperationMessageId1, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
-            new(transportOperationMessageId2, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(transportOperationMessageId1, [], ReadOnlyMemory<byte>.Empty, []),
+            new(transportOperationMessageId2, [], ReadOnlyMemory<byte>.Empty, []),
         };
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
@@ -421,8 +421,8 @@ public class OutboxTests
         var transportOperations = new TransportOperation[20];
         for (int i = 0; i < transportOperations.Length; i++)
         {
-            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), new DispatchProperties(),
-                payload, new Dictionary<string, string>());
+            transportOperations[i] = new TransportOperation(Guid.NewGuid().ToString(), [],
+                payload, []);
         }
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
@@ -439,8 +439,8 @@ public class OutboxTests
         var transportOperationMessageId2 = Guid.NewGuid().ToString();
         transportOperations = new TransportOperation[]
         {
-            new(transportOperationMessageId1, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
-            new(transportOperationMessageId2, new DispatchProperties(), ReadOnlyMemory<byte>.Empty, new Dictionary<string, string>()),
+            new(transportOperationMessageId1, [], ReadOnlyMemory<byte>.Empty, []),
+            new(transportOperationMessageId2, [], ReadOnlyMemory<byte>.Empty, []),
         };
 
         using (var transaction = await configuration.OutboxStorage.BeginTransaction(fistAttemptContextBag))
