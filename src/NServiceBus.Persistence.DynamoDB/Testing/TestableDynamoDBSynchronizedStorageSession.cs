@@ -11,7 +11,7 @@ using Persistence.DynamoDB;
 /// </summary>
 public class TestableDynamoSynchronizedStorageSession : ISynchronizedStorageSession, IDynamoStorageSessionInternal
 {
-    readonly List<TransactWriteItem> transactWriteItems = new List<TransactWriteItem>();
+    readonly List<TransactWriteItem> transactWriteItems = [];
 
     /// <summary>
     /// Initializes a new <see cref="TestableDynamoSynchronizedStorageSession"/>.

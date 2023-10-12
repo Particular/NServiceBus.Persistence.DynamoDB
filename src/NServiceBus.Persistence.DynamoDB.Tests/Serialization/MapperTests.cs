@@ -241,11 +241,11 @@ public class MapperTests
     {
         var classWithSetOfStreams = new ClassWithSetOfMemoryStreamAndUnserializableValue
         {
-            SomeStreams = new HashSet<MemoryStream>
-            {
+            SomeStreams =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            },
+            ],
             UnsupportedStream = Stream.Null,
         };
 
@@ -261,11 +261,11 @@ public class MapperTests
     {
         var attributeMap = new Dictionary<string, AttributeValue>
         {
-            { "SomeStreams", new AttributeValue { BS = new List<MemoryStream>
-            {
+            { "SomeStreams", new AttributeValue { BS =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            } } },
+            ] } },
             { "UnsupportedStream", new AttributeValue { B = null } },
         };
 
@@ -288,11 +288,11 @@ public class MapperTests
     {
         var classWithListOfMemoryStream = new ClassWithSetOfMemoryStream
         {
-            HashSetOfMemoryStreams = new HashSet<MemoryStream>
-            {
+            HashSetOfMemoryStreams =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            },
+            ],
             ImmutableHashSetOfStreams = new HashSet<MemoryStream>
             {
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
@@ -373,16 +373,16 @@ public class MapperTests
     {
         var classWithSetOfString = new ClassWithSetOfString
         {
-            HashSetOfString = new HashSet<string>
-            {
+            HashSetOfString =
+            [
                 "Hello World 1",
                 "Hello World 2"
-            },
-            SortedSetOfString = new SortedSet<string>
-            {
+            ],
+            SortedSetOfString =
+            [
                 "Hello World 1",
                 "Hello World 2"
-            },
+            ],
             ImmutableHashSetOfString = new HashSet<string>
             {
                 "Hello World 1",
@@ -428,11 +428,11 @@ public class MapperTests
     {
         var classWithListOStrings = new ClasWithListOfString
         {
-            ListStrings = new List<string>
-            {
+            ListStrings =
+            [
                 "Hello World 1",
                 "Hello World 2"
-            },
+            ],
             ArrayStrings = new[]
             {
                 "Hello World 1",
@@ -528,14 +528,16 @@ public class MapperTests
     {
         var classWithHashSetOfNumbers = new ClassWithSetOfNumbers
         {
-            Ints = new HashSet<int>
-            {
-                int.MinValue, int.MaxValue
-            },
-            Doubles = new SortedSet<double>
-            {
-                double.MinValue, double.MaxValue
-            },
+            Ints =
+            [
+                int.MinValue,
+                int.MaxValue
+            ],
+            Doubles =
+            [
+                double.MinValue,
+                double.MaxValue
+            ],
             Floats = new HashSet<float>
             {
                 float.MinValue, float.MaxValue
@@ -544,14 +546,16 @@ public class MapperTests
             {
                 byte.MinValue, byte.MaxValue
             }.ToImmutableSortedSet(),
-            Shorts = new HashSet<short>
-            {
-                short.MinValue, short.MaxValue
-            },
-            UShorts = new SortedSet<ushort>
-            {
-                ushort.MinValue, ushort.MaxValue
-            },
+            Shorts =
+            [
+                short.MinValue,
+                short.MaxValue
+            ],
+            UShorts =
+            [
+                ushort.MinValue,
+                ushort.MaxValue
+            ],
             Longs = new HashSet<long>
             {
                 long.MinValue, long.MaxValue
@@ -560,14 +564,16 @@ public class MapperTests
             {
                 ulong.MinValue, ulong.MaxValue
             }.ToImmutableSortedSet(),
-            UInts = new HashSet<uint>
-            {
-                uint.MinValue, uint.MaxValue
-            },
-            SBytes = new SortedSet<sbyte>
-            {
-                sbyte.MinValue, sbyte.MaxValue
-            },
+            UInts =
+            [
+                uint.MinValue,
+                uint.MaxValue
+            ],
+            SBytes =
+            [
+                sbyte.MinValue,
+                sbyte.MaxValue
+            ],
             Decimals = new HashSet<decimal>
             {
                 decimal.MinValue, decimal.MaxValue
@@ -684,11 +690,11 @@ public class MapperTests
 
         var hashSetException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithSetOfMemoryStream
         {
-            HashSetOfMemoryStreams = new HashSet<MemoryStream>
-            {
+            HashSetOfMemoryStreams =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            }
+            ]
         }, JsonSerializerOptions.Default));
         Assert.That(hashSetException!.Message, Contains.Substring("not supported on this stream."));
 
@@ -696,7 +702,7 @@ public class MapperTests
             Mapper.ToMap(
                 new ClassWithSetOfString
                 {
-                    HashSetOfString = new HashSet<string> { "Hello World 1", "Hello World 2", }
+                    HashSetOfString = ["Hello World 1", "Hello World 2",]
                 }, JsonSerializerOptions.Default);
 
         Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
@@ -708,7 +714,7 @@ public class MapperTests
             Mapper.ToMap(
                 new ClassWithSetOfNumbers
                 {
-                    Ints = new HashSet<int> { 1, 2, }
+                    Ints = [1, 2,]
                 }, JsonSerializerOptions.Default);
 
         Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
@@ -729,11 +735,11 @@ public class MapperTests
 
         var hashSetException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithSetOfMemoryStream
         {
-            HashSetOfMemoryStreams = new HashSet<MemoryStream>
-            {
+            HashSetOfMemoryStreams =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            }
+            ]
         }, MapperTestsSourceContext.Default.ClassWithSetOfMemoryStream));
         Assert.That(hashSetException!.Message, Contains.Substring("not supported on this stream."));
 
@@ -741,7 +747,7 @@ public class MapperTests
             Mapper.ToMap(
                 new ClassWithSetOfString
                 {
-                    HashSetOfString = new HashSet<string> { "Hello World 1", "Hello World 2", }
+                    HashSetOfString = ["Hello World 1", "Hello World 2",]
                 }, MapperTestsSourceContext.Default.ClassWithSetOfString);
 
         Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
@@ -752,7 +758,7 @@ public class MapperTests
             Mapper.ToMap(
                 new ClassWithSetOfNumbers
                 {
-                    Ints = new HashSet<int> { 1, 2, }
+                    Ints = [1, 2,]
                 }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers);
 
         Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
@@ -778,32 +784,32 @@ public class MapperTests
 
         var setStreamException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
-            { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
-            {
+            { "HashSetOfMemoryStreams", new AttributeValue { BS =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            } } }
+            ] } }
         }, typeof(ClassWithSetOfMemoryStream), JsonSerializerOptions.Default));
         Assert.That(setStreamException1!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
 
         var setStreamException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfMemoryStream>(new Dictionary<string, AttributeValue>
         {
-            { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
-            {
+            { "HashSetOfMemoryStreams", new AttributeValue { BS =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            } } }
+            ] } }
         }, JsonSerializerOptions.Default));
         Assert.That(setStreamException2!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
 
         var setStringException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
             {
-                "HashSetOfString", new AttributeValue { SS = new List<string>
-                {
+                "HashSetOfString", new AttributeValue { SS =
+                [
                     "Hello World 1",
                     "Hello World 2",
-                } }
+                ] }
             }
         }, typeof(ClassWithSetOfString), JsonSerializerOptions.Default));
         Assert.That(setStringException1!.Message, Contains.Substring("no converter to handle 'Sets of String'"));
@@ -811,11 +817,11 @@ public class MapperTests
         var setStringException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfString>(new Dictionary<string, AttributeValue>
         {
             {
-                "HashSetOfString", new AttributeValue { SS = new List<string>
-                {
+                "HashSetOfString", new AttributeValue { SS =
+                [
                     "Hello World 1",
                     "Hello World 2",
-                } }
+                ] }
             }
         }, JsonSerializerOptions.Default));
         Assert.That(setStringException2!.Message, Contains.Substring("no converter to handle 'Sets of String'"));
@@ -823,11 +829,11 @@ public class MapperTests
         var setNumberException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
             {
-                "Ints", new AttributeValue { NS = new List<string>
-                {
+                "Ints", new AttributeValue { NS =
+                [
                     "1",
                     "2",
-                } }
+                ] }
             }
         }, typeof(ClassWithSetOfNumbers), JsonSerializerOptions.Default));
         Assert.That(setNumberException1!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
@@ -835,11 +841,11 @@ public class MapperTests
         var setNumberException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfNumbers>(new Dictionary<string, AttributeValue>
         {
             {
-                "Ints", new AttributeValue { NS = new List<string>
-                {
+                "Ints", new AttributeValue { NS =
+                [
                     "1",
                     "2",
-                } }
+                ] }
             }
         }, JsonSerializerOptions.Default));
         Assert.That(setNumberException2!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
@@ -857,22 +863,22 @@ public class MapperTests
 
         var setStreamException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
-            { "HashSetOfMemoryStreams", new AttributeValue { BS = new List<MemoryStream>
-            {
+            { "HashSetOfMemoryStreams", new AttributeValue { BS =
+            [
                 new(Encoding.UTF8.GetBytes("Hello World 1")),
                 new(Encoding.UTF8.GetBytes("Hello World 2")),
-            } } }
+            ] } }
         }, MapperTestsSourceContext.Default.ClassWithSetOfMemoryStream));
         Assert.That(setStreamException!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
 
         var setStringException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
             {
-                "HashSetOfString", new AttributeValue { SS = new List<string>
-                {
+                "HashSetOfString", new AttributeValue { SS =
+                [
                     "Hello World 1",
                     "Hello World 2",
-                } }
+                ] }
             }
         }, MapperTestsSourceContext.Default.ClassWithSetOfString));
         Assert.That(setStringException!.Message, Contains.Substring("no converter to handle 'Sets of String'"));
@@ -880,11 +886,11 @@ public class MapperTests
         var setNumberException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
             {
-                "Ints", new AttributeValue { NS = new List<string>
-                {
+                "Ints", new AttributeValue { NS =
+                [
                     "1",
                     "2",
-                } }
+                ] }
             }
         }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers));
         Assert.That(setNumberException!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));

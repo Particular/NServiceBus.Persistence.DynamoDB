@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB;
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
@@ -23,16 +22,16 @@ class Installer
         var createTableRequest = new CreateTableRequest
         {
             TableName = tableConfiguration.TableName,
-            AttributeDefinitions = new List<AttributeDefinition>
-            {
+            AttributeDefinitions =
+            [
                 new() { AttributeName = tableConfiguration.PartitionKeyName, AttributeType = ScalarAttributeType.S },
                 new() { AttributeName = tableConfiguration.SortKeyName, AttributeType = ScalarAttributeType.S },
-            },
-            KeySchema = new List<KeySchemaElement>
-            {
+            ],
+            KeySchema =
+            [
                 new() { AttributeName = tableConfiguration.PartitionKeyName, KeyType = KeyType.HASH },
                 new() { AttributeName = tableConfiguration.SortKeyName, KeyType = KeyType.RANGE },
-            },
+            ],
             BillingMode = tableConfiguration.BillingMode,
             ProvisionedThroughput = tableConfiguration.ProvisionedThroughput
         };

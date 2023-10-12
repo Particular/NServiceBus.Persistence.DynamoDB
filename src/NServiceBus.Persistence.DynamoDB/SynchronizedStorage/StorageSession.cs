@@ -37,7 +37,7 @@ class StorageSession : IDynamoStorageSessionInternal
     public void AddToBeExecutedWhenSessionDisposes(ILockCleanup lockCleanup)
     {
         ThrowIfDisposed();
-        lockCleanups ??= new Dictionary<Guid, ILockCleanup>();
+        lockCleanups ??= [];
         lockCleanups.Add(lockCleanup.Id, lockCleanup);
     }
 
@@ -134,7 +134,7 @@ class StorageSession : IDynamoStorageSessionInternal
 
     public ContextBag CurrentContextBag { get; set; }
 
-    List<TransactWriteItem> batch = new();
+    List<TransactWriteItem> batch = [];
     Dictionary<Guid, ILockCleanup>? lockCleanups;
     readonly IAmazonDynamoDB dynamoDbClient;
     bool disposed;

@@ -69,14 +69,14 @@ public class When_injecting_shared_session
                 var someDto = new SomeDto
                 {
                     SomeData = typeof(TriggerMessageHandler).FullName,
-                    Ints = new List<int>
-                    {
+                    Ints =
+                    [
                         1,
                         2,
                         3,
                         4,
                         5
-                    }
+                    ]
                 };
                 var itemMap = Mapper.ToMap(someDto);
                 itemMap[SetupFixture.TableConfiguration.PartitionKeyName] = new AttributeValue(testContext.ItemPK);

@@ -115,7 +115,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
 
     class FakeInstaller : Installer
     {
-        public List<string> TablesCreated { get; } = new List<string>();
+        public List<string> TablesCreated { get; } = [];
 
         public FakeInstaller() : base(null)
         {
