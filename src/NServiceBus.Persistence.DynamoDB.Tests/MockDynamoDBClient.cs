@@ -38,6 +38,10 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         return Task.FromResult(UpdateItemRequestResponse(request));
     }
 
+    public Task<UpdateKinesisStreamingDestinationResponse> UpdateKinesisStreamingDestinationAsync(UpdateKinesisStreamingDestinationRequest request,
+        CancellationToken cancellationToken = new CancellationToken()) =>
+        throw new NotImplementedException();
+
     public List<TransactWriteItemsRequest> TransactWriteRequestsSent { get; } = [];
 
     public Func<TransactWriteItemsRequest, TransactWriteItemsResponse> TransactWriteRequestResponse = _ => new TransactWriteItemsResponse
