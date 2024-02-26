@@ -45,7 +45,7 @@ public static class Mapper
     internal static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo)
         where TValue : class
     {
-        Guard.ThrowIfNull(jsonTypeInfo);
+        ArgumentNullException.ThrowIfNull(jsonTypeInfo);
 
         using var trackingState = new ClearTrackingState();
         using var jsonDocument = JsonSerializer.SerializeToDocument(value, jsonTypeInfo);
@@ -68,7 +68,7 @@ public static class Mapper
     // This method can be made public to support custom serialization options which also enables source gen support.
     internal static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
     {
-        Guard.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(context);
 
         using var trackingState = new ClearTrackingState();
         using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, context);

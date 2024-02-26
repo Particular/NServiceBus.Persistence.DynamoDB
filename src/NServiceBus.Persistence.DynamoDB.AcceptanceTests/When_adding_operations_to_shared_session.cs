@@ -105,8 +105,8 @@ public class When_adding_operations_to_shared_session : NServiceBusAcceptanceTes
                     }
                 });
 
-                session.AddRange(new List<TransactWriteItem>
-                {
+                session.AddRange(
+                [
                     new TransactWriteItem
                     {
                         Put = new Put
@@ -143,7 +143,7 @@ public class When_adding_operations_to_shared_session : NServiceBusAcceptanceTes
                             }
                         }
                     }
-                });
+                ]);
 
                 testContext.MessageReceived = true;
 

@@ -2,7 +2,6 @@
 
 using System;
 using Persistence;
-using Persistence.DynamoDB;
 
 /// <summary>
 /// DynamoDB persistence specific extension methods for the <see cref="ISynchronizedStorageSession"/>.
@@ -14,7 +13,7 @@ public static class SynchronizedStorageSessionExtensions
     /// </summary>
     public static IDynamoStorageSession DynamoPersistenceSession(this ISynchronizedStorageSession session)
     {
-        Guard.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(session);
 
         if (session is not IDynamoStorageSession dynamoSession)
         {

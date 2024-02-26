@@ -193,8 +193,8 @@ public class OutboxPersisterTests
                         { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
                         { "SK", new AttributeValue("OUTBOX#OPERATION#someMessageId#0000")},
                         { "MessageId", new AttributeValue(Guid.NewGuid().ToString())},
-                        { "Properties", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
-                        { "Headers", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
+                        { "Properties", new AttributeValue { M = []} },
+                        { "Headers", new AttributeValue { M = []} },
                         { "Body", new AttributeValue { B = new MemoryStream() } }
                     }
                 }
@@ -267,8 +267,8 @@ public class OutboxPersisterTests
                         { "PK", new AttributeValue("OUTBOX#endpointIdentifier#someMessageId")},
                         { "SK", new AttributeValue("OUTBOX#OPERATION#someMessageId#0000")},
                         { "MessageId", new AttributeValue(Guid.NewGuid().ToString())},
-                        { "Properties", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
-                        { "Headers", new AttributeValue { M = new Dictionary<string, AttributeValue>(0)} },
+                        { "Properties", new AttributeValue { M = []} },
+                        { "Headers", new AttributeValue { M = []} },
                         { "Body", new AttributeValue { B = new MemoryStream() } }
                     }
                 }

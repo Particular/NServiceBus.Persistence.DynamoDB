@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus;
 
+using System;
 using Amazon.DynamoDBv2;
 using Configuration.AdvancedExtensibility;
 using Persistence.DynamoDB;
@@ -15,8 +16,8 @@ public static class DynamoPersistenceConfigExtensions
     /// <remarks>The lifetime of the provided client is assumed to be controlled by the caller of this method and thus the client will not be disposed.</remarks>
     public static PersistenceExtensions<DynamoPersistence> DynamoClient(this PersistenceExtensions<DynamoPersistence> persistenceExtensions, IAmazonDynamoDB dynamoClient)
     {
-        Guard.ThrowIfNull(persistenceExtensions);
-        Guard.ThrowIfNull(dynamoClient);
+        ArgumentNullException.ThrowIfNull(persistenceExtensions);
+        ArgumentNullException.ThrowIfNull(dynamoClient);
 
         persistenceExtensions.GetSettings().Set<IDynamoClientProvider>(new DynamoClientProvidedByConfigurationProvider(dynamoClient));
         return persistenceExtensions;
@@ -27,8 +28,8 @@ public static class DynamoPersistenceConfigExtensions
     /// </summary>
     public static PersistenceExtensions<DynamoPersistence> UseSharedTable(this PersistenceExtensions<DynamoPersistence> persistenceExtensions, TableConfiguration sharedTableConfiguration)
     {
-        Guard.ThrowIfNull(persistenceExtensions);
-        Guard.ThrowIfNull(sharedTableConfiguration);
+        ArgumentNullException.ThrowIfNull(persistenceExtensions);
+        ArgumentNullException.ThrowIfNull(sharedTableConfiguration);
 
         persistenceExtensions.GetSettings().GetOrCreate<SagaPersistenceConfiguration>().Table = sharedTableConfiguration with { };
         persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().Table = sharedTableConfiguration with { };
@@ -40,7 +41,7 @@ public static class DynamoPersistenceConfigExtensions
     /// </summary>
     public static void DisableTablesCreation(this PersistenceExtensions<DynamoPersistence> persistenceExtensions)
     {
-        Guard.ThrowIfNull(persistenceExtensions);
+        ArgumentNullException.ThrowIfNull(persistenceExtensions);
 
         persistenceExtensions.GetSettings().GetOrCreate<SagaPersistenceConfiguration>().CreateTable = false;
         persistenceExtensions.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CreateTable = false;
