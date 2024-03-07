@@ -44,10 +44,10 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
         Type valueType = type.GetGenericArguments()[0];
         var converter = (JsonConverter)Activator.CreateInstance(
             typeof(SetConverter<,>)
-                .MakeGenericType(new Type[] { type, valueType }),
+                .MakeGenericType([type, valueType]),
             BindingFlags.Instance | BindingFlags.Public,
             binder: null,
-            args: new object[] { options },
+            args: [options],
             culture: null)!;
         return converter;
 

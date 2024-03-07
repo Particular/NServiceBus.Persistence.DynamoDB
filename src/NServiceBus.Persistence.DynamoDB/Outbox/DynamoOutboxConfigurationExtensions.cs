@@ -3,7 +3,6 @@
 using System;
 using Configuration.AdvancedExtensibility;
 using Outbox;
-using Persistence.DynamoDB;
 
 /// <summary>
 /// Outbox configuration extensions for DynamoDB persistence.
@@ -15,8 +14,8 @@ public static class DynamoOutboxConfigurationExtensions
     /// </summary>
     public static OutboxSettings UseTable(this OutboxSettings outboxSettings, TableConfiguration tableConfiguration)
     {
-        Guard.ThrowIfNull(outboxSettings);
-        Guard.ThrowIfNull(tableConfiguration);
+        ArgumentNullException.ThrowIfNull(outboxSettings);
+        ArgumentNullException.ThrowIfNull(tableConfiguration);
 
         outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().Table = tableConfiguration;
         return outboxSettings;
@@ -27,7 +26,7 @@ public static class DynamoOutboxConfigurationExtensions
     /// </summary>
     public static OutboxSettings SetTimeToKeepDeduplicationData(this OutboxSettings outboxSettings, TimeSpan timeToKeepDeduplicationData)
     {
-        Guard.ThrowIfNegativeOrZero(timeToKeepDeduplicationData);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeToKeepDeduplicationData, TimeSpan.Zero);
 
         outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().TimeToKeepDeduplicationData = timeToKeepDeduplicationData;
         return outboxSettings;
@@ -38,7 +37,7 @@ public static class DynamoOutboxConfigurationExtensions
     /// </summary>
     public static OutboxSettings CreateTable(this OutboxSettings outboxSettings, bool createTable)
     {
-        Guard.ThrowIfNull(outboxSettings);
+        ArgumentNullException.ThrowIfNull(outboxSettings);
 
         outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CreateTable = createTable;
         return outboxSettings;

@@ -9,31 +9,31 @@ using AcceptanceTesting.Customization;
 public class TransactionSessionDefaultServer : IEndpointSetupTemplate
 {
     public virtual async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor,
-        EndpointCustomizationConfiguration endpointConfiguration,
+        EndpointCustomizationConfiguration endpointCustomization,
         Func<EndpointConfiguration, Task> configurationBuilderCustomization)
     {
-        var builder = new EndpointConfiguration(endpointConfiguration.EndpointName);
+        var endpointConfiguration = new EndpointConfiguration(endpointCustomization.EndpointName);
 
-        builder.UseTransport<LearningTransport>();
+        endpointConfiguration.UseSerialization<SystemJsonSerializer>();
+        endpointConfiguration.UseTransport<LearningTransport>();
 
-        builder.Recoverability()
+        endpointConfiguration.Recoverability()
             .Delayed(delayed => delayed.NumberOfRetries(0))
             // due to read-committed isolation level we allow retries for partial results on the outbox get
             .Immediate(immediate => immediate.NumberOfRetries(1));
-        builder.SendFailedMessagesTo("error");
 
         // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
-        builder.TypesToIncludeInScan(endpointConfiguration.GetTypesScopedByTestClass());
+        endpointConfiguration.TypesToIncludeInScan(endpointCustomization.GetTypesScopedByTestClass());
 
-        var persistence = builder.UsePersistence<DynamoPersistence>();
+        var persistence = endpointConfiguration.UsePersistence<DynamoPersistence>();
         persistence.DynamoClient(SetupFixture.DynamoDBClient);
         persistence.UseSharedTable(SetupFixture.TableConfiguration);
         persistence.EnableTransactionalSession();
 
-        builder.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, runDescriptor.ScenarioContext));
+        endpointConfiguration.RegisterStartupTask(sp => new CaptureServiceProviderStartupTask(sp, runDescriptor.ScenarioContext));
 
-        await configurationBuilderCustomization(builder).ConfigureAwait(false);
+        await configurationBuilderCustomization(endpointConfiguration).ConfigureAwait(false);
 
-        return builder;
+        return endpointConfiguration;
     }
 }

@@ -9,7 +9,7 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using NServiceBus.Logging;
 
-// While this class looks like it has some generic helper flavour it was deliberately kept as close
+// While this class looks like it has some generic helper flavor it was deliberately kept as close
 // as possible to the requirements of the outbox persister and can only be used in that context.
 // Otherwise some significant refactoring would be required.
 static class WriteRequestBatchExecutionExtensions

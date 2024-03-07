@@ -247,7 +247,7 @@ class OutboxPersister : IOutboxStorage
     {
         if (value == null)
         {
-            return new Dictionary<string, AttributeValue>(0);
+            return [];
         }
 
         var attributeValues = new Dictionary<string, AttributeValue>(value.Count);

@@ -120,5 +120,5 @@ sealed class MemoryStreamConverter : JsonConverter<MemoryStream>, IAttributeConv
 
     // internal for tests
     internal static readonly ThreadLocal<uint> StreamId = new(() => 0);
-    internal static readonly ThreadLocal<Dictionary<uint, MemoryStream>> StreamMap = new(() => new Dictionary<uint, MemoryStream>());
+    internal static readonly ThreadLocal<Dictionary<uint, MemoryStream>> StreamMap = new(() => []);
 }
