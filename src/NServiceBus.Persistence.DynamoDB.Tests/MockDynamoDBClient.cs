@@ -63,6 +63,10 @@ public class MockDynamoDBClient : IAmazonDynamoDB
 
     public Func<QueryRequest, QueryResponse> QueryRequestResponse = _ => new QueryResponse();
 
+    public Task<PutResourcePolicyResponse> PutResourcePolicyAsync(PutResourcePolicyRequest request,
+        CancellationToken cancellationToken = new CancellationToken()) =>
+        throw new NotImplementedException();
+
     public Task<QueryResponse> QueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
     {
         QueryRequestsSent.Add(request);
@@ -132,6 +136,11 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         throw new System.NotImplementedException();
 
     public Task<DeleteItemResponse> DeleteItemAsync(DeleteItemRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
+
+    public Task<DeleteResourcePolicyResponse> DeleteResourcePolicyAsync(DeleteResourcePolicyRequest request,
+        CancellationToken cancellationToken = new CancellationToken()) =>
+        throw new NotImplementedException();
+
     public DeleteTableResponse DeleteTable(string tableName) => throw new NotImplementedException();
 
     public DeleteTableResponse DeleteTable(DeleteTableRequest request) => throw new NotImplementedException();
@@ -260,6 +269,11 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         throw new System.NotImplementedException();
 
     public Task<GetItemResponse> GetItemAsync(GetItemRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
+
+    public Task<GetResourcePolicyResponse> GetResourcePolicyAsync(GetResourcePolicyRequest request,
+        CancellationToken cancellationToken = new CancellationToken()) =>
+        throw new NotImplementedException();
+
     public ImportTableResponse ImportTable(ImportTableRequest request) => throw new NotImplementedException();
 
     public Task<ImportTableResponse> ImportTableAsync(ImportTableRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new System.NotImplementedException();
