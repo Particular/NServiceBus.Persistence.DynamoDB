@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.302.4" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.302.5" />
     <PackageReference Include="NServiceBus" Version="9.0.0" />
     <PackageReference Include="NServiceBus.TransactionalSession" Version="3.0.0" />
     <PackageReference Include="Particular.Approvals" Version="1.0.0" />
