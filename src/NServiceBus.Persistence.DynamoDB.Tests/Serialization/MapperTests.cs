@@ -278,6 +278,8 @@ public class MapperTests
 
     class ClassWithSetOfMemoryStreamAndUnserializableValue
     {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Code", "PS0025:Dictionary keys should implement IEquatable<T>",
+            Justification = "It's a test")]
         public HashSet<MemoryStream> SomeStreams { get; set; }
 
         public Stream UnsupportedStream { get; set; }
@@ -320,6 +322,8 @@ public class MapperTests
     }
 
     // Sorted sets don't really make sense here
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Code", "PS0025:Dictionary keys should implement IEquatable<T>",
+        Justification = "It's a test")]
     public class ClassWithSetOfMemoryStream
     {
         public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; }
