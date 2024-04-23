@@ -193,7 +193,7 @@ public static class Mapper
             AttributeValue serializeElement = ToAttributeFromElement(innerElement, options);
             values.Add(serializeElement);
         }
-        return new AttributeValue { L = values };
+        return new AttributeValue { L = values, IsLSet = true };
     }
 
     static AttributeValue ToAttributeFromObject(JsonElement element, JsonSerializerOptions options)
@@ -219,7 +219,7 @@ public static class Mapper
             return attributeValue;
         }
 
-        return new AttributeValue { M = ToAttributeMap(element, options) };
+        return new AttributeValue { M = ToAttributeMap(element, options), IsMSet = true };
     }
 
     static JsonNode? ToNode(AttributeValue attributeValue, JsonSerializerOptions jsonSerializerOptions) =>
