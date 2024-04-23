@@ -8,15 +8,18 @@ public static class ClientFactory
 {
     public static IAmazonDynamoDB CreateDynamoDBClient(Action<AmazonDynamoDBConfig> configure = default)
     {
-        AWSCredentials credentials = new EnvironmentVariablesAWSCredentials();
+        var noAccessKey = string.IsNullOrEmpty(Environment.GetEnvironmentVariable(
+            EnvironmentVariablesAWSCredentials.ENVIRONMENT_VARIABLE_ACCESSKEY));
+
+        AWSCredentials credentials = noAccessKey
+            ? new BasicAWSCredentials("localdb", "localdb")
+            : new EnvironmentVariablesAWSCredentials();
+
         var config = new AmazonDynamoDBConfig();
         configure?.Invoke(config);
 
-        if (string.IsNullOrEmpty(
-                Environment.GetEnvironmentVariable(
-                    EnvironmentVariablesAWSCredentials.ENVIRONMENT_VARIABLE_ACCESSKEY)))
+        if (noAccessKey)
         {
-            credentials = new BasicAWSCredentials("localdb", "localdb");
             config.ServiceURL = Environment.GetEnvironmentVariable("AWS_DYNAMODB_LOCAL_ADDRESS") ??
                                     "http://localhost:8000";
         }
