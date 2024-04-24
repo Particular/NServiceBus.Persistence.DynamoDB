@@ -641,6 +641,62 @@ public class MapperTests
     }
 
     [Test]
+    public void Should_roundtrip_empty_lists()
+    {
+        var classWithEmptyCollections = new ClassWithEmptyCollections();
+
+        var attributes = Mapper.ToMap(classWithEmptyCollections);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptyCollections>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.RecordArray, deserialized.RecordArray);
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.RecordList, deserialized.RecordList);
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.StringArray, deserialized.StringArray);
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.StringList, deserialized.StringList);
+
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordArray)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordArray)].IsLSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordList)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordList)].IsLSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.StringList)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.StringList)].IsLSet, Is.True);
+    }
+
+    public class ClassWithEmptyCollections
+    {
+        public List<string> StringList { get; set; } = [];
+        public string[] StringArray { get; set; } = [];
+        public List<SimpleType> RecordList { get; set; } = [];
+        public SimpleType[] RecordArray { get; set; } = [];
+    }
+
+    public record SimpleType(string Id, double Value);
+
+    [Test]
+    public void Should_roundtrip_empty_maps()
+    {
+        var classWithEmptyMaps = new ClassWithEmptyMaps();
+
+        var attributes = Mapper.ToMap(classWithEmptyMaps);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptyMaps>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithEmptyMaps.SimpleDict, deserialized.SimpleDict);
+        CollectionAssert.AreEquivalent(classWithEmptyMaps.SimpleTypeDict, deserialized.SimpleTypeDict);
+
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleDict)].M, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleDict)].IsMSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleTypeDict)].M, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleTypeDict)].IsMSet, Is.True);
+    }
+
+    public class ClassWithEmptyMaps
+    {
+        public Dictionary<string, int> SimpleDict { get; set; } = [];
+        public Dictionary<string, SimpleType> SimpleTypeDict { get; set; } = [];
+    }
+
+    [Test]
     public void Should_detect_cyclic_references()
     {
         var reference = new ClassWithCyclicReference();
