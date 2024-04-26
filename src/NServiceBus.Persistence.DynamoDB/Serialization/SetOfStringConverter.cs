@@ -42,7 +42,7 @@ sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
         {
             strings.Add(innerElement.GetString());
         }
-        attributeValue = new AttributeValue { SS = strings };
+        attributeValue = new AttributeValue { SS = strings, IsSSSet = true };
         return true;
     }
 

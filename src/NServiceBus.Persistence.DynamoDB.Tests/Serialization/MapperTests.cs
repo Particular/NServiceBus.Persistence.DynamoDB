@@ -428,6 +428,38 @@ public class MapperTests
     }
 
     [Test]
+    public void Should_roundtrip_empty_set_of_strings()
+    {
+        var classWithSetOfString = new ClassWithEmptySetOfString();
+
+        var attributes = Mapper.ToMap(classWithSetOfString);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptySetOfString>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
+        CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
+        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableHashSetOfString, deserialized.ImmutableHashSetOfString);
+        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableSortedSetOfString, deserialized.ImmutableSortedSetOfString);
+
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].SS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.SortedSetOfString)].SS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableHashSetOfString)].SS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableSortedSetOfString)].SS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.True);
+    }
+
+    public class ClassWithEmptySetOfString
+    {
+        public HashSet<string> HashSetOfString { get; set; } = [];
+        public SortedSet<string> SortedSetOfString { get; set; } = [];
+        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = [];
+        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = [];
+    }
+
+    [Test]
     public void Should_roundtrip_list_of_strings()
     {
         var classWithListOStrings = new ClasWithListOfString
