@@ -66,7 +66,7 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
         {
             numbersAsStrings.Add(innerElement.ToString());
         }
-        attributeValue = new AttributeValue { NS = numbersAsStrings };
+        attributeValue = new AttributeValue { NS = numbersAsStrings, IsNSSet = true };
         return true;
     }
 

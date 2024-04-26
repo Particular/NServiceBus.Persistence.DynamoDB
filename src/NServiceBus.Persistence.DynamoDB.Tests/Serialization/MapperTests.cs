@@ -641,6 +641,63 @@ public class MapperTests
     }
 
     [Test]
+    public void Should_roundtrip_empty_sets()
+    {
+        var classWithHashSetOfNumbers = new ClassWithEmpytSetOfNumbers();
+
+        var attributes = Mapper.ToMap(classWithHashSetOfNumbers);
+
+        var deserialized = Mapper.ToObject<ClassWithEmpytSetOfNumbers>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Floats, deserialized.Floats);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Bytes, deserialized.Bytes);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Shorts, deserialized.Shorts);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Longs, deserialized.Longs);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.ULongs, deserialized.ULongs);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UInts, deserialized.UInts);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.SBytes, deserialized.SBytes);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Decimals, deserialized.Decimals);
+
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].IsNSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].IsNSSet, Is.True);
+    }
+
+    public class ClassWithEmpytSetOfNumbers
+    {
+        public HashSet<int> Ints { get; set; } = [];
+        public SortedSet<double> Doubles { get; set; } = [];
+        public ImmutableHashSet<float> Floats { get; set; } = [];
+        public ImmutableSortedSet<byte> Bytes { get; set; } = [];
+        public HashSet<short> Shorts { get; set; } = [];
+        public SortedSet<ushort> UShorts { get; set; } = [];
+        public ImmutableHashSet<long> Longs { get; set; } = [];
+        public ImmutableSortedSet<ulong> ULongs { get; set; } = [];
+        public HashSet<uint> UInts { get; set; } = [];
+        public SortedSet<sbyte> SBytes { get; set; } = [];
+        public ImmutableHashSet<decimal> Decimals { get; set; } = [];
+    }
+
+    [Test]
     public void Should_roundtrip_empty_lists()
     {
         var classWithEmptyCollections = new ClassWithEmptyCollections();

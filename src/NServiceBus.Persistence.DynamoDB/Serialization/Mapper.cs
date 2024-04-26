@@ -236,7 +236,7 @@ public static class Mapper
             { B: not null } => jsonSerializerOptions.TryGet<MemoryStreamConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("MemoryStream"),
             { BS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfMemoryStreamConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of MemoryStream"),
             { SS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfStringConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of String"),
-            { NS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfNumberConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of Number"),
+            { IsNSSet: true } => jsonSerializerOptions.TryGet<SetOfNumberConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of Number"),
             _ => ThrowForNonMappableAttribute()
         };
 
