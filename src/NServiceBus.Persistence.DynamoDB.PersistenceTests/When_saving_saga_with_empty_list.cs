@@ -2,7 +2,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Collections.Immutable;
+using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Sagas;
@@ -43,7 +44,9 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             {
                 ["i"] = 9,
                 ["j"] = 10,
-            }
+            },
+            Ints = [11, 12],
+            Doubles = [13.4, 15.6],
         };
         await SaveSaga(sagaData);
 
@@ -61,6 +64,23 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             read.RecordList = [];
             read.RecordArray = [];
             read.SimpleDict = [];
+            read.Ints = [];
+            read.Doubles = [];
+            read.Floats = [];
+            read.Bytes = [];
+            read.Shorts = [];
+            read.UShorts = [];
+            read.Longs = [];
+            read.ULongs = [];
+            read.UInts = [];
+            read.SBytes = [];
+            read.Decimals = [];
+            read.HashSetOfMemoryStreams = [];
+            read.ImmutableHashSetOfStreams = [];
+            read.HashSetOfString = [];
+            read.SortedSetOfString = [];
+            read.ImmutableHashSetOfString = [];
+            read.ImmutableSortedSetOfString = [];
 
             await configuration.SagaStorage.Update(read, session, context);
             await session.CompleteAsync();
@@ -77,6 +97,23 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             Assert.That(read2.RecordList, Is.Empty);
             Assert.That(read2.RecordArray, Is.Empty);
             Assert.That(read2.SimpleDict, Is.Empty);
+            Assert.That(read2.Ints, Is.Empty);
+            Assert.That(read2.Doubles, Is.Empty);
+            Assert.That(read2.Floats, Is.Empty);
+            Assert.That(read2.Bytes, Is.Empty);
+            Assert.That(read2.Shorts, Is.Empty);
+            Assert.That(read2.UShorts, Is.Empty);
+            Assert.That(read2.Longs, Is.Empty);
+            Assert.That(read2.ULongs, Is.Empty);
+            Assert.That(read2.UInts, Is.Empty);
+            Assert.That(read2.SBytes, Is.Empty);
+            Assert.That(read2.Decimals, Is.Empty);
+            Assert.That(read2.HashSetOfMemoryStreams, Is.Empty);
+            Assert.That(read2.ImmutableHashSetOfStreams, Is.Empty);
+            Assert.That(read2.HashSetOfString, Is.Empty);
+            Assert.That(read2.SortedSetOfString, Is.Empty);
+            Assert.That(read2.ImmutableHashSetOfString, Is.Empty);
+            Assert.That(read2.ImmutableSortedSetOfString, Is.Empty);
         });
     }
 
@@ -102,6 +139,25 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
         public List<SimpleType> RecordList { get; set; } = [];
         public SimpleType[] RecordArray { get; set; } = [];
         public Dictionary<string, int> SimpleDict { get; set; } = [];
+        public HashSet<int> Ints { get; set; } = [];
+        public SortedSet<double> Doubles { get; set; } = [];
+        public ImmutableHashSet<float> Floats { get; set; } = [];
+        public ImmutableSortedSet<byte> Bytes { get; set; } = [];
+        public HashSet<short> Shorts { get; set; } = [];
+        public SortedSet<ushort> UShorts { get; set; } = [];
+        public ImmutableHashSet<long> Longs { get; set; } = [];
+        public ImmutableSortedSet<ulong> ULongs { get; set; } = [];
+        public HashSet<uint> UInts { get; set; } = [];
+        public SortedSet<sbyte> SBytes { get; set; } = [];
+        public ImmutableHashSet<decimal> Decimals { get; set; } = [];
+#pragma warning disable PS0025 // It is a test
+        public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; } = [];
+        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = [];
+#pragma warning restore PS0025
+        public HashSet<string> HashSetOfString { get; set; } = [];
+        public SortedSet<string> SortedSetOfString { get; set; } = [];
+        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = [];
+        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = [];
     }
 
     public record SimpleType(string Id, double Value);
