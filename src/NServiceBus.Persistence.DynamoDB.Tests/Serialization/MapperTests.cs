@@ -331,6 +331,33 @@ public class MapperTests
     }
 
     [Test]
+    public void Should_roundtrip_empty_sets_streams()
+    {
+        var classWithListOfMemoryStream = new ClassWithEmptySetOfMemoryStream();
+
+        var attributes = Mapper.ToMap(classWithListOfMemoryStream);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptySetOfMemoryStream>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
+        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
+
+        Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].IsBSSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].IsBSSet, Is.True);
+    }
+
+    // Sorted sets don't really make sense here
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Code", "PS0025:Dictionary keys should implement IEquatable<T>",
+        Justification = "It's a test")]
+    public class ClassWithEmptySetOfMemoryStream
+    {
+        public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; } = [];
+        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = [];
+    }
+
+    [Test]
     public void Should_roundtrip_nested_streams()
     {
         var classWithMemoryStream = new ClassWithNestedMemoryStream

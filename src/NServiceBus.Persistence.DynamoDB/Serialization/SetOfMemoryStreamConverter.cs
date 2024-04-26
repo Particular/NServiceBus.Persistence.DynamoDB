@@ -45,7 +45,7 @@ sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConver
             memoryStreams.Add(stream);
         }
 
-        attributeValue = new AttributeValue { BS = memoryStreams };
+        attributeValue = new AttributeValue { BS = memoryStreams, IsBSSet = true };
         return true;
     }
 
