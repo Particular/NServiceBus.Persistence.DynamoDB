@@ -331,6 +331,28 @@ public class MapperTests
     }
 
     [Test]
+    public void Should_roundtrip_empty_sets_streams()
+    {
+        var classWithListOfMemoryStream = new ClassWithEmptySetOfMemoryStream();
+
+        var attributes = Mapper.ToMap(classWithListOfMemoryStream);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptySetOfMemoryStream>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
+        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
+    }
+
+    // Sorted sets don't really make sense here
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Code", "PS0025:Dictionary keys should implement IEquatable<T>",
+        Justification = "It's a test")]
+    public class ClassWithEmptySetOfMemoryStream
+    {
+        public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; } = [];
+        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = [];
+    }
+
+    [Test]
     public void Should_roundtrip_nested_streams()
     {
         var classWithMemoryStream = new ClassWithNestedMemoryStream
@@ -425,6 +447,29 @@ public class MapperTests
         public SortedSet<string> SortedSetOfString { get; set; }
         public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; }
         public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; }
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_set_of_strings()
+    {
+        var classWithSetOfString = new ClassWithEmptySetOfString();
+
+        var attributes = Mapper.ToMap(classWithSetOfString);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptySetOfString>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
+        CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
+        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableHashSetOfString, deserialized.ImmutableHashSetOfString);
+        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableSortedSetOfString, deserialized.ImmutableSortedSetOfString);
+    }
+
+    public class ClassWithEmptySetOfString
+    {
+        public HashSet<string> HashSetOfString { get; set; } = [];
+        public SortedSet<string> SortedSetOfString { get; set; } = [];
+        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = [];
+        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = [];
     }
 
     [Test]
@@ -638,6 +683,98 @@ public class MapperTests
         public HashSet<uint> UInts { get; set; }
         public SortedSet<sbyte> SBytes { get; set; }
         public ImmutableHashSet<decimal> Decimals { get; set; }
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_sets()
+    {
+        var classWithHashSetOfNumbers = new ClassWithEmpytSetOfNumbers();
+
+        var attributes = Mapper.ToMap(classWithHashSetOfNumbers);
+
+        var deserialized = Mapper.ToObject<ClassWithEmpytSetOfNumbers>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Floats, deserialized.Floats);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Bytes, deserialized.Bytes);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Shorts, deserialized.Shorts);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Longs, deserialized.Longs);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.ULongs, deserialized.ULongs);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UInts, deserialized.UInts);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.SBytes, deserialized.SBytes);
+        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Decimals, deserialized.Decimals);
+    }
+
+    public class ClassWithEmpytSetOfNumbers
+    {
+        public HashSet<int> Ints { get; set; } = [];
+        public SortedSet<double> Doubles { get; set; } = [];
+        public ImmutableHashSet<float> Floats { get; set; } = [];
+        public ImmutableSortedSet<byte> Bytes { get; set; } = [];
+        public HashSet<short> Shorts { get; set; } = [];
+        public SortedSet<ushort> UShorts { get; set; } = [];
+        public ImmutableHashSet<long> Longs { get; set; } = [];
+        public ImmutableSortedSet<ulong> ULongs { get; set; } = [];
+        public HashSet<uint> UInts { get; set; } = [];
+        public SortedSet<sbyte> SBytes { get; set; } = [];
+        public ImmutableHashSet<decimal> Decimals { get; set; } = [];
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_lists()
+    {
+        var classWithEmptyCollections = new ClassWithEmptyCollections();
+
+        var attributes = Mapper.ToMap(classWithEmptyCollections);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptyCollections>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.RecordArray, deserialized.RecordArray);
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.RecordList, deserialized.RecordList);
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.StringArray, deserialized.StringArray);
+        CollectionAssert.AreEquivalent(classWithEmptyCollections.StringList, deserialized.StringList);
+
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordArray)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordArray)].IsLSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordList)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordList)].IsLSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.StringList)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyCollections.StringList)].IsLSet, Is.True);
+    }
+
+    public class ClassWithEmptyCollections
+    {
+        public List<string> StringList { get; set; } = [];
+        public string[] StringArray { get; set; } = [];
+        public List<SimpleType> RecordList { get; set; } = [];
+        public SimpleType[] RecordArray { get; set; } = [];
+    }
+
+    public record SimpleType(string Id, double Value);
+
+    [Test]
+    public void Should_roundtrip_empty_maps()
+    {
+        var classWithEmptyMaps = new ClassWithEmptyMaps();
+
+        var attributes = Mapper.ToMap(classWithEmptyMaps);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptyMaps>(attributes);
+
+        CollectionAssert.AreEquivalent(classWithEmptyMaps.SimpleDict, deserialized.SimpleDict);
+        CollectionAssert.AreEquivalent(classWithEmptyMaps.SimpleTypeDict, deserialized.SimpleTypeDict);
+
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleDict)].M, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleDict)].IsMSet, Is.True);
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleTypeDict)].M, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleTypeDict)].IsMSet, Is.True);
+    }
+
+    public class ClassWithEmptyMaps
+    {
+        public Dictionary<string, int> SimpleDict { get; set; } = [];
+        public Dictionary<string, SimpleType> SimpleTypeDict { get; set; } = [];
     }
 
     [Test]
