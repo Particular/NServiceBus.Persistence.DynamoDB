@@ -42,7 +42,9 @@ sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
         {
             strings.Add(innerElement.GetString());
         }
-        attributeValue = new AttributeValue { SS = strings };
+        attributeValue = strings.Count == 0
+            ? new AttributeValue { IsLSet = true }
+            : new AttributeValue { SS = strings };
         return true;
     }
 
@@ -65,6 +67,13 @@ sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
 
         public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
+            // For empty sets stored in L
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                var setStoredInL = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfStringConverter);
+                return setStoredInL;
+            }
+
             if (reader.TokenType != JsonTokenType.StartObject)
             {
                 throw new JsonException();
