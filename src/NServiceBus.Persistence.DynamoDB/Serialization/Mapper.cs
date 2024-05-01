@@ -193,7 +193,7 @@ public static class Mapper
             AttributeValue serializeElement = ToAttributeFromElement(innerElement, options);
             values.Add(serializeElement);
         }
-        return new AttributeValue { L = values };
+        return new AttributeValue { L = values, IsLSet = true };
     }
 
     static AttributeValue ToAttributeFromObject(JsonElement element, JsonSerializerOptions options)
@@ -219,7 +219,7 @@ public static class Mapper
             return attributeValue;
         }
 
-        return new AttributeValue { M = ToAttributeMap(element, options) };
+        return new AttributeValue { M = ToAttributeMap(element, options), IsMSet = true };
     }
 
     static JsonNode? ToNode(AttributeValue attributeValue, JsonSerializerOptions jsonSerializerOptions) =>
@@ -234,6 +234,8 @@ public static class Mapper
             { IsLSet: true } => ToNodeFromList(attributeValue.L, jsonSerializerOptions),
             // check the more complex cases last
             { B: not null } => jsonSerializerOptions.TryGet<MemoryStreamConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("MemoryStream"),
+            // Do not use IsBSSet, IsSSSet, or NSSet. It's unclear if these properties actually work correctly in all cases.
+            // See https://github.com/aws/aws-sdk-net/issues/3297#issuecomment-2078955427
             { BS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfMemoryStreamConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of MemoryStream"),
             { SS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfStringConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of String"),
             { NS.Count: > 0 } => jsonSerializerOptions.TryGet<SetOfNumberConverter>(out var converter) ? converter.ToNode(attributeValue) : ThrowForMissingConverter("Sets of Number"),

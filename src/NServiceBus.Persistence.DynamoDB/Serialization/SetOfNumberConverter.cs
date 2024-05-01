@@ -66,7 +66,9 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
         {
             numbersAsStrings.Add(innerElement.ToString());
         }
-        attributeValue = new AttributeValue { NS = numbersAsStrings };
+        attributeValue = numbersAsStrings.Count == 0
+            ? new AttributeValue { IsLSet = true }
+            : new AttributeValue { NS = numbersAsStrings };
         return true;
     }
 
@@ -91,6 +93,13 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
 
         public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
+            // For empty sets stored in L
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                var setStoredInL = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfNumberConverter);
+                return setStoredInL;
+            }
+
             if (reader.TokenType != JsonTokenType.StartObject)
             {
                 throw new JsonException();
