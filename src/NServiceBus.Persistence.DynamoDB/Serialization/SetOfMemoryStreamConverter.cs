@@ -45,7 +45,9 @@ sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConver
             memoryStreams.Add(stream);
         }
 
-        attributeValue = new AttributeValue { BS = memoryStreams };
+        attributeValue = memoryStreams.Count == 0
+            ? new AttributeValue { IsLSet = true }
+            : new AttributeValue { BS = memoryStreams };
         return true;
     }
 
@@ -70,6 +72,13 @@ sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConver
         public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert,
             JsonSerializerOptions options)
         {
+            // For empty sets stored in L
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                var setStoredInL = JsonSerializer.Deserialize<TSet>(ref reader, optionsWithoutSetOfMemoryStreamConverter);
+                return setStoredInL;
+            }
+
             if (reader.TokenType != JsonTokenType.StartObject)
             {
                 throw new JsonException();
