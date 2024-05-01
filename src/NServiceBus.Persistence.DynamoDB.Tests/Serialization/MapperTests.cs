@@ -321,6 +321,47 @@ public class MapperTests
         Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
     }
 
+    [Test]
+    public void Should_remap_empty_sets_of_streams()
+    {
+        var classWithListOfMemoryStream = new ClassWithSetOfMemoryStream
+        {
+            HashSetOfMemoryStreams =
+            [
+                new(Encoding.UTF8.GetBytes("Hello World 1")),
+                new(Encoding.UTF8.GetBytes("Hello World 2")),
+            ],
+            ImmutableHashSetOfStreams = new HashSet<MemoryStream>
+            {
+                new(Encoding.UTF8.GetBytes("Hello World 1")),
+                new(Encoding.UTF8.GetBytes("Hello World 2")),
+            }.ToImmutableHashSet()
+        };
+
+        var attributesBeforeEmpty = Mapper.ToMap(classWithListOfMemoryStream);
+
+        var deserialized = Mapper.ToObject<ClassWithSetOfMemoryStream>(attributesBeforeEmpty);
+
+        deserialized.HashSetOfMemoryStreams = [];
+        deserialized.ImmutableHashSetOfStreams = [];
+
+        var attributesAfterEmpty = Mapper.ToMap(deserialized);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
+
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.Zero);
+
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].IsLSet, Is.True);
+        });
+    }
+
     // Sorted sets don't really make sense here
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Code", "PS0025:Dictionary keys should implement IEquatable<T>",
         Justification = "It's a test")]
@@ -328,6 +369,43 @@ public class MapperTests
     {
         public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; }
         public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; }
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_sets_streams()
+    {
+        var classWithListOfMemoryStream = new ClassWithEmptySetOfMemoryStream();
+
+        var attributes = Mapper.ToMap(classWithListOfMemoryStream);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptySetOfMemoryStream>(attributes);
+
+        Assert.Multiple(() =>
+        {
+
+            Assert.That(deserialized.HashSetOfMemoryStreams, Is.EquivalentTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
+            Assert.That(deserialized.ImmutableHashSetOfStreams, Is.EquivalentTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
+
+            // Due to DynamoDB not supporting empty binary sets we need to use the L attribute to represent empty sets
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].IsBSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].IsBSSet, Is.False);
+
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].IsLSet, Is.True);
+        });
+    }
+
+    // Sorted sets don't really make sense here
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Code", "PS0025:Dictionary keys should implement IEquatable<T>",
+        Justification = "It's a test")]
+    public class ClassWithEmptySetOfMemoryStream
+    {
+        public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; } = [];
+        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = [];
     }
 
     [Test]
@@ -419,12 +497,127 @@ public class MapperTests
         Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
     }
 
+    [Test]
+    public void Should_remap_empty_sets_of_strings()
+    {
+        var classWithSetOfString = new ClassWithSetOfString
+        {
+            HashSetOfString =
+            [
+                "Hello World 1",
+                "Hello World 2"
+            ],
+            SortedSetOfString =
+            [
+                "Hello World 1",
+                "Hello World 2"
+            ],
+            ImmutableHashSetOfString = new HashSet<string>
+            {
+                "Hello World 1",
+                "Hello World 2"
+            }.ToImmutableHashSet(),
+            ImmutableSortedSetOfString = new SortedSet<string>
+            {
+                "Hello World 1",
+                "Hello World 2"
+            }.ToImmutableSortedSet(),
+        };
+
+        var attributesBeforeEmpty = Mapper.ToMap(classWithSetOfString);
+
+        var deserialized = Mapper.ToObject<ClassWithSetOfString>(attributesBeforeEmpty);
+
+        deserialized.HashSetOfString = [];
+        deserialized.SortedSetOfString = [];
+        deserialized.ImmutableHashSetOfString = [];
+        deserialized.ImmutableSortedSetOfString = [];
+
+        var attributesAfterEmpty = Mapper.ToMap(deserialized);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.HashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
+
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].IsLSet, Is.False);
+
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.Zero);
+
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].IsLSet, Is.True);
+        });
+    }
+
     public class ClassWithSetOfString
     {
         public HashSet<string> HashSetOfString { get; set; }
         public SortedSet<string> SortedSetOfString { get; set; }
         public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; }
         public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; }
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_set_of_strings()
+    {
+        var classWithSetOfString = new ClassWithEmptySetOfString();
+
+        var attributes = Mapper.ToMap(classWithSetOfString);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptySetOfString>(attributes);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.HashSetOfString, Is.EquivalentTo(classWithSetOfString.HashSetOfString));
+            Assert.That(deserialized.SortedSetOfString, Is.EquivalentTo(classWithSetOfString.SortedSetOfString));
+            Assert.That(deserialized.ImmutableHashSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableHashSetOfString));
+            Assert.That(deserialized.ImmutableSortedSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableSortedSetOfString));
+
+            // Due to DynamoDB not supporting empty string sets we need to use the L attribute to represent empty sets
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.SortedSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableHashSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableSortedSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
+
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsLSet, Is.True);
+        });
+    }
+
+    public class ClassWithEmptySetOfString
+    {
+        public HashSet<string> HashSetOfString { get; set; } = [];
+        public SortedSet<string> SortedSetOfString { get; set; } = [];
+        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = [];
+        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = [];
     }
 
     [Test]
@@ -619,6 +812,155 @@ public class MapperTests
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
     }
 
+    [Test]
+    public void Should_remap_empty_sets_of_numbers()
+    {
+        var classWithHashSetOfNumbers = new ClassWithSetOfNumbers
+        {
+            Ints =
+            [
+                int.MinValue,
+                int.MaxValue
+            ],
+            Doubles =
+            [
+                double.MinValue,
+                double.MaxValue
+            ],
+            Floats = new HashSet<float>
+            {
+                float.MinValue, float.MaxValue
+            }.ToImmutableHashSet(),
+            Bytes = new HashSet<byte>
+            {
+                byte.MinValue, byte.MaxValue
+            }.ToImmutableSortedSet(),
+            Shorts =
+            [
+                short.MinValue,
+                short.MaxValue
+            ],
+            UShorts =
+            [
+                ushort.MinValue,
+                ushort.MaxValue
+            ],
+            Longs = new HashSet<long>
+            {
+                long.MinValue, long.MaxValue
+            }.ToImmutableHashSet(),
+            ULongs = new HashSet<ulong>
+            {
+                ulong.MinValue, ulong.MaxValue
+            }.ToImmutableSortedSet(),
+            UInts =
+            [
+                uint.MinValue,
+                uint.MaxValue
+            ],
+            SBytes =
+            [
+                sbyte.MinValue,
+                sbyte.MaxValue
+            ],
+            Decimals = new HashSet<decimal>
+            {
+                decimal.MinValue, decimal.MaxValue
+            }.ToImmutableHashSet()
+        };
+
+        var attributesBeforeEmpty = Mapper.ToMap(classWithHashSetOfNumbers);
+
+        var deserialized = Mapper.ToObject<ClassWithSetOfNumbers>(attributesBeforeEmpty);
+
+        deserialized.Ints = [];
+        deserialized.Doubles = [];
+        deserialized.Floats = [];
+        deserialized.Bytes = [];
+        deserialized.Shorts = [];
+        deserialized.UShorts = [];
+        deserialized.Longs = [];
+        deserialized.ULongs = [];
+        deserialized.UInts = [];
+        deserialized.SBytes = [];
+        deserialized.Decimals = [];
+
+        var attributesAfterEmpty = Mapper.ToMap(deserialized);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UShorts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.EqualTo(2));
+
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Doubles)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Doubles)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Floats)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Floats)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Bytes)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Bytes)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Shorts)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Shorts)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UShorts)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UShorts)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Longs)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Longs)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.ULongs)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.ULongs)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UInts)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UInts)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].IsLSet, Is.False);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].IsLSet, Is.False);
+
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UShorts)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.Zero);
+
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Doubles)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Doubles)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Floats)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Floats)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Bytes)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Bytes)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Shorts)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Shorts)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UShorts)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UShorts)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Longs)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Longs)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.ULongs)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.ULongs)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UInts)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UInts)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.SBytes)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.SBytes)].IsLSet, Is.True);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Decimals)].IsLSet, Is.True);
+        });
+    }
+
     public class ClassWithSetOfNumbers
     {
         public HashSet<int> Ints { get; set; }
@@ -632,6 +974,150 @@ public class MapperTests
         public HashSet<uint> UInts { get; set; }
         public SortedSet<sbyte> SBytes { get; set; }
         public ImmutableHashSet<decimal> Decimals { get; set; }
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_sets()
+    {
+        var classWithHashSetOfNumbers = new ClassWithEmpytSetOfNumbers();
+
+        var attributes = Mapper.ToMap(classWithHashSetOfNumbers);
+
+        var deserialized = Mapper.ToObject<ClassWithEmpytSetOfNumbers>(attributes);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.Ints, Is.EquivalentTo(classWithHashSetOfNumbers.Ints));
+            Assert.That(deserialized.Doubles, Is.EquivalentTo(classWithHashSetOfNumbers.Doubles));
+            Assert.That(deserialized.Floats, Is.EquivalentTo(classWithHashSetOfNumbers.Floats));
+            Assert.That(deserialized.Bytes, Is.EquivalentTo(classWithHashSetOfNumbers.Bytes));
+            Assert.That(deserialized.Shorts, Is.EquivalentTo(classWithHashSetOfNumbers.Shorts));
+            Assert.That(deserialized.Longs, Is.EquivalentTo(classWithHashSetOfNumbers.Longs));
+            Assert.That(deserialized.ULongs, Is.EquivalentTo(classWithHashSetOfNumbers.ULongs));
+            Assert.That(deserialized.UInts, Is.EquivalentTo(classWithHashSetOfNumbers.UInts));
+            Assert.That(deserialized.SBytes, Is.EquivalentTo(classWithHashSetOfNumbers.SBytes));
+            Assert.That(deserialized.Decimals, Is.EquivalentTo(classWithHashSetOfNumbers.Decimals));
+
+            // Due to DynamoDB not supporting empty number sets we need to use the L attribute to represent empty sets
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].IsNSSet, Is.False);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].IsNSSet, Is.False);
+
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].IsLSet, Is.True);
+        });
+    }
+
+    public class ClassWithEmpytSetOfNumbers
+    {
+        public HashSet<int> Ints { get; set; } = [];
+        public SortedSet<double> Doubles { get; set; } = [];
+        public ImmutableHashSet<float> Floats { get; set; } = [];
+        public ImmutableSortedSet<byte> Bytes { get; set; } = [];
+        public HashSet<short> Shorts { get; set; } = [];
+        public SortedSet<ushort> UShorts { get; set; } = [];
+        public ImmutableHashSet<long> Longs { get; set; } = [];
+        public ImmutableSortedSet<ulong> ULongs { get; set; } = [];
+        public HashSet<uint> UInts { get; set; } = [];
+        public SortedSet<sbyte> SBytes { get; set; } = [];
+        public ImmutableHashSet<decimal> Decimals { get; set; } = [];
+    }
+
+    [Test]
+    public void Should_roundtrip_empty_lists()
+    {
+        var classWithEmptyCollections = new ClassWithEmptyCollections();
+
+        var attributes = Mapper.ToMap(classWithEmptyCollections);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptyCollections>(attributes);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.RecordArray, Is.EquivalentTo(classWithEmptyCollections.RecordArray));
+            Assert.That(deserialized.RecordList, Is.EquivalentTo(classWithEmptyCollections.RecordList));
+            Assert.That(deserialized.StringArray, Is.EquivalentTo(classWithEmptyCollections.StringArray));
+            Assert.That(deserialized.StringList, Is.EquivalentTo(classWithEmptyCollections.StringList));
+
+            Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordArray)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordArray)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordList)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptyCollections.RecordList)].IsLSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithEmptyCollections.StringList)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptyCollections.StringList)].IsLSet, Is.True);
+        });
+    }
+
+    public class ClassWithEmptyCollections
+    {
+        public List<string> StringList { get; set; } = [];
+        public string[] StringArray { get; set; } = [];
+        public List<SimpleType> RecordList { get; set; } = [];
+        public SimpleType[] RecordArray { get; set; } = [];
+    }
+
+    public record SimpleType(string Id, double Value);
+
+    [Test]
+    public void Should_roundtrip_empty_maps()
+    {
+        var classWithEmptyMaps = new ClassWithEmptyMaps();
+
+        var attributes = Mapper.ToMap(classWithEmptyMaps);
+
+        var deserialized = Mapper.ToObject<ClassWithEmptyMaps>(attributes);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.SimpleDict, Is.EquivalentTo(classWithEmptyMaps.SimpleDict));
+            Assert.That(deserialized.SimpleTypeDict, Is.EquivalentTo(classWithEmptyMaps.SimpleTypeDict));
+
+            Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleDict)].M, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleDict)].IsMSet, Is.True);
+            Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleTypeDict)].M, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptyMaps.SimpleTypeDict)].IsMSet, Is.True);
+        });
+    }
+
+    public class ClassWithEmptyMaps
+    {
+        public Dictionary<string, int> SimpleDict { get; set; } = [];
+        public Dictionary<string, SimpleType> SimpleTypeDict { get; set; } = [];
     }
 
     [Test]
