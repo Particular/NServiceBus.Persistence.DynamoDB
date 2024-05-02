@@ -4,7 +4,7 @@
     <TargetFrameworks>net481;net8.0</TargetFrameworks>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
-    <LangVersion>10.0</LangVersion>
+    <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Persistence.DynamoDB\NServiceBus.Persistence.DynamoDB.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\ClientFactory.cs" />
   </ItemGroup>

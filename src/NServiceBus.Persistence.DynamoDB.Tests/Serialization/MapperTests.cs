@@ -343,7 +343,7 @@ public class MapperTests
         var deserialized = Mapper.ToObject<ClassWithSetOfMemoryStream>(attributesBeforeEmpty);
 
         deserialized.HashSetOfMemoryStreams = [];
-        deserialized.ImmutableHashSetOfStreams = [];
+        deserialized.ImmutableHashSetOfStreams = ImmutableHashSet<MemoryStream>.Empty;
 
         var attributesAfterEmpty = Mapper.ToMap(deserialized);
 
@@ -405,7 +405,7 @@ public class MapperTests
     public class ClassWithEmptySetOfMemoryStream
     {
         public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; } = [];
-        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = [];
+        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = ImmutableHashSet<MemoryStream>.Empty;
     }
 
     [Test]
@@ -530,8 +530,8 @@ public class MapperTests
 
         deserialized.HashSetOfString = [];
         deserialized.SortedSetOfString = [];
-        deserialized.ImmutableHashSetOfString = [];
-        deserialized.ImmutableSortedSetOfString = [];
+        deserialized.ImmutableHashSetOfString = ImmutableHashSet<string>.Empty;
+        deserialized.ImmutableSortedSetOfString = ImmutableSortedSet<string>.Empty;
 
         var attributesAfterEmpty = Mapper.ToMap(deserialized);
 
@@ -616,8 +616,8 @@ public class MapperTests
     {
         public HashSet<string> HashSetOfString { get; set; } = [];
         public SortedSet<string> SortedSetOfString { get; set; } = [];
-        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = [];
-        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = [];
+        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = ImmutableHashSet<string>.Empty;
+        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = ImmutableSortedSet<string>.Empty;
     }
 
     [Test]
@@ -875,15 +875,15 @@ public class MapperTests
 
         deserialized.Ints = [];
         deserialized.Doubles = [];
-        deserialized.Floats = [];
-        deserialized.Bytes = [];
+        deserialized.Floats = ImmutableHashSet<float>.Empty;
+        deserialized.Bytes = ImmutableSortedSet<byte>.Empty;
         deserialized.Shorts = [];
         deserialized.UShorts = [];
-        deserialized.Longs = [];
-        deserialized.ULongs = [];
+        deserialized.Longs = ImmutableHashSet<long>.Empty;
+        deserialized.ULongs = ImmutableSortedSet<ulong>.Empty;
         deserialized.UInts = [];
         deserialized.SBytes = [];
-        deserialized.Decimals = [];
+        deserialized.Decimals = ImmutableHashSet<decimal>.Empty;
 
         var attributesAfterEmpty = Mapper.ToMap(deserialized);
 
@@ -1047,15 +1047,15 @@ public class MapperTests
     {
         public HashSet<int> Ints { get; set; } = [];
         public SortedSet<double> Doubles { get; set; } = [];
-        public ImmutableHashSet<float> Floats { get; set; } = [];
-        public ImmutableSortedSet<byte> Bytes { get; set; } = [];
+        public ImmutableHashSet<float> Floats { get; set; } = ImmutableHashSet<float>.Empty;
+        public ImmutableSortedSet<byte> Bytes { get; set; } = ImmutableSortedSet<byte>.Empty;
         public HashSet<short> Shorts { get; set; } = [];
         public SortedSet<ushort> UShorts { get; set; } = [];
-        public ImmutableHashSet<long> Longs { get; set; } = [];
-        public ImmutableSortedSet<ulong> ULongs { get; set; } = [];
+        public ImmutableHashSet<long> Longs { get; set; } = ImmutableHashSet<long>.Empty;
+        public ImmutableSortedSet<ulong> ULongs { get; set; } = ImmutableSortedSet<ulong>.Empty;
         public HashSet<uint> UInts { get; set; } = [];
         public SortedSet<sbyte> SBytes { get; set; } = [];
-        public ImmutableHashSet<decimal> Decimals { get; set; } = [];
+        public ImmutableHashSet<decimal> Decimals { get; set; } = ImmutableHashSet<decimal>.Empty;
     }
 
     [Test]

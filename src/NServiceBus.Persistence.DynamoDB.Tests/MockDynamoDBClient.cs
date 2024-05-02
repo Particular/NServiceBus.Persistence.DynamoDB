@@ -422,6 +422,15 @@ public class MockDynamoDBClient : IAmazonDynamoDB
     public Task<UpdateTimeToLiveResponse> UpdateTimeToLiveAsync(UpdateTimeToLiveRequest request,
         CancellationToken cancellationToken = new CancellationToken()) =>
         throw new System.NotImplementedException();
+    public DeleteResourcePolicyResponse DeleteResourcePolicy(DeleteResourcePolicyRequest request) => throw new NotImplementedException();
+    public Task<DeleteResourcePolicyResponse> DeleteResourcePolicyAsync(DeleteResourcePolicyRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public GetResourcePolicyResponse GetResourcePolicy(GetResourcePolicyRequest request) => throw new NotImplementedException();
+    public Task<GetResourcePolicyResponse> GetResourcePolicyAsync(GetResourcePolicyRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public PutResourcePolicyResponse PutResourcePolicy(PutResourcePolicyRequest request) => throw new NotImplementedException();
+    public Task<PutResourcePolicyResponse> PutResourcePolicyAsync(PutResourcePolicyRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public UpdateKinesisStreamingDestinationResponse UpdateKinesisStreamingDestination(UpdateKinesisStreamingDestinationRequest request) => throw new NotImplementedException();
+    public Task<UpdateKinesisStreamingDestinationResponse> UpdateKinesisStreamingDestinationAsync(UpdateKinesisStreamingDestinationRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public Amazon.Runtime.Endpoints.Endpoint DetermineServiceOperationEndpoint(AmazonWebServiceRequest request) => throw new NotImplementedException();
 
     public IDynamoDBv2PaginatorFactory Paginators { get; }
     #endregion

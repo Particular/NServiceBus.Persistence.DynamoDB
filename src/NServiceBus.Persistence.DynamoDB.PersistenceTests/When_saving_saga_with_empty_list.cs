@@ -46,21 +46,21 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             },
             Ints = [11, 12],
             Doubles = [13.4, 15.6],
-            Floats = [1.234f, 5.678f],
-            Bytes = [0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64],
+            Floats = new HashSet<float>([1.234f, 5.678f]).ToImmutableHashSet(),
+            Bytes = new SortedSet<byte>([0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64]).ToImmutableSortedSet(),
             Shorts = [1, 2, 3, 4],
             UShorts = [1, 2, 3, 4],
-            Longs = [3147483647, 4147483647, 5147483647],
-            ULongs = [3147483647, 4147483647, 5147483647, 18446744073709551615],
+            Longs = new HashSet<long>([3147483647, 4147483647, 5147483647]).ToImmutableHashSet(),
+            ULongs = new HashSet<ulong>([3147483647, 4147483647, 5147483647, 18446744073709551615]).ToImmutableSortedSet(),
             UInts = [2147483647, 4294967295],
             SBytes = [0x0F, 0x10],
-            Decimals = [1.234m, 5.678m],
+            Decimals = new HashSet<decimal>([1.234m, 5.678m]).ToImmutableHashSet(),
             HashSetOfMemoryStreams = new HashSet<MemoryStream>(memStreams),
             ImmutableHashSetOfStreams = new HashSet<MemoryStream>(memStreams).ToImmutableHashSet(),
             HashSetOfString = ["a", "b", "c", "d"],
             SortedSetOfString = ["a", "b", "c", "d"],
-            ImmutableHashSetOfString = ["a", "b", "c", "d"],
-            ImmutableSortedSetOfString = ["a", "b", "c", "d"],
+            ImmutableHashSetOfString = new HashSet<string>(["a", "b", "c", "d"]).ToImmutableHashSet(),
+            ImmutableSortedSetOfString = new SortedSet<string>(["a", "b", "c", "d"]).ToImmutableSortedSet(),
 
         };
         await SaveSaga(sagaData);
@@ -81,21 +81,21 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             read.SimpleDict = [];
             read.Ints = [];
             read.Doubles = [];
-            read.Floats = [];
-            read.Bytes = [];
+            read.Floats = ImmutableHashSet<float>.Empty;
+            read.Bytes = ImmutableSortedSet<byte>.Empty;
             read.Shorts = [];
             read.UShorts = [];
-            read.Longs = [];
-            read.ULongs = [];
+            read.Longs = ImmutableHashSet<long>.Empty;
+            read.ULongs = ImmutableSortedSet<ulong>.Empty;
             read.UInts = [];
             read.SBytes = [];
-            read.Decimals = [];
+            read.Decimals = ImmutableHashSet<decimal>.Empty;
             read.HashSetOfMemoryStreams = [];
-            read.ImmutableHashSetOfStreams = [];
+            read.ImmutableHashSetOfStreams = ImmutableHashSet<MemoryStream>.Empty;
             read.HashSetOfString = [];
             read.SortedSetOfString = [];
-            read.ImmutableHashSetOfString = [];
-            read.ImmutableSortedSetOfString = [];
+            read.ImmutableHashSetOfString = ImmutableHashSet<string>.Empty;
+            read.ImmutableSortedSetOfString = ImmutableSortedSet<string>.Empty;
 
             await configuration.SagaStorage.Update(read, session, context);
             await session.CompleteAsync();
@@ -158,23 +158,23 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
         public Dictionary<string, int> SimpleDict { get; set; } = [];
         public HashSet<int> Ints { get; set; } = [];
         public SortedSet<double> Doubles { get; set; } = [];
-        public ImmutableHashSet<float> Floats { get; set; } = [];
-        public ImmutableSortedSet<byte> Bytes { get; set; } = [];
+        public ImmutableHashSet<float> Floats { get; set; } = ImmutableHashSet<float>.Empty;
+        public ImmutableSortedSet<byte> Bytes { get; set; } = ImmutableSortedSet<byte>.Empty;
         public HashSet<short> Shorts { get; set; } = [];
         public SortedSet<ushort> UShorts { get; set; } = [];
-        public ImmutableHashSet<long> Longs { get; set; } = [];
-        public ImmutableSortedSet<ulong> ULongs { get; set; } = [];
+        public ImmutableHashSet<long> Longs { get; set; } = ImmutableHashSet<long>.Empty;
+        public ImmutableSortedSet<ulong> ULongs { get; set; } = ImmutableSortedSet<ulong>.Empty;
         public HashSet<uint> UInts { get; set; } = [];
         public SortedSet<sbyte> SBytes { get; set; } = [];
-        public ImmutableHashSet<decimal> Decimals { get; set; } = [];
+        public ImmutableHashSet<decimal> Decimals { get; set; } = ImmutableHashSet<decimal>.Empty;
 #pragma warning disable PS0025 // It is a test
         public HashSet<MemoryStream> HashSetOfMemoryStreams { get; set; } = [];
-        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = [];
+        public ImmutableHashSet<MemoryStream> ImmutableHashSetOfStreams { get; set; } = ImmutableHashSet<MemoryStream>.Empty;
 #pragma warning restore PS0025
         public HashSet<string> HashSetOfString { get; set; } = [];
         public SortedSet<string> SortedSetOfString { get; set; } = [];
-        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = [];
-        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = [];
+        public ImmutableHashSet<string> ImmutableHashSetOfString { get; set; } = ImmutableHashSet<string>.Empty;
+        public ImmutableSortedSet<string> ImmutableSortedSetOfString { get; set; } = ImmutableSortedSet<string>.Empty;
     }
 
     public record SimpleType(string Id, double Value);
