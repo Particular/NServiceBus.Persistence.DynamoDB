@@ -1,0 +1,4 @@
+ComponentType: Persistence
+ComponentPackages:
+  - Name: NServiceBus.Persistence.DynamoDB
+  - Name: NServiceBus.Persistence.DynamoDB.TransactionalSession
