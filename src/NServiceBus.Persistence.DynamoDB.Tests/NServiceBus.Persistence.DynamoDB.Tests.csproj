@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.305.2" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.400" />
     <PackageReference Include="NServiceBus" Version="9.1.0" />
     <PackageReference Include="NServiceBus.Testing" Version="9.0.0" />
     <PackageReference Include="Particular.Approvals" Version="1.0.0" />
