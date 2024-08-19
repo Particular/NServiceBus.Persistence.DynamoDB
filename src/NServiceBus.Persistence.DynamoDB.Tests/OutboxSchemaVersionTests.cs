@@ -57,9 +57,9 @@ public class OutboxSchemaVersionTests
 
         var put = client.TransactWriteRequestsSent.Single().TransactItems[0].Put;
 
-        StringAssert.Contains(endpointIdentifier, put.Item["PK"].S);
-        StringAssert.Contains(messageId, put.Item["PK"].S);
+        Assert.That(put.Item["PK"].S, Does.Contain(endpointIdentifier));
+        Assert.That(put.Item["PK"].S, Does.Contain(messageId));
 
-        StringAssert.Contains(messageId, put.Item["SK"].S);
+        Assert.That(put.Item["SK"].S, Does.Contain(messageId));
     }
 }

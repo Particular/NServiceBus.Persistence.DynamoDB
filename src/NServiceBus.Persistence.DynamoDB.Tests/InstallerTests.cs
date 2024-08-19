@@ -144,6 +144,6 @@ public class InstallerTests
         tableConfiguration.TimeToLiveAttributeName = Guid.NewGuid().ToString("N");
         var exception = Assert.ThrowsAsync<Exception>(() => installer.CreateTable(tableConfiguration, CancellationToken.None));
 
-        StringAssert.Contains($"The table '{tableConfiguration.TableName}' has attribute '{existingTtlAttribute}' configured for the time to live.", exception.Message);
+        Assert.That(exception.Message, Does.Contain($"The table '{tableConfiguration.TableName}' has attribute '{existingTtlAttribute}' configured for the time to live."));
     }
 }
