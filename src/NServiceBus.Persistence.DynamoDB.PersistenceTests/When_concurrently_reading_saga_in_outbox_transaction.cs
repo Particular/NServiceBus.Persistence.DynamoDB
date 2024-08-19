@@ -70,8 +70,8 @@ public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersiste
 
         await Task.WhenAll(lockingSession, blockedSession);
 
-        Assert.IsNotNull(session1Saga);
-        Assert.IsNotNull(session2Saga);
+        Assert.That(session1Saga, Is.Not.Null);
+        Assert.That(session2Saga, Is.Not.Null);
         Assert.Greater(session2Invocation, session1Invocation, "because session 2 should only be able to read after the transaction completed");
     }
 
@@ -205,8 +205,8 @@ public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersiste
 
         await Task.WhenAll(lockingSession, blockedSession);
 
-        Assert.IsNotNull(session1Saga);
-        Assert.IsNotNull(session2Saga);
+        Assert.That(session1Saga, Is.Not.Null);
+        Assert.That(session2Saga, Is.Not.Null);
         Assert.Greater(session2Invocation, session1Invocation, "because session 2 should only be able to read after the transaction disposed");
     }
 
