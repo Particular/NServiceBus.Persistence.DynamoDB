@@ -56,7 +56,7 @@ public class When_concurrently_creating_saga_in_outbox_transaction : SagaPersist
                 nameof(TestSagaData.SomeId),
                 saga1.SomeId, synchronizedStorageSession, contextBag2);
             // after session 1 completed, we should read the created saga
-            Assert.NotNull(session2Read);
+            Assert.That(session2Read, Is.Not.Null);
         });
 
         await Task.WhenAll(lockingSession, blockedSession);

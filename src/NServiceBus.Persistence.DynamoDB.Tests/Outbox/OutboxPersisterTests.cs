@@ -206,7 +206,7 @@ public class OutboxPersisterTests
 
         var result = await persister.Get(messageId, contextBag);
 
-        Assert.NotNull(result);
+        Assert.That(result, Is.Not.Null);
         Assert.That(result.TransportOperations.Length, Is.EqualTo(1));
     }
 
