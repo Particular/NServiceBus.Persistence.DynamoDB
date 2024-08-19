@@ -21,7 +21,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga1Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga1.Saga1Data>(nameof(Saga1.Saga1Data.CorrelationId),
                     saga1.CorrelationId, saga1Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga1, saga1Session, context);
 
@@ -33,7 +33,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga2Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga2.Saga2Data>(nameof(Saga2.Saga2Data.CorrelationId),
                     saga2.CorrelationId, saga2Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga2, saga2Session, context);
 
@@ -65,7 +65,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga1Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga1.Saga1Data>(nameof(Saga1.Saga1Data.CorrelationId),
                     saga1.CorrelationId, saga1Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga1, saga1Session, context);
 
@@ -77,7 +77,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga2Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga2.Saga2Data>(nameof(Saga2.Saga2Data.CorrelationId),
                     saga2.CorrelationId, saga2Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga2, saga2Session, context);
 
@@ -88,9 +88,9 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
         }
 
         var s1 = await GetById<Saga1.Saga1Data>(saga1.Id);
-        Assert.IsNull(s1);
+        Assert.That(s1, Is.Null);
         var s2 = await GetById<Saga2.Saga2Data>(saga2.Id);
-        Assert.IsNull(s2);
+        Assert.That(s2, Is.Null);
     }
 
     [Test]

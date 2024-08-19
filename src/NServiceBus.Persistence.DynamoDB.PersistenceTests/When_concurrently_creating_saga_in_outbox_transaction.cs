@@ -27,7 +27,7 @@ public class When_concurrently_creating_saga_in_outbox_transaction : SagaPersist
                 var readBeforeCreate = await configuration.SagaStorage.Get<TestSagaData>(
                     nameof(TestSagaData.SomeId),
                     saga1.SomeId, synchronizedStorageSession, contextBag1);
-                Assert.IsNull(readBeforeCreate);
+                Assert.That(readBeforeCreate, Is.Null);
                 session1LockAcquired.SetResult(true); // attempt parallel read
 
 
@@ -82,7 +82,7 @@ public class When_concurrently_creating_saga_in_outbox_transaction : SagaPersist
                 var readBeforeCreate = await configuration.SagaStorage.Get<TestSagaData>(
                     nameof(TestSagaData.SomeId),
                     saga1.SomeId, synchronizedStorageSession, contextBag1);
-                Assert.IsNull(readBeforeCreate);
+                Assert.That(readBeforeCreate, Is.Null);
                 session1LockAcquired.SetResult(true); // attempt parallel read
 
 
@@ -111,7 +111,7 @@ public class When_concurrently_creating_saga_in_outbox_transaction : SagaPersist
                 nameof(TestSagaData.SomeId),
                 saga1.SomeId, synchronizedStorageSession, contextBag2);
             // after session 1 completed, we should read the created saga
-            Assert.IsNull(session2Read);
+            Assert.That(session2Read, Is.Null);
         });
 
         await Task.WhenAll(lockingSession, blockedSession);
