@@ -21,7 +21,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.IsEmpty(context.Installer.TablesCreated);
+        Assert.That(context.Installer.TablesCreated, Is.Empty);
     }
 
     [Test]
@@ -69,7 +69,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.IsEmpty(context.Installer.TablesCreated);
+        Assert.That(context.Installer.TablesCreated, Is.Empty);
     }
 
     class Context : ScenarioContext

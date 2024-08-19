@@ -173,7 +173,7 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                 { ":pk", new AttributeValue(partitionKey) }
             }
         });
-        Assert.IsEmpty(documents.Items);
+        Assert.That(documents.Items, Is.Empty);
     }
 
     [TestCase(true)]
