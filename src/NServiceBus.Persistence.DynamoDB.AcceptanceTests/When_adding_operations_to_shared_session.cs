@@ -35,7 +35,7 @@ public class When_adding_operations_to_shared_session : NServiceBusAcceptanceTes
             }
         });
 
-        Assert.AreEqual(3, items.Count);
+        Assert.That(items.Count, Is.EqualTo(3));
     }
 
     [Test]
@@ -63,8 +63,8 @@ public class When_adding_operations_to_shared_session : NServiceBusAcceptanceTes
             }
         });
 
-        Assert.AreEqual(0, items.Count, "should have rolled back all enlisted database operations");
-        Assert.AreEqual(1, context.FailedMessages.Single().Value.Count, "the message should have failed");
+        Assert.That(items.Count, Is.EqualTo(0), "should have rolled back all enlisted database operations");
+        Assert.That(context.FailedMessages.Single().Value.Count, Is.EqualTo(1), "the message should have failed");
     }
 
     class Context : ScenarioContext

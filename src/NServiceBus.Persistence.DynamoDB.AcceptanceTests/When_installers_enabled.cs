@@ -33,7 +33,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Run();
 
         Assert.Contains(context.SagaTableName, context.Installer.TablesCreated);
-        Assert.AreEqual(1, context.Installer.TablesCreated.Count, "should only create saga table");
+        Assert.That(context.Installer.TablesCreated.Count, Is.EqualTo(1), "should only create saga table");
     }
 
     [Test]
@@ -51,7 +51,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Run();
 
         Assert.Contains(context.OutboxTableName, context.Installer.TablesCreated);
-        Assert.AreEqual(1, context.Installer.TablesCreated.Count, "should only create outbox table");
+        Assert.That(context.Installer.TablesCreated.Count, Is.EqualTo(1), "should only create outbox table");
     }
 
     [Test]

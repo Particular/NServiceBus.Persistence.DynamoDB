@@ -61,7 +61,7 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                 { ":pk", new AttributeValue(partitionKey) }
             }
         });
-        Assert.AreEqual(1, documents.Count);
+        Assert.That(documents.Count, Is.EqualTo(1));
     }
 
     [TestCase(true)]
@@ -114,7 +114,7 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                 { ":pk", new AttributeValue(partitionKey) }
             }
         });
-        Assert.AreEqual(1, documents.Count);
+        Assert.That(documents.Count, Is.EqualTo(1));
     }
 
     [TestCase(true)]

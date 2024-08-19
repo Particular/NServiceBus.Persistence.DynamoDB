@@ -30,9 +30,9 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
-        Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
-        Assert.AreEqual(basicPoco.String, deserialized.String);
-        Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
+        Assert.That(deserialized.Guid, Is.EqualTo(basicPoco.Guid));
+        Assert.That(deserialized.String, Is.EqualTo(basicPoco.String));
+        Assert.That(deserialized.Boolean, Is.EqualTo(basicPoco.Boolean));
 
         Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
         Assert.That(attributes[nameof(BasicPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
@@ -53,9 +53,9 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
-        Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
-        Assert.AreEqual(basicPoco.String, deserialized.String);
-        Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
+        Assert.That(deserialized.Guid, Is.EqualTo(basicPoco.Guid));
+        Assert.That(deserialized.String, Is.EqualTo(basicPoco.String));
+        Assert.That(deserialized.Boolean, Is.EqualTo(basicPoco.Boolean));
 
         Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
         Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)), "Null attributes should not be mapped");
@@ -98,19 +98,19 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<NestedPoco>(attributes);
 
-        Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
-        Assert.AreEqual(nestedPoco.String, deserialized.String);
-        Assert.AreEqual(nestedPoco.Boolean, deserialized.Boolean);
+        Assert.That(deserialized.Guid, Is.EqualTo(nestedPoco.Guid));
+        Assert.That(deserialized.String, Is.EqualTo(nestedPoco.String));
+        Assert.That(deserialized.Boolean, Is.EqualTo(nestedPoco.Boolean));
 
         Assert.That(nestedPoco.SubPoco, Is.Not.Null);
-        Assert.AreEqual(nestedPoco.SubPoco.Guid, deserialized.SubPoco.Guid);
-        Assert.AreEqual(nestedPoco.SubPoco.String, deserialized.SubPoco.String);
-        Assert.AreEqual(nestedPoco.SubPoco.Boolean, deserialized.SubPoco.Boolean);
+        Assert.That(deserialized.SubPoco.Guid, Is.EqualTo(nestedPoco.SubPoco.Guid));
+        Assert.That(deserialized.SubPoco.String, Is.EqualTo(nestedPoco.SubPoco.String));
+        Assert.That(deserialized.SubPoco.Boolean, Is.EqualTo(nestedPoco.SubPoco.Boolean));
 
         Assert.That(nestedPoco.SubPoco.SubSubPoco, Is.Not.Null);
-        Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Guid, deserialized.SubPoco.SubSubPoco.Guid);
-        Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.String, deserialized.SubPoco.SubSubPoco.String);
-        Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Boolean, deserialized.SubPoco.SubSubPoco.Boolean);
+        Assert.That(deserialized.SubPoco.SubSubPoco.Guid, Is.EqualTo(nestedPoco.SubPoco.SubSubPoco.Guid));
+        Assert.That(deserialized.SubPoco.SubSubPoco.String, Is.EqualTo(nestedPoco.SubPoco.SubSubPoco.String));
+        Assert.That(deserialized.SubPoco.SubSubPoco.Boolean, Is.EqualTo(nestedPoco.SubPoco.SubSubPoco.Boolean));
 
         Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.EqualTo(nestedPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
         Assert.That(attributes[nameof(NestedPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
@@ -137,7 +137,7 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<NestedPoco>(attributes);
 
-        Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
+        Assert.That(deserialized.Guid, Is.EqualTo(nestedPoco.Guid));
         Assert.That(nestedPoco.SubPoco, Is.Null);
         Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.Not.Null);
 
@@ -680,17 +680,17 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClassWithNumbers>(attributes);
 
-        Assert.AreEqual(classNumbers.Int, deserialized.Int);
-        Assert.AreEqual(classNumbers.Double, deserialized.Double);
-        Assert.AreEqual(classNumbers.Float, deserialized.Float);
-        Assert.AreEqual(classNumbers.Long, deserialized.Long);
-        Assert.AreEqual(classNumbers.ULong, deserialized.ULong);
-        Assert.AreEqual(classNumbers.Short, deserialized.Short);
-        Assert.AreEqual(classNumbers.Ushort, deserialized.Ushort);
-        Assert.AreEqual(classNumbers.UInt, deserialized.UInt);
-        Assert.AreEqual(classNumbers.SByte, deserialized.SByte);
-        Assert.AreEqual(classNumbers.Byte, deserialized.Byte);
-        Assert.AreEqual(classNumbers.Decimal, deserialized.Decimal);
+        Assert.That(deserialized.Int, Is.EqualTo(classNumbers.Int));
+        Assert.That(deserialized.Double, Is.EqualTo(classNumbers.Double));
+        Assert.That(deserialized.Float, Is.EqualTo(classNumbers.Float));
+        Assert.That(deserialized.Long, Is.EqualTo(classNumbers.Long));
+        Assert.That(deserialized.ULong, Is.EqualTo(classNumbers.ULong));
+        Assert.That(deserialized.Short, Is.EqualTo(classNumbers.Short));
+        Assert.That(deserialized.Ushort, Is.EqualTo(classNumbers.Ushort));
+        Assert.That(deserialized.UInt, Is.EqualTo(classNumbers.UInt));
+        Assert.That(deserialized.SByte, Is.EqualTo(classNumbers.SByte));
+        Assert.That(deserialized.Byte, Is.EqualTo(classNumbers.Byte));
+        Assert.That(deserialized.Decimal, Is.EqualTo(classNumbers.Decimal));
 
         Assert.That(attributes[nameof(ClassWithNumbers.Int)].N, Is.EqualTo("2147483647"));
         Assert.That(attributes[nameof(ClassWithNumbers.Double)].N, Does.EndWith("E+308"));

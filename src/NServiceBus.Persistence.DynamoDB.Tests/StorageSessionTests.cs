@@ -38,7 +38,7 @@ public class StorageSessionTests
         session.Dispose();
         session.Dispose();
 
-        Assert.AreEqual(1, action.NumberOfTimesCalled);
+        Assert.That(action.NumberOfTimesCalled, Is.EqualTo(1));
     }
 
     [Test]

@@ -34,7 +34,7 @@ public class When_injecting_shared_session
         var itemResponse = await SetupFixture.DynamoDBClient.GetItemAsync(getItemRequest);
         var mappedDto = Mapper.ToObject<SomeDto>(itemResponse.Item);
 
-        Assert.AreEqual(typeof(EndpointAttachingTransactionOperations.TriggerMessageHandler).FullName, mappedDto.SomeData);
+        Assert.That(mappedDto.SomeData, Is.EqualTo(typeof(EndpointAttachingTransactionOperations.TriggerMessageHandler).FullName));
         CollectionAssert.AreEqual(new List<int>
         {
             1,
