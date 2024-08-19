@@ -206,7 +206,7 @@ public class MapperTests
             Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
         });
 
-        CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
+        Assert.That(deserialized.SomeStream.ToArray(), Is.EquivalentTo(classWithMemoryStream.SomeStream.ToArray()));
         Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
     }
 
@@ -350,8 +350,8 @@ public class MapperTests
             Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
         });
 
-        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
-        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
+        Assert.That(deserialized.HashSetOfMemoryStreams, Is.EquivalentTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
+        Assert.That(deserialized.ImmutableHashSetOfStreams, Is.EquivalentTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
 
         Assert.Multiple(() =>
         {
@@ -477,8 +477,8 @@ public class MapperTests
             Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
         });
 
-        CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
-        CollectionAssert.AreEquivalent(classWithMemoryStream.Nested.SomeStream.ToArray(), deserialized.Nested.SomeStream.ToArray());
+        Assert.That(deserialized.SomeStream.ToArray(), Is.EquivalentTo(classWithMemoryStream.SomeStream.ToArray()));
+        Assert.That(deserialized.Nested.SomeStream.ToArray(), Is.EquivalentTo(classWithMemoryStream.Nested.SomeStream.ToArray()));
         Assert.Multiple(() =>
         {
             Assert.That(attributes[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
@@ -529,10 +529,10 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClassWithSetOfString>(attributes);
 
-        CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
-        CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
-        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableHashSetOfString, deserialized.ImmutableHashSetOfString);
-        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableSortedSetOfString, deserialized.ImmutableSortedSetOfString);
+        Assert.That(deserialized.HashSetOfString, Is.EquivalentTo(classWithSetOfString.HashSetOfString));
+        Assert.That(deserialized.SortedSetOfString, Is.EquivalentTo(classWithSetOfString.SortedSetOfString));
+        Assert.That(deserialized.ImmutableHashSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableHashSetOfString));
+        Assert.That(deserialized.ImmutableSortedSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableSortedSetOfString));
 
         Assert.Multiple(() =>
         {
@@ -692,8 +692,8 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClasWithListOfString>(attributes);
 
-        CollectionAssert.AreEquivalent(classWithListOStrings.ListStrings, deserialized.ListStrings);
-        CollectionAssert.AreEquivalent(classWithListOStrings.ArrayStrings, deserialized.ArrayStrings);
+        Assert.That(deserialized.ListStrings, Is.EquivalentTo(classWithListOStrings.ListStrings));
+        Assert.That(deserialized.ArrayStrings, Is.EquivalentTo(classWithListOStrings.ArrayStrings));
 
         Assert.Multiple(() =>
         {
@@ -838,17 +838,17 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClassWithSetOfNumbers>(attributes);
 
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Floats, deserialized.Floats);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Bytes, deserialized.Bytes);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Shorts, deserialized.Shorts);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UShorts, deserialized.UShorts);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Longs, deserialized.Longs);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.ULongs, deserialized.ULongs);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UInts, deserialized.UInts);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.SBytes, deserialized.SBytes);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Decimals, deserialized.Decimals);
+        Assert.That(deserialized.Ints, Is.EquivalentTo(classWithHashSetOfNumbers.Ints));
+        Assert.That(deserialized.Doubles, Is.EquivalentTo(classWithHashSetOfNumbers.Doubles));
+        Assert.That(deserialized.Floats, Is.EquivalentTo(classWithHashSetOfNumbers.Floats));
+        Assert.That(deserialized.Bytes, Is.EquivalentTo(classWithHashSetOfNumbers.Bytes));
+        Assert.That(deserialized.Shorts, Is.EquivalentTo(classWithHashSetOfNumbers.Shorts));
+        Assert.That(deserialized.UShorts, Is.EquivalentTo(classWithHashSetOfNumbers.UShorts));
+        Assert.That(deserialized.Longs, Is.EquivalentTo(classWithHashSetOfNumbers.Longs));
+        Assert.That(deserialized.ULongs, Is.EquivalentTo(classWithHashSetOfNumbers.ULongs));
+        Assert.That(deserialized.UInts, Is.EquivalentTo(classWithHashSetOfNumbers.UInts));
+        Assert.That(deserialized.SBytes, Is.EquivalentTo(classWithHashSetOfNumbers.SBytes));
+        Assert.That(deserialized.Decimals, Is.EquivalentTo(classWithHashSetOfNumbers.Decimals));
 
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));

@@ -35,14 +35,14 @@ public class When_injecting_shared_session
         var mappedDto = Mapper.ToObject<SomeDto>(itemResponse.Item);
 
         Assert.That(mappedDto.SomeData, Is.EqualTo(typeof(EndpointAttachingTransactionOperations.TriggerMessageHandler).FullName));
-        CollectionAssert.AreEqual(new List<int>
+        Assert.That(mappedDto.Ints, Is.EqualTo(new List<int>
         {
             1,
             2,
             3,
             4,
             5
-        }, mappedDto.Ints);
+        }).AsCollection);
     }
 
     class Context : ScenarioContext
