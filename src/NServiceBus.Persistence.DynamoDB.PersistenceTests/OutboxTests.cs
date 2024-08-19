@@ -121,7 +121,7 @@ public class OutboxTests
         }
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
-        Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
+        Assert.That(result.TransportOperations, Has.Length.EqualTo(transportOperations.Length));
     }
 
     [Test]
@@ -151,7 +151,7 @@ public class OutboxTests
         }
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
-        Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
+        Assert.That(result.TransportOperations, Has.Length.EqualTo(transportOperations.Length));
     }
 
     [Test]
@@ -303,7 +303,7 @@ public class OutboxTests
         }
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
-        Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
+        Assert.That(result.TransportOperations, Has.Length.EqualTo(transportOperations.Length));
     }
 
     [Test]
@@ -405,7 +405,7 @@ public class OutboxTests
         }
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
-        Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
+        Assert.That(result.TransportOperations, Has.Length.EqualTo(transportOperations.Length));
         Assert.Multiple(() =>
         {
             Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
@@ -458,7 +458,7 @@ public class OutboxTests
         }
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
-        Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
+        Assert.That(result.TransportOperations, Has.Length.EqualTo(transportOperations.Length));
         Assert.Multiple(() =>
         {
             Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));

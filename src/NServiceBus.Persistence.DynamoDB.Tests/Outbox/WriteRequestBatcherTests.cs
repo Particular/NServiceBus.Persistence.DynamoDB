@@ -16,10 +16,10 @@ public class WriteRequestBatcherTests
 
         var batches = WriteRequestBatcher.Batch(writeRequests);
 
-        Assert.That(batches.Count, Is.EqualTo(expectedNumberOfBatches));
+        Assert.That(batches, Has.Count.EqualTo(expectedNumberOfBatches));
         for (int i = 0; i < expectedNumberOfBatches - 1; i++)
         {
-            Assert.That(batches.ElementAt(i).Count, Is.EqualTo(25));
+            Assert.That(batches.ElementAt(i), Has.Count.EqualTo(25));
         }
 
         Assert.That(batches.LastOrDefault()?.Count, Is.EqualTo(lastBatchContainsNumberOfEntries));

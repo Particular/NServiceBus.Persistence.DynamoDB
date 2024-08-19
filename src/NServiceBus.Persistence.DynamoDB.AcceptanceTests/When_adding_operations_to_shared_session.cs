@@ -66,7 +66,7 @@ public class When_adding_operations_to_shared_session : NServiceBusAcceptanceTes
         Assert.Multiple(() =>
         {
             Assert.That(items.Count, Is.EqualTo(0), "should have rolled back all enlisted database operations");
-            Assert.That(context.FailedMessages.Single().Value.Count, Is.EqualTo(1), "the message should have failed");
+            Assert.That(context.FailedMessages.Single().Value, Has.Count.EqualTo(1), "the message should have failed");
         });
     }
 
