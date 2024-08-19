@@ -34,10 +34,11 @@ public class InstallerTests
         try
         {
             await dynamoClient.DeleteTableAsync(tableConfiguration.TableName);
+            dynamoClient.Dispose();
         }
         catch (Exception e)
         {
-            TestContext.WriteLine($"Error deleting queue: {e}");
+            await TestContext.Out.WriteLineAsync($"Error deleting queue: {e}");
         }
     }
 

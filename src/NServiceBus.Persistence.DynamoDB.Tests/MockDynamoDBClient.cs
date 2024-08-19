@@ -10,7 +10,7 @@ using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
 using Endpoint = Amazon.Runtime.Endpoints.Endpoint;
 
-public class MockDynamoDBClient : IAmazonDynamoDB
+public sealed class MockDynamoDBClient : IAmazonDynamoDB
 {
     readonly AmazonDynamoDBConfig config = new() { ServiceURL = "http://fakeServiceUrl" };
 
@@ -73,13 +73,13 @@ public class MockDynamoDBClient : IAmazonDynamoDB
         return Task.FromResult(QueryRequestResponse(request));
     }
 
+    public void Dispose() { }
+
     #region NotImplemented
 
     public BatchWriteItemResponse BatchWriteItem(BatchWriteItemRequest request) => throw new NotImplementedException();
 
     public CreateBackupResponse CreateBackup(CreateBackupRequest request) => throw new NotImplementedException();
-
-    public void Dispose() => throw new System.NotImplementedException();
 
     public BatchExecuteStatementResponse BatchExecuteStatement(BatchExecuteStatementRequest request) => throw new NotImplementedException();
 

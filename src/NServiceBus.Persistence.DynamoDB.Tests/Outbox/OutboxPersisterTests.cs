@@ -21,6 +21,9 @@ public class OutboxPersisterTests
         persister = new OutboxPersister(client, new OutboxPersistenceConfiguration(), "endpointIdentifier");
     }
 
+    [TearDown]
+    public void TearDown() => client.Dispose();
+
     [Test]
     public async Task Should_update_metadata_as_a_dedicated_non_batched_update()
     {

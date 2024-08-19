@@ -29,6 +29,9 @@ public class WriteRequestBatchExecutionTests
         client = new MockDynamoDBClient();
     }
 
+    [TearDown]
+    public void TearDown() => client.Dispose();
+
     [Test]
     public async Task Should_execute_batches()
     {
