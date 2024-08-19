@@ -39,7 +39,7 @@ public class SagaIdGeneratorTests
             new SagaCorrelationProperty("correlation property name", "B"),
             sagaMetadata, new ContextBag()));
 
-        Assert.AreNotEqual(id1, id2, "a different correlation property value should result in a different id");
+        Assert.That(id2, Is.Not.EqualTo(id1), "a different correlation property value should result in a different id");
     }
 
     [Test]
@@ -69,7 +69,7 @@ public class SagaIdGeneratorTests
             new SagaCorrelationProperty("correlation property name", "A"),
             CreateSagaMetadata<SagaTypeA, SagaDataTypeB>(), new ContextBag()));
 
-        Assert.AreNotEqual(id1, id2, "a different saga data types value should result in a different id");
+        Assert.That(id2, Is.Not.EqualTo(id1), "a different saga data types value should result in a different id");
     }
 
     [Test]
@@ -85,7 +85,7 @@ public class SagaIdGeneratorTests
             new SagaCorrelationProperty("property B", "correlation property value"),
             sagaMetadata, new ContextBag()));
 
-        Assert.AreNotEqual(id1, id2, "a different correlation property should result in a different id");
+        Assert.That(id2, Is.Not.EqualTo(id1), "a different correlation property should result in a different id");
     }
 
     static SagaMetadata CreateSagaMetadata<TSagaType, TSagaDataType>()
