@@ -17,10 +17,13 @@ public class When_outbox_endpoints_subscribe_to_same_event : NServiceBusAcceptan
             .Done(c => c.SubscriberASentMessage && c.SubscriberBSentMessage)
             .Run();
 
-        Assert.That(context.SubscriberAReceivedEvent, Is.True);
-        Assert.That(context.SubscriberASentMessage, Is.True);
-        Assert.That(context.SubscriberBReceivedEvent, Is.True);
-        Assert.That(context.SubscriberBSentMessage, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.SubscriberAReceivedEvent, Is.True);
+            Assert.That(context.SubscriberASentMessage, Is.True);
+            Assert.That(context.SubscriberBReceivedEvent, Is.True);
+            Assert.That(context.SubscriberBSentMessage, Is.True);
+        });
     }
 
     class Context : ScenarioContext

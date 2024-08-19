@@ -289,8 +289,11 @@ public class WriteRequestBatchExecutionTests
                 .ToArray();
 
         Assert.That(retriedBatches, Has.Length.EqualTo(2));
-        Assert.That(retriedBatches.ElementAt(0).RequestItems[configuration.Table.TableName].Single(), Is.EqualTo(unprocessedWriteRequest1));
-        Assert.That(retriedBatches.ElementAt(1).RequestItems[configuration.Table.TableName].Single(), Is.EqualTo(unprocessedWriteRequest2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(retriedBatches.ElementAt(0).RequestItems[configuration.Table.TableName].Single(), Is.EqualTo(unprocessedWriteRequest1));
+            Assert.That(retriedBatches.ElementAt(1).RequestItems[configuration.Table.TableName].Single(), Is.EqualTo(unprocessedWriteRequest2));
+        });
 
         Approver.Verify(logger);
     }

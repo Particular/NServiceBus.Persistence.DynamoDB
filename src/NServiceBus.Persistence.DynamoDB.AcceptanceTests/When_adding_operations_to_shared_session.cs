@@ -63,8 +63,11 @@ public class When_adding_operations_to_shared_session : NServiceBusAcceptanceTes
             }
         });
 
-        Assert.That(items.Count, Is.EqualTo(0), "should have rolled back all enlisted database operations");
-        Assert.That(context.FailedMessages.Single().Value.Count, Is.EqualTo(1), "the message should have failed");
+        Assert.Multiple(() =>
+        {
+            Assert.That(items.Count, Is.EqualTo(0), "should have rolled back all enlisted database operations");
+            Assert.That(context.FailedMessages.Single().Value.Count, Is.EqualTo(1), "the message should have failed");
+        });
     }
 
     class Context : ScenarioContext

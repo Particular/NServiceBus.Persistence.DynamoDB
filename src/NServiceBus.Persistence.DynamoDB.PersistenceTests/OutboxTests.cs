@@ -207,8 +207,11 @@ public class OutboxTests
         await configuration.OutboxStorage.SetAsDispatched(incomingMessageId, secondAttemptContextBag);
 
         var result2 = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
-        Assert.That(result1.TransportOperations.Length, Is.EqualTo(0));
-        Assert.That(result2.TransportOperations.Length, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result1.TransportOperations.Length, Is.EqualTo(0));
+            Assert.That(result2.TransportOperations.Length, Is.EqualTo(0));
+        });
     }
 
     [Test]
@@ -403,8 +406,11 @@ public class OutboxTests
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
         Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
-        Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
-        Assert.That(result.TransportOperations[1].MessageId, Is.EqualTo(transportOperationMessageId2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
+            Assert.That(result.TransportOperations[1].MessageId, Is.EqualTo(transportOperationMessageId2));
+        });
     }
 
     [Test]
@@ -453,8 +459,11 @@ public class OutboxTests
 
         var result = await configuration.OutboxStorage.Get(incomingMessageId, configuration.GetContextBagForOutbox());
         Assert.That(result.TransportOperations.Length, Is.EqualTo(transportOperations.Length));
-        Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
-        Assert.That(result.TransportOperations[1].MessageId, Is.EqualTo(transportOperationMessageId2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TransportOperations[0].MessageId, Is.EqualTo(transportOperationMessageId1));
+            Assert.That(result.TransportOperations[1].MessageId, Is.EqualTo(transportOperationMessageId2));
+        });
     }
 
     static async Task ExpireMetadataRecord(string incomingMessageId)

@@ -157,8 +157,11 @@ public class OutboxPersisterTests
         var record = await persister.Get("someMessageId", contextBag);
 
         Assert.That(record, Is.Not.Null);
-        Assert.That(record.TransportOperations, Has.Length.EqualTo(2));
-        Assert.That(called, Is.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(record.TransportOperations, Has.Length.EqualTo(2));
+            Assert.That(called, Is.EqualTo(2));
+        });
     }
 
     [Test]
@@ -358,8 +361,11 @@ public class OutboxPersisterTests
 
         var record = await persister.Get("someMessageId", contextBag);
 
-        Assert.That(record, Is.Null);
-        Assert.That(called, Is.EqualTo(1), "Should not try to fetch more records");
+        Assert.Multiple(() =>
+        {
+            Assert.That(record, Is.Null);
+            Assert.That(called, Is.EqualTo(1), "Should not try to fetch more records");
+        });
     }
 
     MockDynamoDBClient client;

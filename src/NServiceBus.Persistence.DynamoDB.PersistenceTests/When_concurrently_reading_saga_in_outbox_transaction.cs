@@ -70,9 +70,12 @@ public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersiste
 
         await Task.WhenAll(lockingSession, blockedSession);
 
-        Assert.That(session1Saga, Is.Not.Null);
-        Assert.That(session2Saga, Is.Not.Null);
-        Assert.That(session2Invocation, Is.GreaterThan(session1Invocation), "because session 2 should only be able to read after the transaction completed");
+        Assert.Multiple(() =>
+        {
+            Assert.That(session1Saga, Is.Not.Null);
+            Assert.That(session2Saga, Is.Not.Null);
+            Assert.That(session2Invocation, Is.GreaterThan(session1Invocation), "because session 2 should only be able to read after the transaction completed");
+        });
     }
 
     [Test]
@@ -137,9 +140,12 @@ public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersiste
 
         await Task.WhenAll(lockingSession, blockedSession);
 
-        Assert.That(session1Saga, Is.Null);
-        Assert.That(session2Saga, Is.Null);
-        Assert.That(session2Invocation, Is.GreaterThan(session1Invocation), "because session 2 should only be able to read after the transaction completed");
+        Assert.Multiple(() =>
+        {
+            Assert.That(session1Saga, Is.Null);
+            Assert.That(session2Saga, Is.Null);
+            Assert.That(session2Invocation, Is.GreaterThan(session1Invocation), "because session 2 should only be able to read after the transaction completed");
+        });
     }
 
     [Test]
@@ -205,9 +211,12 @@ public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersiste
 
         await Task.WhenAll(lockingSession, blockedSession);
 
-        Assert.That(session1Saga, Is.Not.Null);
-        Assert.That(session2Saga, Is.Not.Null);
-        Assert.That(session2Invocation, Is.GreaterThan(session1Invocation), "because session 2 should only be able to read after the transaction disposed");
+        Assert.Multiple(() =>
+        {
+            Assert.That(session1Saga, Is.Not.Null);
+            Assert.That(session2Saga, Is.Not.Null);
+            Assert.That(session2Invocation, Is.GreaterThan(session1Invocation), "because session 2 should only be able to read after the transaction disposed");
+        });
     }
 
     [Test]
@@ -271,9 +280,12 @@ public class When_concurrently_reading_saga_in_outbox_transaction : SagaPersiste
 
         await Task.WhenAll(lockingSession, lockedSession);
 
-        Assert.That(session1Saga, Is.Null);
-        Assert.That(session2Saga, Is.Null);
-        Assert.That(session2ReadTimestamp, Is.GreaterThan(session1DisposeTime), "because session 2 should only be able to read after the transaction disposed");
+        Assert.Multiple(() =>
+        {
+            Assert.That(session1Saga, Is.Null);
+            Assert.That(session2Saga, Is.Null);
+            Assert.That(session2ReadTimestamp, Is.GreaterThan(session1DisposeTime), "because session 2 should only be able to read after the transaction disposed");
+        });
     }
 
     public class TestSaga : Saga<TestSagaData>, IAmStartedByMessages<StartTestSagaMessage>

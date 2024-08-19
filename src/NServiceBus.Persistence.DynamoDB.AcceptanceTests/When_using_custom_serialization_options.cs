@@ -24,9 +24,12 @@ public class When_using_custom_serialization_options : NServiceBusAcceptanceTest
             .Done(c => c.SagaDone)
             .Run();
 
-        Assert.That(context.SagaDone, Is.True);
-        Assert.That(context.CustomSerializedProperty, Is.EqualTo(dataId.ToString()));
-        Assert.That(context.StreamContent, Is.EqualTo(dataId.ToString()));
+        Assert.Multiple(() =>
+        {
+            Assert.That(context.SagaDone, Is.True);
+            Assert.That(context.CustomSerializedProperty, Is.EqualTo(dataId.ToString()));
+            Assert.That(context.StreamContent, Is.EqualTo(dataId.ToString()));
+        });
     }
 
     public class Context : ScenarioContext
