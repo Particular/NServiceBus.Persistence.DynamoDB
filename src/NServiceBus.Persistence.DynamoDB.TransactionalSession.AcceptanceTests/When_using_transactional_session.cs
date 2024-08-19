@@ -155,7 +155,7 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
             .Done(c => c.CompleteMessageReceived)
             .Run();
 
-        Assert.True(context.CompleteMessageReceived);
+        Assert.That(context.CompleteMessageReceived, Is.True);
         Assert.That(context.MessageReceived, Is.False);
 
         var documents = await SetupFixture.DynamoDBClient.QueryAsync(new QueryRequest()
@@ -197,7 +197,7 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                 .Run()
             ;
 
-        Assert.True(result.MessageReceived);
+        Assert.That(result.MessageReceived, Is.True);
     }
 
     class Context : ScenarioContext, IInjectServiceProvider

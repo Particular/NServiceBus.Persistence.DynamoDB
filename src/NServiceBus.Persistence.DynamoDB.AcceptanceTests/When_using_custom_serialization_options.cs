@@ -24,7 +24,7 @@ public class When_using_custom_serialization_options : NServiceBusAcceptanceTest
             .Done(c => c.SagaDone)
             .Run();
 
-        Assert.True(context.SagaDone);
+        Assert.That(context.SagaDone, Is.True);
         Assert.That(context.CustomSerializedProperty, Is.EqualTo(dataId.ToString()));
         Assert.That(context.StreamContent, Is.EqualTo(dataId.ToString()));
     }
