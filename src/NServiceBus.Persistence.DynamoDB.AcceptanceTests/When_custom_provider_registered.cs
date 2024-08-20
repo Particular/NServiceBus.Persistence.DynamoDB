@@ -20,7 +20,7 @@ public class When_custom_provider_registered : NServiceBusAcceptanceTest
             .Done(c => c.SagaReceivedMessage)
             .Run();
 
-        Assert.True(context.ProviderWasCalled);
+        Assert.That(context.ProviderWasCalled, Is.True);
     }
 
     public class Context : ScenarioContext

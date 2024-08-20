@@ -30,7 +30,7 @@ public class When_sending_many_messages_with_outbox_enabled : NServiceBusAccepta
             .Done(c => c.MessagesReceived == 99)
             .Run();
 
-        Assert.AreEqual(99, context.MessagesReceived);
+        Assert.That(context.MessagesReceived, Is.EqualTo(99));
 
         var endpointName = Conventions.EndpointNamingConvention(typeof(EndpointSendingManyMessages));
         var queryRequest = new QueryRequest
@@ -51,9 +51,12 @@ public class When_sending_many_messages_with_outbox_enabled : NServiceBusAccepta
         Assert.That(response.Items, Has.Count.EqualTo(1));
 
         var metadataAttributeMap = response.Items.Single();
-        // Should be marked as dispatched
-        Assert.That(metadataAttributeMap[Dispatched].BOOL, Is.True);
-        Assert.That(metadataAttributeMap[DispatchedAt].S, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            // Should be marked as dispatched
+            Assert.That(metadataAttributeMap[Dispatched].BOOL, Is.True);
+            Assert.That(metadataAttributeMap[DispatchedAt].S, Is.Not.Null);
+        });
     }
 
     class Context : ScenarioContext

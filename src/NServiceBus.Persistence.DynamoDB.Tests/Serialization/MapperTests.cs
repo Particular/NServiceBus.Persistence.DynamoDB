@@ -30,13 +30,16 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
-        Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
-        Assert.AreEqual(basicPoco.String, deserialized.String);
-        Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.Guid, Is.EqualTo(basicPoco.Guid));
+            Assert.That(deserialized.String, Is.EqualTo(basicPoco.String));
+            Assert.That(deserialized.Boolean, Is.EqualTo(basicPoco.Boolean));
 
-        Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
-        Assert.That(attributes[nameof(BasicPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
-        Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.True, "Should have been mapped to DynamoDB Bool attribute");
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(BasicPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.True, "Should have been mapped to DynamoDB Bool attribute");
+        });
     }
 
     [Test]
@@ -53,12 +56,15 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<BasicPoco>(attributes);
 
-        Assert.AreEqual(basicPoco.Guid, deserialized.Guid);
-        Assert.AreEqual(basicPoco.String, deserialized.String);
-        Assert.AreEqual(basicPoco.Boolean, deserialized.Boolean);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.Guid, Is.EqualTo(basicPoco.Guid));
+            Assert.That(deserialized.String, Is.EqualTo(basicPoco.String));
+            Assert.That(deserialized.Boolean, Is.EqualTo(basicPoco.Boolean));
 
-        Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
-        Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)), "Null attributes should not be mapped");
+            Assert.That(attributes[nameof(BasicPoco.Guid)].S, Is.EqualTo(basicPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
+            Assert.That(attributes, Does.Not.ContainKey(nameof(BasicPoco.String)), "Null attributes should not be mapped");
+        });
         Assert.That(attributes[nameof(BasicPoco.Boolean)].BOOL, Is.False, "Should have been mapped to DynamoDB Bool attribute");
     }
 
@@ -98,19 +104,22 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<NestedPoco>(attributes);
 
-        Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
-        Assert.AreEqual(nestedPoco.String, deserialized.String);
-        Assert.AreEqual(nestedPoco.Boolean, deserialized.Boolean);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.Guid, Is.EqualTo(nestedPoco.Guid));
+            Assert.That(deserialized.String, Is.EqualTo(nestedPoco.String));
+            Assert.That(deserialized.Boolean, Is.EqualTo(nestedPoco.Boolean));
 
-        Assert.That(nestedPoco.SubPoco, Is.Not.Null);
-        Assert.AreEqual(nestedPoco.SubPoco.Guid, deserialized.SubPoco.Guid);
-        Assert.AreEqual(nestedPoco.SubPoco.String, deserialized.SubPoco.String);
-        Assert.AreEqual(nestedPoco.SubPoco.Boolean, deserialized.SubPoco.Boolean);
+            Assert.That(nestedPoco.SubPoco, Is.Not.Null);
+            Assert.That(deserialized.SubPoco.Guid, Is.EqualTo(nestedPoco.SubPoco.Guid));
+            Assert.That(deserialized.SubPoco.String, Is.EqualTo(nestedPoco.SubPoco.String));
+            Assert.That(deserialized.SubPoco.Boolean, Is.EqualTo(nestedPoco.SubPoco.Boolean));
+        });
 
         Assert.That(nestedPoco.SubPoco.SubSubPoco, Is.Not.Null);
-        Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Guid, deserialized.SubPoco.SubSubPoco.Guid);
-        Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.String, deserialized.SubPoco.SubSubPoco.String);
-        Assert.AreEqual(nestedPoco.SubPoco.SubSubPoco.Boolean, deserialized.SubPoco.SubSubPoco.Boolean);
+        Assert.That(deserialized.SubPoco.SubSubPoco.Guid, Is.EqualTo(nestedPoco.SubPoco.SubSubPoco.Guid));
+        Assert.That(deserialized.SubPoco.SubSubPoco.String, Is.EqualTo(nestedPoco.SubPoco.SubSubPoco.String));
+        Assert.That(deserialized.SubPoco.SubSubPoco.Boolean, Is.EqualTo(nestedPoco.SubPoco.SubSubPoco.Boolean));
 
         Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.EqualTo(nestedPocoId.ToString()), "Should have been mapped to DynamoDB string attribute");
         Assert.That(attributes[nameof(NestedPoco.String)].S, Is.EqualTo("Hello World 1"), "Should have been mapped to DynamoDB string attribute");
@@ -137,11 +146,14 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<NestedPoco>(attributes);
 
-        Assert.AreEqual(nestedPoco.Guid, deserialized.Guid);
-        Assert.That(nestedPoco.SubPoco, Is.Null);
-        Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.Guid, Is.EqualTo(nestedPoco.Guid));
+            Assert.That(nestedPoco.SubPoco, Is.Null);
+            Assert.That(attributes[nameof(NestedPoco.Guid)].S, Is.Not.Null);
 
-        Assert.That(attributes, Does.Not.ContainKey(nameof(NestedPoco.String)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(NestedPoco.String)));
+        });
         Assert.That(attributes, Does.Not.ContainKey(nameof(NestedPoco.SubPoco)));
     }
 
@@ -178,17 +190,23 @@ public class MapperTests
 
         var attributes = Mapper.ToMap(classWithMemoryStream);
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
 
         var deserialized = Mapper.ToObject<ClassWithMemoryStream>(attributes);
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
 
-        CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
+        Assert.That(deserialized.SomeStream.ToArray(), Is.EquivalentTo(classWithMemoryStream.SomeStream.ToArray()));
         Assert.That(attributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
     }
 
@@ -208,9 +226,12 @@ public class MapperTests
 
         Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithMemoryStream));
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
     }
 
     [Test]
@@ -224,9 +245,12 @@ public class MapperTests
 
         Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithMemoryStreamAndUnserializableValue>(attributeMap));
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
     }
 
     class ClassWithMemoryStreamAndUnserializableValue
@@ -251,9 +275,12 @@ public class MapperTests
 
         Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(classWithSetOfStreams));
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
     }
 
     [Test]
@@ -271,9 +298,12 @@ public class MapperTests
 
         Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithSetOfMemoryStreamAndUnserializableValue>(attributeMap));
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
     }
 
     class ClassWithSetOfMemoryStreamAndUnserializableValue
@@ -304,21 +334,30 @@ public class MapperTests
 
         var attributes = Mapper.ToMap(classWithListOfMemoryStream);
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
 
         var deserialized = Mapper.ToObject<ClassWithSetOfMemoryStream>(attributes);
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
 
-        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.HashSetOfMemoryStreams, deserialized.HashSetOfMemoryStreams);
-        CollectionAssert.AreEquivalent(classWithListOfMemoryStream.ImmutableHashSetOfStreams, deserialized.ImmutableHashSetOfStreams);
+        Assert.That(deserialized.HashSetOfMemoryStreams, Is.EquivalentTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
+        Assert.That(deserialized.ImmutableHashSetOfStreams, Is.EquivalentTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
 
-        Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
-        Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
+        });
     }
 
     [Test]
@@ -422,20 +461,29 @@ public class MapperTests
 
         var attributes = Mapper.ToMap(classWithMemoryStream);
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
 
         var deserialized = Mapper.ToObject<ClassWithNestedMemoryStream>(attributes);
 
-        // state should never leak
-        Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
-        Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            // state should never leak
+            Assert.That(MemoryStreamConverter.StreamMap.Value, Is.Empty);
+            Assert.That(MemoryStreamConverter.StreamId.Value, Is.EqualTo(0));
+        });
 
-        CollectionAssert.AreEquivalent(classWithMemoryStream.SomeStream.ToArray(), deserialized.SomeStream.ToArray());
-        CollectionAssert.AreEquivalent(classWithMemoryStream.Nested.SomeStream.ToArray(), deserialized.Nested.SomeStream.ToArray());
-        Assert.That(attributes[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
-        Assert.That(attributes[nameof(ClassWithNestedMemoryStream.Nested)].M[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.Nested.SomeStream));
+        Assert.That(deserialized.SomeStream.ToArray(), Is.EquivalentTo(classWithMemoryStream.SomeStream.ToArray()));
+        Assert.That(deserialized.Nested.SomeStream.ToArray(), Is.EquivalentTo(classWithMemoryStream.Nested.SomeStream.ToArray()));
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributes[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
+            Assert.That(attributes[nameof(ClassWithNestedMemoryStream.Nested)].M[nameof(ClassWithNestedMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.Nested.SomeStream));
+        });
     }
 
     class ClassWithNestedMemoryStream
@@ -481,20 +529,23 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClassWithSetOfString>(attributes);
 
-        CollectionAssert.AreEquivalent(classWithSetOfString.HashSetOfString, deserialized.HashSetOfString);
-        CollectionAssert.AreEquivalent(classWithSetOfString.SortedSetOfString, deserialized.SortedSetOfString);
-        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableHashSetOfString, deserialized.ImmutableHashSetOfString);
-        CollectionAssert.AreEquivalent(classWithSetOfString.ImmutableSortedSetOfString, deserialized.ImmutableSortedSetOfString);
+        Assert.That(deserialized.HashSetOfString, Is.EquivalentTo(classWithSetOfString.HashSetOfString));
+        Assert.That(deserialized.SortedSetOfString, Is.EquivalentTo(classWithSetOfString.SortedSetOfString));
+        Assert.That(deserialized.ImmutableHashSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableHashSetOfString));
+        Assert.That(deserialized.ImmutableSortedSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableSortedSetOfString));
 
-        Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].SS, Has.Count.EqualTo(2));
-        Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Has.Count.EqualTo(2));
-        Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
-        Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
 
-        Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+        });
     }
 
     [Test]
@@ -641,13 +692,16 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClasWithListOfString>(attributes);
 
-        CollectionAssert.AreEquivalent(classWithListOStrings.ListStrings, deserialized.ListStrings);
-        CollectionAssert.AreEquivalent(classWithListOStrings.ArrayStrings, deserialized.ArrayStrings);
+        Assert.That(deserialized.ListStrings, Is.EquivalentTo(classWithListOStrings.ListStrings));
+        Assert.That(deserialized.ArrayStrings, Is.EquivalentTo(classWithListOStrings.ArrayStrings));
 
-        Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].L, Has.Count.EqualTo(2));
-        Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].SS, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].L, Has.Count.EqualTo(2));
-        Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].SS, Has.Count.Zero);
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].L, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].L, Has.Count.EqualTo(2));
+            Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].SS, Has.Count.Zero);
+        });
     }
 
     // Not testing all possible enumeration types since this path goes directly through the default
@@ -680,29 +734,32 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClassWithNumbers>(attributes);
 
-        Assert.AreEqual(classNumbers.Int, deserialized.Int);
-        Assert.AreEqual(classNumbers.Double, deserialized.Double);
-        Assert.AreEqual(classNumbers.Float, deserialized.Float);
-        Assert.AreEqual(classNumbers.Long, deserialized.Long);
-        Assert.AreEqual(classNumbers.ULong, deserialized.ULong);
-        Assert.AreEqual(classNumbers.Short, deserialized.Short);
-        Assert.AreEqual(classNumbers.Ushort, deserialized.Ushort);
-        Assert.AreEqual(classNumbers.UInt, deserialized.UInt);
-        Assert.AreEqual(classNumbers.SByte, deserialized.SByte);
-        Assert.AreEqual(classNumbers.Byte, deserialized.Byte);
-        Assert.AreEqual(classNumbers.Decimal, deserialized.Decimal);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deserialized.Int, Is.EqualTo(classNumbers.Int));
+            Assert.That(deserialized.Double, Is.EqualTo(classNumbers.Double));
+            Assert.That(deserialized.Float, Is.EqualTo(classNumbers.Float));
+            Assert.That(deserialized.Long, Is.EqualTo(classNumbers.Long));
+            Assert.That(deserialized.ULong, Is.EqualTo(classNumbers.ULong));
+            Assert.That(deserialized.Short, Is.EqualTo(classNumbers.Short));
+            Assert.That(deserialized.Ushort, Is.EqualTo(classNumbers.Ushort));
+            Assert.That(deserialized.UInt, Is.EqualTo(classNumbers.UInt));
+            Assert.That(deserialized.SByte, Is.EqualTo(classNumbers.SByte));
+            Assert.That(deserialized.Byte, Is.EqualTo(classNumbers.Byte));
+            Assert.That(deserialized.Decimal, Is.EqualTo(classNumbers.Decimal));
 
-        Assert.That(attributes[nameof(ClassWithNumbers.Int)].N, Is.EqualTo("2147483647"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Double)].N, Does.EndWith("E+308"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Float)].N, Does.EndWith("E+38"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Long)].N, Is.EqualTo("9223372036854775807"));
-        Assert.That(attributes[nameof(ClassWithNumbers.ULong)].N, Is.EqualTo("18446744073709551615"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Short)].N, Is.EqualTo("32767"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Ushort)].N, Is.EqualTo("65535"));
-        Assert.That(attributes[nameof(ClassWithNumbers.UInt)].N, Is.EqualTo("4294967295"));
-        Assert.That(attributes[nameof(ClassWithNumbers.SByte)].N, Is.EqualTo("127"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Byte)].N, Is.EqualTo("255"));
-        Assert.That(attributes[nameof(ClassWithNumbers.Decimal)].N, Is.EqualTo("79228162514264337593543950335"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Int)].N, Is.EqualTo("2147483647"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Double)].N, Does.EndWith("E+308"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Float)].N, Does.EndWith("E+38"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Long)].N, Is.EqualTo("9223372036854775807"));
+            Assert.That(attributes[nameof(ClassWithNumbers.ULong)].N, Is.EqualTo("18446744073709551615"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Short)].N, Is.EqualTo("32767"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Ushort)].N, Is.EqualTo("65535"));
+            Assert.That(attributes[nameof(ClassWithNumbers.UInt)].N, Is.EqualTo("4294967295"));
+            Assert.That(attributes[nameof(ClassWithNumbers.SByte)].N, Is.EqualTo("127"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Byte)].N, Is.EqualTo("255"));
+            Assert.That(attributes[nameof(ClassWithNumbers.Decimal)].N, Is.EqualTo("79228162514264337593543950335"));
+        });
     }
 
     class ClassWithNumbers
@@ -781,17 +838,17 @@ public class MapperTests
 
         var deserialized = Mapper.ToObject<ClassWithSetOfNumbers>(attributes);
 
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Ints, deserialized.Ints);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Doubles, deserialized.Doubles);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Floats, deserialized.Floats);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Bytes, deserialized.Bytes);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Shorts, deserialized.Shorts);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UShorts, deserialized.UShorts);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Longs, deserialized.Longs);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.ULongs, deserialized.ULongs);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.UInts, deserialized.UInts);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.SBytes, deserialized.SBytes);
-        CollectionAssert.AreEquivalent(classWithHashSetOfNumbers.Decimals, deserialized.Decimals);
+        Assert.That(deserialized.Ints, Is.EquivalentTo(classWithHashSetOfNumbers.Ints));
+        Assert.That(deserialized.Doubles, Is.EquivalentTo(classWithHashSetOfNumbers.Doubles));
+        Assert.That(deserialized.Floats, Is.EquivalentTo(classWithHashSetOfNumbers.Floats));
+        Assert.That(deserialized.Bytes, Is.EquivalentTo(classWithHashSetOfNumbers.Bytes));
+        Assert.That(deserialized.Shorts, Is.EquivalentTo(classWithHashSetOfNumbers.Shorts));
+        Assert.That(deserialized.UShorts, Is.EquivalentTo(classWithHashSetOfNumbers.UShorts));
+        Assert.That(deserialized.Longs, Is.EquivalentTo(classWithHashSetOfNumbers.Longs));
+        Assert.That(deserialized.ULongs, Is.EquivalentTo(classWithHashSetOfNumbers.ULongs));
+        Assert.That(deserialized.UInts, Is.EquivalentTo(classWithHashSetOfNumbers.UInts));
+        Assert.That(deserialized.SBytes, Is.EquivalentTo(classWithHashSetOfNumbers.SBytes));
+        Assert.That(deserialized.Decimals, Is.EquivalentTo(classWithHashSetOfNumbers.Decimals));
 
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.EqualTo(2));
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.EqualTo(2));
@@ -1196,9 +1253,12 @@ public class MapperTests
                 }, JsonSerializerOptions.Default);
 
         Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
-        // Using the default serializer options, sets are converted to dynamo list types
-        Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
-        Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+        Assert.Multiple(() =>
+        {
+            // Using the default serializer options, sets are converted to dynamo list types
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+        });
 
         var numberSetAttributes =
             Mapper.ToMap(
@@ -1208,9 +1268,12 @@ public class MapperTests
                 }, JsonSerializerOptions.Default);
 
         Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
-        // Using the default serializer options, sets are converted to dynamo list types
-        Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
-        Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+        Assert.Multiple(() =>
+        {
+            // Using the default serializer options, sets are converted to dynamo list types
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+        });
     }
 
     [Test]
@@ -1241,8 +1304,11 @@ public class MapperTests
                 }, MapperTestsSourceContext.Default.ClassWithSetOfString);
 
         Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
-        Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
-        Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+        Assert.Multiple(() =>
+        {
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+        });
 
         var numberSetAttributes =
             Mapper.ToMap(
@@ -1252,8 +1318,11 @@ public class MapperTests
                 }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers);
 
         Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
-        Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
-        Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+        Assert.Multiple(() =>
+        {
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+        });
     }
 
     [Test]

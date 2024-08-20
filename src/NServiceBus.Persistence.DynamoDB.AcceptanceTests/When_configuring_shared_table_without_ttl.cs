@@ -23,7 +23,7 @@ public class When_configuring_shared_table_without_ttl : NServiceBusAcceptanceTe
                 .Done(c => c.EndpointsStarted)
                 .Run());
 
-        StringAssert.Contains("The outbox persistence table requires a time-to-live attribute to be defined", exception.Message);
+        Assert.That(exception.Message, Does.Contain("The outbox persistence table requires a time-to-live attribute to be defined"));
     }
 
     class OutboxEndpoint : EndpointConfigurationBuilder

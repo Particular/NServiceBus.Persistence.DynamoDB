@@ -21,7 +21,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga1Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga1.Saga1Data>(nameof(Saga1.Saga1Data.CorrelationId),
                     saga1.CorrelationId, saga1Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga1, saga1Session, context);
 
@@ -33,7 +33,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga2Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga2.Saga2Data>(nameof(Saga2.Saga2Data.CorrelationId),
                     saga2.CorrelationId, saga2Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga2, saga2Session, context);
 
@@ -44,11 +44,11 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
         }
 
         var s1 = await GetById<Saga1.Saga1Data>(saga1.Id);
-        Assert.NotNull(s1);
-        Assert.AreEqual(saga1.CorrelationId, s1.CorrelationId);
+        Assert.That(s1, Is.Not.Null);
+        Assert.That(s1.CorrelationId, Is.EqualTo(saga1.CorrelationId));
         var s2 = await GetById<Saga2.Saga2Data>(saga2.Id);
-        Assert.NotNull(s2);
-        Assert.AreEqual(saga2.CorrelationId, s2.CorrelationId);
+        Assert.That(s2, Is.Not.Null);
+        Assert.That(s2.CorrelationId, Is.EqualTo(saga2.CorrelationId));
     }
 
     [Test]
@@ -65,7 +65,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga1Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga1.Saga1Data>(nameof(Saga1.Saga1Data.CorrelationId),
                     saga1.CorrelationId, saga1Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga1, saga1Session, context);
 
@@ -77,7 +77,7 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
                 await saga2Session.TryOpen(outboxTransaction, context);
                 var get = await configuration.SagaStorage.Get<Saga2.Saga2Data>(nameof(Saga2.Saga2Data.CorrelationId),
                     saga2.CorrelationId, saga2Session, context);
-                Assert.IsNull(get);
+                Assert.That(get, Is.Null);
 
                 await SaveSagaWithSession(saga2, saga2Session, context);
 
@@ -88,9 +88,9 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
         }
 
         var s1 = await GetById<Saga1.Saga1Data>(saga1.Id);
-        Assert.IsNull(s1);
+        Assert.That(s1, Is.Null);
         var s2 = await GetById<Saga2.Saga2Data>(saga2.Id);
-        Assert.IsNull(s2);
+        Assert.That(s2, Is.Null);
     }
 
     [Test]
@@ -132,11 +132,11 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
         }
 
         var saga1AfterUpdate = await GetById<Saga1.Saga1Data>(saga1.Id);
-        Assert.NotNull(saga1AfterUpdate);
-        Assert.AreEqual("saga 1 after update", saga1AfterUpdate.SomeSaga1Data);
+        Assert.That(saga1AfterUpdate, Is.Not.Null);
+        Assert.That(saga1AfterUpdate.SomeSaga1Data, Is.EqualTo("saga 1 after update"));
         var saga2AfterUpdate = await GetById<Saga2.Saga2Data>(saga2.Id);
-        Assert.NotNull(saga2AfterUpdate);
-        Assert.AreEqual("saga 2 after update", saga2AfterUpdate.SomeSaga2Data);
+        Assert.That(saga2AfterUpdate, Is.Not.Null);
+        Assert.That(saga2AfterUpdate.SomeSaga2Data, Is.EqualTo("saga 2 after update"));
     }
 
     [Test]
@@ -178,11 +178,11 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
         }
 
         var saga1AfterUpdate = await GetById<Saga1.Saga1Data>(saga1.Id);
-        Assert.NotNull(saga1AfterUpdate);
-        Assert.AreEqual("saga 1 before update", saga1AfterUpdate.SomeSaga1Data);
+        Assert.That(saga1AfterUpdate, Is.Not.Null);
+        Assert.That(saga1AfterUpdate.SomeSaga1Data, Is.EqualTo("saga 1 before update"));
         var saga2AfterUpdate = await GetById<Saga2.Saga2Data>(saga2.Id);
-        Assert.NotNull(saga2AfterUpdate);
-        Assert.AreEqual("saga 2 before update", saga2AfterUpdate.SomeSaga2Data);
+        Assert.That(saga2AfterUpdate, Is.Not.Null);
+        Assert.That(saga2AfterUpdate.SomeSaga2Data, Is.EqualTo("saga 2 before update"));
     }
 
     public class Saga1 : Saga<Saga1.Saga1Data>, IAmStartedByMessages<StartTestSagaMessage>

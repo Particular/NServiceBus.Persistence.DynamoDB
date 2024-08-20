@@ -21,7 +21,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.IsEmpty(context.Installer.TablesCreated);
+        Assert.That(context.Installer.TablesCreated, Is.Empty);
     }
 
     [Test]
@@ -32,8 +32,8 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.Contains(context.SagaTableName, context.Installer.TablesCreated);
-        Assert.AreEqual(1, context.Installer.TablesCreated.Count, "should only create saga table");
+        Assert.That(context.Installer.TablesCreated, Does.Contain(context.SagaTableName));
+        Assert.That(context.Installer.TablesCreated, Has.Count.EqualTo(1), "should only create saga table");
     }
 
     [Test]
@@ -50,8 +50,8 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.Contains(context.OutboxTableName, context.Installer.TablesCreated);
-        Assert.AreEqual(1, context.Installer.TablesCreated.Count, "should only create outbox table");
+        Assert.That(context.Installer.TablesCreated, Does.Contain(context.OutboxTableName));
+        Assert.That(context.Installer.TablesCreated, Has.Count.EqualTo(1), "should only create outbox table");
     }
 
     [Test]
@@ -69,7 +69,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.IsEmpty(context.Installer.TablesCreated);
+        Assert.That(context.Installer.TablesCreated, Is.Empty);
     }
 
     class Context : ScenarioContext

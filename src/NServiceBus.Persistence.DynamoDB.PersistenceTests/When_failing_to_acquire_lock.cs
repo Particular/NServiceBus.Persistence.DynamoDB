@@ -23,7 +23,7 @@ public class When_failing_to_acquire_lock : SagaPersisterTests
 
         // acquire lock
         var lockedSaga = await configuration.SagaStorage.Get<TestSagaData>(saga.Id, lockingSession, lockingSessionContext);
-        Assert.IsNotNull(lockedSaga);
+        Assert.That(lockedSaga, Is.Not.Null);
 
         var blockedSessionContext = configuration.GetContextBagForSagaStorage();
         using (var blockedSession = configuration.CreateStorageSession())
@@ -51,7 +51,7 @@ public class When_failing_to_acquire_lock : SagaPersisterTests
 
         // acquire lock
         var lockedSaga = await configuration.SagaStorage.Get<TestSagaData>(saga.Id, lockingSession, session1Context);
-        Assert.IsNotNull(lockedSaga);
+        Assert.That(lockedSaga, Is.Not.Null);
 
         var session2Context = configuration.GetContextBagForSagaStorage();
         using (var blockedSession = configuration.CreateStorageSession())

@@ -24,8 +24,11 @@ public class StorageSessionTests
         // the cleanup happens async, but because we're never actually move away from sync code paths, we can immediately assert after calling dispose
         session.Dispose();
 
-        Assert.That(action1.WasCalled, Is.True);
-        Assert.That(action2.WasCalled, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(action1.WasCalled, Is.True);
+            Assert.That(action2.WasCalled, Is.True);
+        });
     }
 
     [Test]
@@ -38,7 +41,7 @@ public class StorageSessionTests
         session.Dispose();
         session.Dispose();
 
-        Assert.AreEqual(1, action.NumberOfTimesCalled);
+        Assert.That(action.NumberOfTimesCalled, Is.EqualTo(1));
     }
 
     [Test]

@@ -60,7 +60,7 @@ public class SagaSchemaVersionTests
             new SagaCorrelationProperty(nameof(TestSagaData.CorrelationProperty), sagaData.CorrelationProperty),
             testableSession, new ContextBag());
 
-        StringAssert.Contains(endpointIdentifier, testableSession.TransactWriteItems.Single().Put.Item["PK"].S);
+        Assert.That(testableSession.TransactWriteItems.Single().Put.Item["PK"].S, Does.Contain(endpointIdentifier));
     }
 
     class TestSagaData : ContainSagaData

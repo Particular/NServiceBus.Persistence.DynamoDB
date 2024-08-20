@@ -34,10 +34,11 @@ public class InstallerTests
         try
         {
             await dynamoClient.DeleteTableAsync(tableConfiguration.TableName);
+            dynamoClient.Dispose();
         }
         catch (Exception e)
         {
-            TestContext.WriteLine($"Error deleting queue: {e}");
+            await TestContext.Out.WriteLineAsync($"Error deleting queue: {e}");
         }
     }
 
@@ -51,14 +52,17 @@ public class InstallerTests
 
         var table = await dynamoClient.DescribeTableAsync(tableConfiguration.TableName);
 
-        Assert.AreEqual(tableConfiguration.TableName, table.Table.TableName);
-        Assert.AreEqual(tableConfiguration.PartitionKeyName, table.Table.KeySchema[0].AttributeName);
-        Assert.AreEqual(KeyType.HASH, table.Table.KeySchema[0].KeyType);
-        Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.PartitionKeyName).AttributeType);
-        Assert.AreEqual(tableConfiguration.SortKeyName, table.Table.KeySchema[1].AttributeName);
-        Assert.AreEqual(KeyType.RANGE, table.Table.KeySchema[1].KeyType);
-        Assert.AreEqual(ScalarAttributeType.S, table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.SortKeyName).AttributeType);
-        Assert.AreEqual(TableStatus.ACTIVE, table.Table.TableStatus);
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Table.TableName, Is.EqualTo(tableConfiguration.TableName));
+            Assert.That(table.Table.KeySchema[0].AttributeName, Is.EqualTo(tableConfiguration.PartitionKeyName));
+            Assert.That(table.Table.KeySchema[0].KeyType, Is.EqualTo(KeyType.HASH));
+            Assert.That(table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.PartitionKeyName).AttributeType, Is.EqualTo(ScalarAttributeType.S));
+            Assert.That(table.Table.KeySchema[1].AttributeName, Is.EqualTo(tableConfiguration.SortKeyName));
+            Assert.That(table.Table.KeySchema[1].KeyType, Is.EqualTo(KeyType.RANGE));
+            Assert.That(table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.SortKeyName).AttributeType, Is.EqualTo(ScalarAttributeType.S));
+            Assert.That(table.Table.TableStatus, Is.EqualTo(TableStatus.ACTIVE));
+        });
     }
 
     [Test]
@@ -70,9 +74,12 @@ public class InstallerTests
 
         var table = await dynamoClient.DescribeTableAsync(tableConfiguration.TableName);
 
-        Assert.AreEqual(BillingMode.PAY_PER_REQUEST, table.Table.BillingModeSummary.BillingMode);
-        Assert.AreEqual(0, table.Table.ProvisionedThroughput.ReadCapacityUnits);
-        Assert.AreEqual(0, table.Table.ProvisionedThroughput.WriteCapacityUnits);
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Table.BillingModeSummary.BillingMode, Is.EqualTo(BillingMode.PAY_PER_REQUEST));
+            Assert.That(table.Table.ProvisionedThroughput.ReadCapacityUnits, Is.EqualTo(0));
+            Assert.That(table.Table.ProvisionedThroughput.WriteCapacityUnits, Is.EqualTo(0));
+        });
     }
 
     [Test]
@@ -85,9 +92,12 @@ public class InstallerTests
 
         var table = await dynamoClient.DescribeTableAsync(tableConfiguration.TableName);
 
-        // Don't assert on BillingModeSummary as it may be not set when using provisioned mode.
-        Assert.AreEqual(tableConfiguration.ProvisionedThroughput.ReadCapacityUnits, table.Table.ProvisionedThroughput.ReadCapacityUnits);
-        Assert.AreEqual(tableConfiguration.ProvisionedThroughput.WriteCapacityUnits, table.Table.ProvisionedThroughput.WriteCapacityUnits);
+        Assert.Multiple(() =>
+        {
+            // Don't assert on BillingModeSummary as it may be not set when using provisioned mode.
+            Assert.That(table.Table.ProvisionedThroughput.ReadCapacityUnits, Is.EqualTo(tableConfiguration.ProvisionedThroughput.ReadCapacityUnits));
+            Assert.That(table.Table.ProvisionedThroughput.WriteCapacityUnits, Is.EqualTo(tableConfiguration.ProvisionedThroughput.WriteCapacityUnits));
+        });
     }
 
     [Test]
@@ -102,9 +112,12 @@ public class InstallerTests
         await installer.CreateTable(tableConfiguration, CancellationToken.None);
         var table2 = await dynamoClient.DescribeTableAsync(tableConfiguration.TableName);
 
-        Assert.AreEqual(table1.Table.CreationDateTime, table2.Table.CreationDateTime);
-        Assert.AreEqual("PK1", table1.Table.KeySchema[0].AttributeName);
-        Assert.AreEqual("PK1", table2.Table.KeySchema[0].AttributeName);
+        Assert.Multiple(() =>
+        {
+            Assert.That(table2.Table.CreationDateTime, Is.EqualTo(table1.Table.CreationDateTime));
+            Assert.That(table1.Table.KeySchema[0].AttributeName, Is.EqualTo("PK1"));
+            Assert.That(table2.Table.KeySchema[0].AttributeName, Is.EqualTo("PK1"));
+        });
     }
 
     [Test]
@@ -115,8 +128,11 @@ public class InstallerTests
         await installer.CreateTable(tableConfiguration, CancellationToken.None);
 
         var ttlSettings = await dynamoClient.DescribeTimeToLiveAsync(tableConfiguration.TableName);
-        Assert.AreEqual(TimeToLiveStatus.ENABLED, ttlSettings.TimeToLiveDescription.TimeToLiveStatus);
-        Assert.AreEqual(tableConfiguration.TimeToLiveAttributeName, ttlSettings.TimeToLiveDescription.AttributeName);
+        Assert.Multiple(() =>
+        {
+            Assert.That(ttlSettings.TimeToLiveDescription.TimeToLiveStatus, Is.EqualTo(TimeToLiveStatus.ENABLED));
+            Assert.That(ttlSettings.TimeToLiveDescription.AttributeName, Is.EqualTo(tableConfiguration.TimeToLiveAttributeName));
+        });
     }
 
     [Test]
@@ -129,6 +145,6 @@ public class InstallerTests
         tableConfiguration.TimeToLiveAttributeName = Guid.NewGuid().ToString("N");
         var exception = Assert.ThrowsAsync<Exception>(() => installer.CreateTable(tableConfiguration, CancellationToken.None));
 
-        StringAssert.Contains($"The table '{tableConfiguration.TableName}' has attribute '{existingTtlAttribute}' configured for the time to live.", exception.Message);
+        Assert.That(exception.Message, Does.Contain($"The table '{tableConfiguration.TableName}' has attribute '{existingTtlAttribute}' configured for the time to live."));
     }
 }

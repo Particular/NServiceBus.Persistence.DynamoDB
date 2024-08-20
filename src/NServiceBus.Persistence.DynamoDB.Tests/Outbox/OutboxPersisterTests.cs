@@ -21,6 +21,9 @@ public class OutboxPersisterTests
         persister = new OutboxPersister(client, new OutboxPersistenceConfiguration(), "endpointIdentifier");
     }
 
+    [TearDown]
+    public void TearDown() => client.Dispose();
+
     [Test]
     public async Task Should_update_metadata_as_a_dedicated_non_batched_update()
     {
@@ -157,8 +160,11 @@ public class OutboxPersisterTests
         var record = await persister.Get("someMessageId", contextBag);
 
         Assert.That(record, Is.Not.Null);
-        Assert.That(record.TransportOperations, Has.Length.EqualTo(2));
-        Assert.That(called, Is.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(record.TransportOperations, Has.Length.EqualTo(2));
+            Assert.That(called, Is.EqualTo(2));
+        });
     }
 
     [Test]
@@ -206,8 +212,8 @@ public class OutboxPersisterTests
 
         var result = await persister.Get(messageId, contextBag);
 
-        Assert.NotNull(result);
-        Assert.AreEqual(1, result.TransportOperations.Length);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.TransportOperations.Length, Is.EqualTo(1));
     }
 
     [Test]
@@ -358,8 +364,11 @@ public class OutboxPersisterTests
 
         var record = await persister.Get("someMessageId", contextBag);
 
-        Assert.That(record, Is.Null);
-        Assert.That(called, Is.EqualTo(1), "Should not try to fetch more records");
+        Assert.Multiple(() =>
+        {
+            Assert.That(record, Is.Null);
+            Assert.That(called, Is.EqualTo(1), "Should not try to fetch more records");
+        });
     }
 
     MockDynamoDBClient client;
