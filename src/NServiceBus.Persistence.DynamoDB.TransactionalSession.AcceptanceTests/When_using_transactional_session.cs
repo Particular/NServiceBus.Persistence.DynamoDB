@@ -197,10 +197,66 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                     await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
                 }))
                 .Done(c => c.MessageReceived)
-                .Run()
-            ;
+                .Run();
 
         Assert.That(result.MessageReceived, Is.True);
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task Should_allow_using_synchronized_storage_even_when_there_are_no_outgoing_operations(bool outboxEnabled)
+    {
+        var partitionKey = nameof(When_using_transactional_session) + Guid.NewGuid().ToString("N");
+
+        var context = await Scenario.Define<Context>()
+            .WithEndpoint<AnEndpoint>(s => s.When(async (statelessSession, ctx) =>
+            {
+                using (var scope = ctx.ServiceProvider.CreateScope())
+                using (var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>())
+                {
+                    await transactionalSession.Open(new DynamoOpenSessionOptions());
+
+                    var dynamoSession = transactionalSession.SynchronizedStorageSession.DynamoPersistenceSession();
+                    dynamoSession.Add(new TransactWriteItem()
+                    {
+                        Put = new Put()
+                        {
+                            TableName = SetupFixture.TableConfiguration.TableName,
+                            Item = new Dictionary<string, AttributeValue>()
+                            {
+                                { SetupFixture.TableConfiguration.PartitionKeyName, new AttributeValue(partitionKey) },
+                                { SetupFixture.TableConfiguration.SortKeyName, new AttributeValue(Guid.NewGuid().ToString()) },
+                                { "Test", new AttributeValue(nameof(Should_allow_using_synchronized_storage_even_when_there_are_no_outgoing_operations))}
+                            }
+                        }
+                    });
+
+                    // Deliberately not sending any messages via the transactional session before committing
+                    await transactionalSession.Commit();
+                }
+
+                //Send immediately dispatched message to finish the test
+                await statelessSession.SendLocal(new CompleteTestMessage());
+            }))
+            .Done(c => c.CompleteMessageReceived)
+            .Run();
+
+        var documents = await SetupFixture.DynamoDBClient.QueryAsync(new QueryRequest()
+        {
+            TableName = SetupFixture.TableConfiguration.TableName,
+            ConsistentRead = true,
+            KeyConditionExpression = "#pk = :pk",
+            ExpressionAttributeNames =
+                new Dictionary<string, string>()
+                {
+                    { "#pk", SetupFixture.TableConfiguration.PartitionKeyName }
+                },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
+            {
+                { ":pk", new AttributeValue(partitionKey) }
+            }
+        });
+        Assert.That(documents.Count, Is.EqualTo(1));
     }
 
     class Context : ScenarioContext, IInjectServiceProvider
