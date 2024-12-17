@@ -13,7 +13,7 @@
 
   <ItemGroup Label="Public dependencies">
     <PackageReference Include="Particular.Packaging" Version="2.3.0" PrivateAssets="All" />
-    <PackageReference Include="NServiceBus.TransactionalSession" Version="[2.0.2, 3.0.0)" />
+    <PackageReference Include="NServiceBus.TransactionalSession" Version="2.0.2" />
   </ItemGroup>
 
   <ItemGroup>
