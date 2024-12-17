@@ -11,13 +11,13 @@
     <Description>NServiceBus Transactional Session for the DynamoDB persistence.</Description>
   </PropertyGroup>
 
-  <ItemGroup Label="Public dependencies">
-    <PackageReference Include="Particular.Packaging" Version="2.3.0" PrivateAssets="All" />
-    <PackageReference Include="NServiceBus.TransactionalSession" Version="[2.0.2, 3.0.0)" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Persistence.DynamoDB\NServiceBus.Persistence.DynamoDB.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Label="Public dependencies">
+    <PackageReference Include="NServiceBus.TransactionalSession" Version="2.0.2" />
+    <PackageReference Include="Particular.Packaging" Version="4.2.0" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
