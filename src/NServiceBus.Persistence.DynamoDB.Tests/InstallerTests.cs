@@ -56,12 +56,12 @@ public class InstallerTests
         {
             Assert.That(table.Table.TableName, Is.EqualTo(tableConfiguration.TableName));
             Assert.That(table.Table.KeySchema[0].AttributeName, Is.EqualTo(tableConfiguration.PartitionKeyName));
-            Assert.That(table.Table.KeySchema[0].KeyType, Is.EqualTo(KeyType.HASH));
-            Assert.That(table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.PartitionKeyName).AttributeType, Is.EqualTo(ScalarAttributeType.S));
+            Assert.That(table.Table.KeySchema[0].KeyType.Value, Is.EqualTo(KeyType.HASH.Value));
+            Assert.That(table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.PartitionKeyName).AttributeType.Value, Is.EqualTo(ScalarAttributeType.S.Value));
             Assert.That(table.Table.KeySchema[1].AttributeName, Is.EqualTo(tableConfiguration.SortKeyName));
-            Assert.That(table.Table.KeySchema[1].KeyType, Is.EqualTo(KeyType.RANGE));
-            Assert.That(table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.SortKeyName).AttributeType, Is.EqualTo(ScalarAttributeType.S));
-            Assert.That(table.Table.TableStatus, Is.EqualTo(TableStatus.ACTIVE));
+            Assert.That(table.Table.KeySchema[1].KeyType.Value, Is.EqualTo(KeyType.RANGE.Value));
+            Assert.That(table.Table.AttributeDefinitions.Single(a => a.AttributeName == tableConfiguration.SortKeyName).AttributeType.Value, Is.EqualTo(ScalarAttributeType.S.Value));
+            Assert.That(table.Table.TableStatus.Value, Is.EqualTo(TableStatus.ACTIVE.Value));
         });
     }
 
@@ -76,7 +76,7 @@ public class InstallerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(table.Table.BillingModeSummary.BillingMode, Is.EqualTo(BillingMode.PAY_PER_REQUEST));
+            Assert.That(table.Table.BillingModeSummary.BillingMode.Value, Is.EqualTo(BillingMode.PAY_PER_REQUEST.Value));
             Assert.That(table.Table.ProvisionedThroughput.ReadCapacityUnits, Is.EqualTo(0));
             Assert.That(table.Table.ProvisionedThroughput.WriteCapacityUnits, Is.EqualTo(0));
         });
@@ -130,7 +130,7 @@ public class InstallerTests
         var ttlSettings = await dynamoClient.DescribeTimeToLiveAsync(tableConfiguration.TableName);
         Assert.Multiple(() =>
         {
-            Assert.That(ttlSettings.TimeToLiveDescription.TimeToLiveStatus, Is.EqualTo(TimeToLiveStatus.ENABLED));
+            Assert.That(ttlSettings.TimeToLiveDescription.TimeToLiveStatus.Value, Is.EqualTo(TimeToLiveStatus.ENABLED.Value));
             Assert.That(ttlSettings.TimeToLiveDescription.AttributeName, Is.EqualTo(tableConfiguration.TimeToLiveAttributeName));
         });
     }
