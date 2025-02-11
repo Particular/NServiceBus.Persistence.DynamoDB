@@ -55,7 +55,7 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             UInts = [2147483647, 4294967295],
             SBytes = [0x0F, 0x10],
             Decimals = [1.234m, 5.678m],
-            HashSetOfMemoryStreams = new HashSet<MemoryStream>(memStreams),
+            HashSetOfMemoryStreams = [.. memStreams],
             ImmutableHashSetOfStreams = new HashSet<MemoryStream>(memStreams).ToImmutableHashSet(),
             HashSetOfString = ["a", "b", "c", "d"],
             SortedSetOfString = ["a", "b", "c", "d"],
