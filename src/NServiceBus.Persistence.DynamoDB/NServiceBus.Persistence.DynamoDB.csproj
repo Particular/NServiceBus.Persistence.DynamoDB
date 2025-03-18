@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup Label="Public dependencies">
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.406.1" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.406.2" />
     <PackageReference Include="NServiceBus" Version="9.2.6" />
   </ItemGroup>
 
