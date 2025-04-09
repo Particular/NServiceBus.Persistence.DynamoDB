@@ -1,7 +1,7 @@
 namespace NServiceBus.Persistence.DynamoDB;
 
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -10,11 +10,7 @@ using Amazon.DynamoDBv2.DataModel;
 sealed class ObjectModelAttributeConverter : JsonConverterFactory
 {
     public override bool CanConvert(Type typeToConvert) =>
-        typeToConvert.GetCustomAttribute<DynamoDBTableAttribute>() != null ||
-        typeToConvert.GetProperties().Any(p =>
-            p.GetCustomAttribute<DynamoDBHashKeyAttribute>() != null ||
-            p.GetCustomAttribute<DynamoDBRangeKeyAttribute>() != null ||
-            p.GetCustomAttribute<DynamoDBPropertyAttribute>() != null);
+        !ObjectModelMetadataTrackerInspector.GetMetadata(typeToConvert).Empty;
 
     public override JsonConverter CreateConverter(
         Type typeToConvert, JsonSerializerOptions options)
@@ -40,67 +36,101 @@ sealed class ObjectModelAttributeConverter : JsonConverterFactory
 
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         {
+            var metadata = ObjectModelMetadataTrackerInspector.GetMetadata(typeof(T));
             writer.WriteStartObject();
 
-            // TBD check the table attribute
-
-            PropertyInfo[] properties = typeof(T).GetProperties();
-
-            foreach (PropertyInfo prop in properties)
+            foreach (ObjectModelMetadataTrackerInspector.PropertyMetadata propertyMetadata in metadata.Properties)
             {
-                if (!prop.CanRead)
-                {
-                    continue;
-                }
-
-                DynamoDBHashKeyAttribute? hashKeyAttr = prop.GetCustomAttribute<DynamoDBHashKeyAttribute>();
-                DynamoDBRangeKeyAttribute? rangeKeyAttr = prop.GetCustomAttribute<DynamoDBRangeKeyAttribute>();
-                DynamoDBPropertyAttribute? propertyAttr = prop.GetCustomAttribute<DynamoDBPropertyAttribute>();
-
-                // Skip if no DynamoDB attributes are found
-                if (hashKeyAttr == null && rangeKeyAttr == null && propertyAttr == null)
-                {
-                    continue;
-                }
-
                 // Get property value
-                object? propValue = prop.GetValue(value);
+                object? propValue = propertyMetadata.PropertyInfo.GetValue(value);
                 if (propValue is null)
                 {
                     continue;
                 }
 
-                string jsonPropertyName;
-
-                if (hashKeyAttr != null && !string.IsNullOrEmpty(hashKeyAttr.AttributeName))
-                {
-                    jsonPropertyName = hashKeyAttr.AttributeName;
-                }
-                else if (rangeKeyAttr != null && !string.IsNullOrEmpty(rangeKeyAttr.AttributeName))
-                {
-                    jsonPropertyName = rangeKeyAttr.AttributeName;
-                }
-                else if (propertyAttr != null && !string.IsNullOrEmpty(propertyAttr.AttributeName))
-                {
-                    jsonPropertyName = propertyAttr.AttributeName;
-                }
-                else
-                {
-                    jsonPropertyName = prop.Name;
-                }
+                string jsonPropertyName = propertyMetadata.PropertyName;
 
                 writer.WritePropertyName(
                     options.PropertyNamingPolicy?.ConvertName(jsonPropertyName) ?? jsonPropertyName);
 
-                if (propertyAttr?.Converter != null)
-                {
-                    throw new JsonException("Custom converters are not supported.");
-                }
+                // if (propertyAttr?.Converter != null)
+                // {
+                //     throw new JsonException("Custom converters are not supported.");
+                // }
 
-                JsonSerializer.Serialize(writer, propValue, prop.PropertyType, _options);
+                JsonSerializer.Serialize(writer, propValue, propertyMetadata.PropertyInfo.PropertyType, _options);
             }
 
             writer.WriteEndObject();
         }
+    }
+}
+
+static class ObjectModelMetadataTrackerInspector
+{
+    public record Metadata(
+        string? TableName,
+        IReadOnlyCollection<PropertyMetadata> Properties,
+        PropertyMetadata? HashKey,
+        PropertyMetadata? RangeKey)
+    {
+        public bool Empty => TableName is null && Properties is { Count: 0 } && HashKey is null && RangeKey == null;
+    }
+
+    public record PropertyMetadata(string PropertyName, PropertyInfo PropertyInfo);
+
+    public static Metadata GetMetadata(Type type)
+    {
+        // Inheritance
+        // Field should not be supported
+        // There can only be one hash and sort key
+        // Can range and sort key be null?
+        // Caching
+        var tableAttr = type.GetCustomAttribute<DynamoDBTableAttribute>();
+        var properties = type.GetProperties();
+
+        var propertyMetadata = new List<PropertyMetadata>(properties.Length);
+        PropertyMetadata? hashKey = null;
+        PropertyMetadata? rangeKey = null;
+        foreach (PropertyInfo prop in properties)
+        {
+            if (!prop.CanRead)
+            {
+                continue;
+            }
+
+            DynamoDBHashKeyAttribute? hashKeyAttr = prop.GetCustomAttribute<DynamoDBHashKeyAttribute>();
+            DynamoDBRangeKeyAttribute? rangeKeyAttr = prop.GetCustomAttribute<DynamoDBRangeKeyAttribute>();
+            DynamoDBPropertyAttribute? propertyAttr = prop.GetCustomAttribute<DynamoDBPropertyAttribute>();
+            DynamoDBIgnoreAttribute? ignoreAttribute = prop.GetCustomAttribute<DynamoDBIgnoreAttribute>();
+
+            // Skip if no DynamoDB attributes are found
+            if (hashKeyAttr == null && rangeKeyAttr == null && propertyAttr == null && ignoreAttribute == null)
+            {
+                continue;
+            }
+
+            if (hashKeyAttr != null)
+            {
+                hashKey = new PropertyMetadata(hashKeyAttr.AttributeName ?? prop.Name, prop);
+                propertyMetadata.Add(hashKey);
+                continue;
+            }
+
+            if (rangeKeyAttr != null)
+            {
+                rangeKey = new PropertyMetadata(rangeKeyAttr.AttributeName ?? prop.Name, prop);
+                propertyMetadata.Add(rangeKey);
+                continue;
+            }
+
+            if (propertyAttr != null)
+            {
+                propertyMetadata.Add(new PropertyMetadata(propertyAttr.AttributeName ?? prop.Name, prop));
+                continue;
+            }
+        }
+
+        return new Metadata(tableAttr?.TableName, propertyMetadata, hashKey, rangeKey);
     }
 }
