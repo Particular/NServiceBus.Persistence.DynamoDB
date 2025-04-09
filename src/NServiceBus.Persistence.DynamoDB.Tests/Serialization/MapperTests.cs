@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using NUnit.Framework;
 
@@ -1453,6 +1454,43 @@ public class MapperTests
             }
         }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers));
         Assert.That(setNumberException!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
+    }
+
+    [Test]
+    public void Should_support_hash_and_range_key()
+    {
+        var attributes = Mapper.ToMap(new ClassWithHashAndRangeKey
+        {
+            HashKey = "HashKey",
+            RangeKey = "RangeKey",
+            NotIncludedProperty = "NotIncluded",
+            IncludedProperty = "Included",
+            IncludedButRenamedProperty = "IncludedButRenamed"
+        });
+
+        Assert.That(attributes["PK"].S, Is.EqualTo("HashKey"));
+        Assert.That(attributes["SK"].S, Is.EqualTo("RangeKey"));
+        Assert.That(attributes["IncludedProperty"].S, Is.EqualTo("Included"));
+        Assert.That(attributes["IncludedButRenamed"].S, Is.EqualTo("IncludedButRenamed"));
+        Assert.That(attributes, Does.Not.Contain("NotIncluded"));
+    }
+
+    [DynamoDBTable("TestTable")]
+    class ClassWithHashAndRangeKey
+    {
+        [DynamoDBHashKey("PK")]
+        public string HashKey { get; set; }
+
+        [DynamoDBRangeKey("SK")]
+        public string RangeKey { get; set; }
+
+        public string NotIncludedProperty { get; set; }
+
+        [DynamoDBProperty]
+        public string IncludedProperty { get; set; }
+
+        [DynamoDBProperty("IncludedButRenamed")]
+        public string IncludedButRenamedProperty { get; set; }
     }
 }
 

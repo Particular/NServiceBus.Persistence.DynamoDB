@@ -63,10 +63,6 @@ public class When_combining_dynamocontext_with_shared_session_without_mapping : 
                 customer.CustomerPreferred = true;
 
                 var customerMap = Mapper.ToMap(customer);
-                // when PK and SK are not defined on the custom type they need to be added again
-                // because the mapper doesn't have knowledge about what the PK and SK is
-                customerMap["PK"] = new AttributeValue(customer.CustomerId);
-                customerMap["SK"] = new AttributeValue(customer.CustomerId);
 
                 session.Add(new TransactWriteItem
                 {

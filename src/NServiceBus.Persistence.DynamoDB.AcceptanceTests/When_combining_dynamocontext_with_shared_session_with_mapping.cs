@@ -83,11 +83,9 @@ public class When_combining_dynamocontext_with_shared_session_with_mapping : NSe
     class Customer
     {
         [DynamoDBHashKey("PK")]
-        [JsonPropertyName("PK")]
         public string PartitionKey { get; set; }
 
         [DynamoDBRangeKey("SK")]
-        [JsonPropertyName("SK")]
         public string SortKey { get; set; }
 
         public string CustomerId
@@ -101,7 +99,6 @@ public class When_combining_dynamocontext_with_shared_session_with_mapping : NSe
         }
 
         [DynamoDBProperty("customer_preferred")]
-        [JsonPropertyName("customer_preferred")]
         public bool CustomerPreferred { get; set; }
     }
 

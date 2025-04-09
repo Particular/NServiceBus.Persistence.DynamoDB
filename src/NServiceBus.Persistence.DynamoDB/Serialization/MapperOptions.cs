@@ -15,7 +15,8 @@ static class MapperOptions
                 new MemoryStreamConverter(),
                 new SetOfMemoryStreamConverter(),
                 new SetOfStringConverter(),
-                new SetOfNumberConverter()
+                new SetOfNumberConverter(),
+                new ObjectModelAttributeConverter(),
             }
         };
 }
