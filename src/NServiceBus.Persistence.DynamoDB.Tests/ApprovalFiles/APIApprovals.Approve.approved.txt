@@ -38,6 +38,7 @@ namespace NServiceBus
         public SagaPersistenceConfiguration() { }
         public System.TimeSpan LeaseAcquisitionTimeout { get; set; }
         public System.TimeSpan LeaseDuration { get; set; }
+        public System.Text.Json.JsonSerializerOptions MapperOptions { get; set; }
         public NServiceBus.TableConfiguration Table { get; set; }
         public bool UsePessimisticLocking { get; set; }
     }
@@ -64,11 +65,41 @@ namespace NServiceBus.Persistence.DynamoDB
     }
     public static class Mapper
     {
-        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap(object value, System.Type type) { }
-        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap<TValue>(TValue value)
+        public static System.Text.Json.JsonSerializerOptions Default { get; }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed and might need runtime code generation. Use System.Text.Json source" +
+            " generation for native AOT applications.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContex" +
+            "t, or make sure all of the required types are preserved.")]
+        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap(object value, System.Type type, System.Text.Json.JsonSerializerOptions? options = null) { }
+        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap(object value, System.Type type, System.Text.Json.Serialization.JsonSerializerContext context) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed and might need runtime code generation. Use System.Text.Json source" +
+            " generation for native AOT applications.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContex" +
+            "t, or make sure all of the required types are preserved.")]
+        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap<TValue>(TValue value, System.Text.Json.JsonSerializerOptions? options = null)
             where TValue :  class { }
-        public static object? ToObject(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Type returnType) { }
-        public static TValue? ToObject<TValue>(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues) { }
+        public static System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> ToMap<TValue>(TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
+            where TValue :  class { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed and might need runtime code generation. Use System.Text.Json source" +
+            " generation for native AOT applications.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContex" +
+            "t, or make sure all of the required types are preserved.")]
+        public static object? ToObject(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Type returnType, System.Text.Json.JsonSerializerOptions? options = null) { }
+        public static object? ToObject(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Type returnType, System.Text.Json.Serialization.JsonSerializerContext context) { }
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed and might need runtime code generation. Use System.Text.Json source" +
+            " generation for native AOT applications.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("JSON serialization and deserialization might require types that cannot be statica" +
+            "lly analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContex" +
+            "t, or make sure all of the required types are preserved.")]
+        public static TValue? ToObject<TValue>(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Text.Json.JsonSerializerOptions? options = null) { }
+        public static TValue? ToObject<TValue>(System.Collections.Generic.Dictionary<string, Amazon.DynamoDBv2.Model.AttributeValue> attributeValues, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo) { }
     }
     public class PartialOutboxResultException : System.Exception
     {
