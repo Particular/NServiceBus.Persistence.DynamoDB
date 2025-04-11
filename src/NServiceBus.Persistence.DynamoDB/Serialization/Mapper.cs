@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using System.Threading;
 using Amazon.DynamoDBv2.Model;
 
 /// <summary>
@@ -15,23 +16,36 @@ using Amazon.DynamoDBv2.Model;
 /// </summary>
 public static class Mapper
 {
-    static JsonSerializerOptions DefaultOptions { get; } = new(MapperOptions.Defaults);
+    /// <summary>
+    /// Provides the default <see cref="JsonSerializerOptions"/> used for serialization and deserialization augmented with
+    /// specialized converters for DynamoDB types.
+    /// </summary>
+    public static JsonSerializerOptions Default
+    {
+        get
+        {
+            if (defaultOptions is not { } options)
+            {
+                options = GetOrCreateDefaultOptionsInstance();
+            }
+
+            return options;
+        }
+    }
 
     /// <summary>
     /// Maps a given <paramref name="value"/> to a dictionary of <see cref="AttributeValue"/> where the key
     /// represents the property name and the value the mapped property value represented as an attribute value
     /// </summary>
     /// <param name="value">The value to map.</param>
+    /// <param name="options">The serializer options.</param>
     /// <typeparam name="TValue">The value type.</typeparam>
-    public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value)
-        where TValue : class =>
-        ToMap(value, default(JsonSerializerOptions));
-
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options)
+    [RequiresDynamicCode(DynamicCodeWarning)]
+    [RequiresUnreferencedCode(UnreferencedCodeWarning)]
+    public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
         where TValue : class
     {
-        options ??= DefaultOptions;
+        options ??= Default;
         using var trackingState = new ClearTrackingState();
         using var jsonDocument = JsonSerializer.SerializeToDocument(value, options);
         if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
@@ -41,8 +55,14 @@ public static class Mapper
         return ToAttributeMap(jsonDocument.RootElement, options);
     }
 
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo)
+    /// <summary>
+    /// Maps a given <paramref name="value"/> to a dictionary of <see cref="AttributeValue"/> where the key
+    /// represents the property name and the value the mapped property value represented as an attribute value
+    /// </summary>
+    /// <param name="value">The value to map.</param>
+    /// <param name="jsonTypeInfo">The type info.</param>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo)
         where TValue : class
     {
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
@@ -62,11 +82,29 @@ public static class Mapper
     /// </summary>
     /// <param name="value">The value to map.</param>
     /// <param name="type">The type of the value.</param>
-    public static Dictionary<string, AttributeValue> ToMap(object value, Type type)
-        => ToMap(value, type, default(JsonSerializerOptions));
+    /// <param name="options">The serialization options</param>
+    [RequiresDynamicCode(DynamicCodeWarning)]
+    [RequiresUnreferencedCode(UnreferencedCodeWarning)]
+    public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
+    {
+        options ??= Default;
+        using var trackingState = new ClearTrackingState();
+        using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options);
+        if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            ThrowForInvalidRoot(type);
+        }
+        return ToAttributeMap(jsonDocument.RootElement, options);
+    }
 
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
+    /// <summary>
+    /// Maps a given <paramref name="value"/> to a dictionary of <see cref="AttributeValue"/> where the key
+    /// represents the property name and the value the mapped property value represented as an attribute value
+    /// </summary>
+    /// <param name="value">The value to map.</param>
+    /// <param name="type">The type of the value.</param>
+    /// <param name="context">The serialization context.</param>
+    public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -79,19 +117,6 @@ public static class Mapper
         return ToAttributeMap(jsonDocument.RootElement, context.Options);
     }
 
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options)
-    {
-        options ??= DefaultOptions;
-        using var trackingState = new ClearTrackingState();
-        using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options);
-        if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
-        {
-            ThrowForInvalidRoot(type);
-        }
-        return ToAttributeMap(jsonDocument.RootElement, options);
-    }
-
     [DoesNotReturn]
     static void ThrowForInvalidRoot(Type type)
         => throw new SerializationException($"Unable to serialize the given type '{type}' because the json kind is not of type 'JsonValueKind.Object'.");
@@ -102,25 +127,31 @@ public static class Mapper
     /// to the specified <typeparamref name="TValue"/> type.
     /// </summary>
     /// <param name="attributeValues">The attribute values.</param>
+    /// <param name="options">The serializer options.</param>
     /// <typeparam name="TValue">The value type to map to.</typeparam>
-    public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues)
-        => ToObject<TValue>(attributeValues, default(JsonSerializerOptions));
+    [RequiresDynamicCode(DynamicCodeWarning)]
+    [RequiresUnreferencedCode(UnreferencedCodeWarning)]
+    public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
+    {
+        options ??= Default;
+        using var trackingState = new ClearTrackingState();
+        var jsonObject = ToNodeFromMap(attributeValues, options);
+        return jsonObject.Deserialize<TValue>(options);
+    }
 
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
+    /// <summary>
+    /// Maps a given dictionary of <see cref="AttributeValue"/> where the key
+    /// represents the property name and the value the mapped property value represented as an attribute value
+    /// to the specified <typeparamref name="TValue"/> type.
+    /// </summary>
+    /// <param name="attributeValues">The attribute values.</param>
+    /// <param name="jsonTypeInfo">The type info.</param>
+    /// <typeparam name="TValue">The value type to map to.</typeparam>
+    public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonTypeInfo<TValue> jsonTypeInfo)
     {
         using var trackingState = new ClearTrackingState();
         var jsonObject = ToNodeFromMap(attributeValues, jsonTypeInfo.Options);
         return jsonObject.Deserialize(jsonTypeInfo);
-    }
-
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options)
-    {
-        options ??= DefaultOptions;
-        using var trackingState = new ClearTrackingState();
-        var jsonObject = ToNodeFromMap(attributeValues, options);
-        return jsonObject.Deserialize<TValue>(options);
     }
 
     /// <summary>
@@ -130,20 +161,26 @@ public static class Mapper
     /// </summary>
     /// <param name="attributeValues">The attribute values.</param>
     /// <param name="returnType">The return type to map to.</param>
-    public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType)
-        => ToObject(attributeValues, returnType, default(JsonSerializerOptions));
-
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options)
+    /// <param name="options">The serialization options.</param>
+    [RequiresDynamicCode(DynamicCodeWarning)]
+    [RequiresUnreferencedCode(UnreferencedCodeWarning)]
+    public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
     {
-        options ??= DefaultOptions;
+        options ??= Default;
         using var trackingState = new ClearTrackingState();
         var jsonObject = ToNodeFromMap(attributeValues, options);
         return jsonObject.Deserialize(returnType, options);
     }
 
-    // This method can be made public to support custom serialization options which also enables source gen support.
-    internal static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
+    /// <summary>
+    /// Maps a given dictionary of <see cref="AttributeValue"/> where the key
+    /// represents the property name and the value the mapped property value represented as an attribute value
+    /// to the specified <paramref name="returnType"/> type.
+    /// </summary>
+    /// <param name="attributeValues">The attribute values.</param>
+    /// <param name="returnType">The return type to map to.</param>
+    /// <param name="context">The serialization context.</param>
+    public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerContext context)
     {
         using var trackingState = new ClearTrackingState();
         var jsonObject = ToNodeFromMap(attributeValues, context.Options);
@@ -227,7 +264,7 @@ public static class Mapper
         {
             // check the simple cases first
             { IsBOOLSet: true } => attributeValue.BOOL,
-            { NULL: true } => default,
+            { NULL: true } => null,
             { N: not null } => JsonNode.Parse(attributeValue.N),
             { S: not null } => attributeValue.S,
             { IsMSet: true, } => ToNodeFromMap(attributeValue.M, jsonSerializerOptions),
@@ -273,9 +310,21 @@ public static class Mapper
         return array;
     }
 
+    static JsonSerializerOptions GetOrCreateDefaultOptionsInstance()
+    {
+        var options = new JsonSerializerOptions(MapperOptions.Defaults);
+
+        return Interlocked.CompareExchange(ref defaultOptions, options, null) ?? options;
+    }
+
     static readonly AttributeValue NullAttributeValue = new() { NULL = true };
     static readonly AttributeValue TrueAttributeValue = new() { BOOL = true };
     static readonly AttributeValue FalseAttributeValue = new() { BOOL = false };
+    static JsonSerializerOptions? defaultOptions;
+
+    const string DynamicCodeWarning = "JSON serialization and deserialization might require types that cannot be statically analyzed and might need runtime code generation. Use System.Text.Json source generation for native AOT applications.";
+    const string UnreferencedCodeWarning =
+        "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContext, or make sure all of the required types are preserved.";
 
     readonly struct ClearTrackingState : IDisposable
     {
