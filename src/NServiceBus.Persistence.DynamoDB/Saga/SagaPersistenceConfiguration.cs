@@ -2,7 +2,7 @@
 
 using System;
 using System.Text.Json;
-using static Persistence.DynamoDB.MapperOptions;
+using Persistence.DynamoDB;
 
 /// <summary>
 /// The saga persistence configuration options.
@@ -37,5 +37,8 @@ public class SagaPersistenceConfiguration
     /// </summary>
     public TimeSpan LeaseAcquisitionTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
-    internal JsonSerializerOptions MapperOptions { get; set; } = new(Defaults);
+    /// <summary>
+    /// The serializer options used to serialize and deserialize the saga data.
+    /// </summary>
+    public JsonSerializerOptions MapperOptions { get; set; } = new(Mapper.Default);
 }
