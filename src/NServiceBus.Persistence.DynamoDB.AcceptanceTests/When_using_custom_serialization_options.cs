@@ -46,7 +46,7 @@ public class When_using_custom_serialization_options : NServiceBusAcceptanceTest
             {
                 var persistence = c.UsePersistence<DynamoPersistence>();
                 var sagas = persistence.Sagas();
-                sagas.MapperOptions = new JsonSerializerOptions(sagas.MapperOptions)
+                sagas.MapperOptions = new JsonSerializerOptions(Mapper.Default)
                 {
                     TypeInfoResolver = new SagaJsonContext(sagas.MapperOptions),
                     Converters = { new CustomConverter() }
@@ -69,12 +69,10 @@ public class When_using_custom_serialization_options : NServiceBusAcceptanceTest
             }
         }
 
-        public class MySaga : Saga<MySagaData>,
+        public class MySaga(Context testContext) : Saga<MySagaData>,
             IAmStartedByMessages<StartSaga>,
             IHandleMessages<ContinueSaga>
         {
-            public MySaga(Context context) => testContext = context;
-
             public Task Handle(StartSaga message, IMessageHandlerContext context)
             {
                 Data.DataId = message.DataId;
@@ -98,8 +96,6 @@ public class When_using_custom_serialization_options : NServiceBusAcceptanceTest
                 mapper.MapSaga(m => m.DataId)
                     .ToMessage<StartSaga>(m => m.DataId)
                     .ToMessage<ContinueSaga>(m => m.DataId);
-
-            readonly Context testContext;
         }
     }
 
@@ -133,6 +129,4 @@ public class NestedObject
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(MySagaData))]
-partial class SagaJsonContext : JsonSerializerContext
-{
-}
+partial class SagaJsonContext : JsonSerializerContext;
