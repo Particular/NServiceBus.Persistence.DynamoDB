@@ -1454,6 +1454,41 @@ public class MapperTests
         }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers));
         Assert.That(setNumberException!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
     }
+
+    [Test]
+    public void Should_allow_extending_source_context()
+    {
+        var mapperContext = new MapperTestsSourceContext(Mapper.Default);
+
+        // Only using the memory stream as an example to demonstrate mapper defaults are preserved
+        // This test is borderline because it tests json extensibility but we want to make sure things are not broken
+        var memorySteamAttributes = new Dictionary<string, AttributeValue>
+        {
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
+        };
+        var classWithMemoryStream = Mapper.ToObject(memorySteamAttributes, mapperContext.ClassWithMemoryStream);
+
+        Assert.That(memorySteamAttributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
+    }
+
+    [Test]
+    public void Should_allow_extending_options()
+    {
+        var options = new JsonSerializerOptions(Mapper.Default)
+        {
+            TypeInfoResolverChain = { MapperTestsSourceContext.Default }
+        };
+
+        // Only using the memory stream as an example to demonstrate mapper defaults are preserved
+        // This test is borderline because it tests json extensibility but we want to make sure things are not broken
+        var memorySteamAttributes = new Dictionary<string, AttributeValue>
+        {
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
+        };
+        var classWithMemoryStream = Mapper.ToObject<ClassWithMemoryStream>(memorySteamAttributes, options);
+
+        Assert.That(memorySteamAttributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
+    }
 }
 
 [JsonSourceGenerationOptions]
