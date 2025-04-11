@@ -5,10 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using NUnit.Framework;
 
@@ -1489,6 +1491,103 @@ public class MapperTests
 
         Assert.That(memorySteamAttributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
     }
+
+    [Test]
+    public void Should_allow_advanced_trickery_like_type_extension()
+    {
+        var options = new JsonSerializerOptions(Mapper.Default)
+        {
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers = { SupportObjectModelAttributes }
+            }
+        };
+
+        var classWithDynamoDBAttributes = new ClassWithDynamoDBAttributes
+        {
+            PartitionKey = "PK",
+            SortKey = "SK",
+            IncludedProperty = "Included",
+            IgnoredProperty2 = "Ignored2"
+        };
+
+        var attributes = Mapper.ToMap(classWithDynamoDBAttributes, options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributes["PK"].S, Is.EqualTo(classWithDynamoDBAttributes.PartitionKey));
+            Assert.That(attributes["SK"].S, Is.EqualTo(classWithDynamoDBAttributes.SortKey));
+            Assert.That(attributes[nameof(ClassWithDynamoDBAttributes.IncludedProperty)].S, Is.EqualTo(classWithDynamoDBAttributes.IncludedProperty));
+            Assert.That(attributes["STREAMY"].B, Is.EqualTo(classWithDynamoDBAttributes.MemoryStream));
+
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.PartitionKey)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.SortKey)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.IgnoredProperty)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.IgnoredProperty2)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.MemoryStream)));
+        });
+        return;
+
+        static void SupportObjectModelAttributes(JsonTypeInfo typeInfo)
+        {
+            if (typeInfo.Kind != JsonTypeInfoKind.Object)
+            {
+                return;
+            }
+
+            foreach (JsonPropertyInfo property in typeInfo.Properties)
+            {
+                var renamableAttributes = property.AttributeProvider?.GetCustomAttributes(typeof(DynamoDBRenamableAttribute), true) ?? [];
+                if (renamableAttributes.SingleOrDefault() is DynamoDBRenamableAttribute renamable)
+                {
+                    if (!string.IsNullOrEmpty(renamable.AttributeName))
+                    {
+                        property.Name = renamable.AttributeName;
+                    }
+
+                    continue;
+                }
+
+                var ignoreAttributes = property.AttributeProvider?.GetCustomAttributes(typeof(DynamoDBRenamableAttribute), true) ?? [];
+                if (ignoreAttributes.SingleOrDefault() is DynamoDBIgnoreAttribute)
+                {
+                    property.ShouldSerialize = (_, __) => false;
+                    continue;
+                }
+
+                // all others ignore
+                property.ShouldSerialize = (_, __) => false;
+            }
+        }
+    }
+
+    public class ClassWithDynamoDBAttributes
+    {
+        [DynamoDBHashKey("PK")]
+        public string PartitionKey { get; set; }
+
+        [DynamoDBRangeKey("SK")]
+        public string SortKey { get; set; }
+
+        public string IgnoredProperty
+        {
+            get => PartitionKey;
+            set
+            {
+                PartitionKey = value;
+                SortKey = value;
+            }
+        }
+
+        [DynamoDBProperty]
+        public string IncludedProperty { get; set; }
+
+        [DynamoDBIgnore]
+        public string IgnoredProperty2 { get; set; }
+
+        [DynamoDBProperty("STREAMY")]
+        public MemoryStream MemoryStream { get; set; } = new("Hello World"u8.ToArray());
+    }
 }
 
 [JsonSourceGenerationOptions]
@@ -1496,6 +1595,7 @@ public class MapperTests
 [JsonSerializable(typeof(MapperTests.ClassWithSetOfMemoryStream))]
 [JsonSerializable(typeof(MapperTests.ClassWithSetOfString))]
 [JsonSerializable(typeof(MapperTests.ClassWithSetOfNumbers))]
+[JsonSerializable(typeof(MapperTests.ClassWithDynamoDBAttributes))]
 partial class MapperTestsSourceContext : JsonSerializerContext
 {
 }
