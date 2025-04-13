@@ -346,11 +346,6 @@ public static class Mapper
         return Interlocked.CompareExchange(ref location, options, null) ?? options;
     }
 
-    sealed class EmptyJsonTypeInfoResolver : IJsonTypeInfoResolver
-    {
-        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) => null;
-    }
-
     static readonly AttributeValue NullAttributeValue = new() { NULL = true };
     static readonly AttributeValue TrueAttributeValue = new() { BOOL = true };
     static readonly AttributeValue FalseAttributeValue = new() { BOOL = false };
@@ -360,6 +355,11 @@ public static class Mapper
     const string DynamicCodeWarning = "JSON serialization and deserialization might require types that cannot be statically analyzed and might need runtime code generation. Use System.Text.Json source generation for native AOT applications.";
     const string UnreferencedCodeWarning =
         "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContext, or make sure all of the required types are preserved.";
+
+    sealed class EmptyJsonTypeInfoResolver : IJsonTypeInfoResolver
+    {
+        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) => null;
+    }
 
     readonly struct ClearTrackingState : IDisposable
     {
