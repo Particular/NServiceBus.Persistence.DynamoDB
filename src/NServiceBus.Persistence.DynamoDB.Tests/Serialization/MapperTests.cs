@@ -1460,7 +1460,8 @@ public class MapperTests
     [Test]
     public void Should_allow_extending_source_context()
     {
-        var mapperContext = new MapperTestsSourceContext(Mapper.Default);
+        var options = new JsonSerializerOptions(Mapper.Default);
+        var mapperContext = new MapperTestsSourceContext(options);
 
         // Only using the memory stream as an example to demonstrate mapper defaults are preserved
         // This test is borderline because it tests json extensibility but we want to make sure things are not broken

@@ -336,10 +336,19 @@ public static class Mapper
                 new SetOfMemoryStreamConverter(),
                 new SetOfStringConverter(),
                 new SetOfNumberConverter()
-            }
+            },
+            TypeInfoResolver = JsonSerializer.IsReflectionEnabledByDefault
+                ? new DefaultJsonTypeInfoResolver()
+                : new EmptyJsonTypeInfoResolver(),
         };
+        options.MakeReadOnly();
 
         return Interlocked.CompareExchange(ref location, options, null) ?? options;
+    }
+
+    sealed class EmptyJsonTypeInfoResolver : IJsonTypeInfoResolver
+    {
+        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) => null;
     }
 
     static readonly AttributeValue NullAttributeValue = new() { NULL = true };
