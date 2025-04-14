@@ -48,7 +48,7 @@ public class When_using_custom_serialization_options : NServiceBusAcceptanceTest
                 var sagas = persistence.Sagas();
                 sagas.MapperOptions = new JsonSerializerOptions(Mapper.Default)
                 {
-                    TypeInfoResolver = new SagaJsonContext(sagas.MapperOptions),
+                    TypeInfoResolver = new SagaJsonContext(),
                     Converters = { new CustomConverter() }
                 };
             });
