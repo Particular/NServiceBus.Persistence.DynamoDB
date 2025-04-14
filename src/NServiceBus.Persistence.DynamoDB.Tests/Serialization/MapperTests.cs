@@ -13,6 +13,7 @@ using System.Text.Json.Serialization.Metadata;
 using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using NUnit.Framework;
+using static Serialization.DynamoDBAttributeSupportJsonExtensions;
 
 [TestFixture]
 public class MapperTests
@@ -1527,39 +1528,6 @@ public class MapperTests
             Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.IgnoredProperty2)));
             Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.MemoryStream)));
         });
-        return;
-
-        static void SupportObjectModelAttributes(JsonTypeInfo typeInfo)
-        {
-            if (typeInfo.Kind != JsonTypeInfoKind.Object)
-            {
-                return;
-            }
-
-            foreach (JsonPropertyInfo property in typeInfo.Properties)
-            {
-                var renamableAttributes = property.AttributeProvider?.GetCustomAttributes(typeof(DynamoDBRenamableAttribute), true) ?? [];
-                if (renamableAttributes.SingleOrDefault() is DynamoDBRenamableAttribute renamable)
-                {
-                    if (!string.IsNullOrEmpty(renamable.AttributeName))
-                    {
-                        property.Name = renamable.AttributeName;
-                    }
-
-                    continue;
-                }
-
-                var ignoreAttributes = property.AttributeProvider?.GetCustomAttributes(typeof(DynamoDBRenamableAttribute), true) ?? [];
-                if (ignoreAttributes.SingleOrDefault() is DynamoDBIgnoreAttribute)
-                {
-                    property.ShouldSerialize = (_, __) => false;
-                    continue;
-                }
-
-                // all others ignore
-                property.ShouldSerialize = (_, __) => false;
-            }
-        }
     }
 
     public class ClassWithDynamoDBAttributes
