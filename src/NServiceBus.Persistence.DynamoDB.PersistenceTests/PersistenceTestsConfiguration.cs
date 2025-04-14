@@ -14,26 +14,20 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
 {
     static PersistenceTestsConfiguration()
     {
-        SagaVariants = new[]
-        {
-            new TestFixtureData(new TestVariant(new PersistenceConfiguration(usePessimisticLocking: false))).SetArgDisplayNames("Optimistic"),
-            new TestFixtureData(new TestVariant(new PersistenceConfiguration(usePessimisticLocking: true))).SetArgDisplayNames("Pessimistic"),
-        };
+        SagaVariants =
+        [
+            new TestFixtureData(new TestVariant(new PersistenceConfiguration())).SetArgDisplayNames("Optimistic"),
+            new TestFixtureData(new TestVariant(new PersistenceConfiguration(UseEventualConsistentReads: true))).SetArgDisplayNames("Optimistic Eventual Consistent"),
+            new TestFixtureData(new TestVariant(new PersistenceConfiguration(UsePessimisticLocking: true))).SetArgDisplayNames("Pessimistic")
+        ];
 
-        OutboxVariants = new[]
-        {
-            new TestFixtureData(new TestVariant(new PersistenceConfiguration(usePessimisticLocking: false))).SetArgDisplayNames("Optimistic"),
-        };
+        OutboxVariants =
+        [
+            new TestFixtureData(new TestVariant(new PersistenceConfiguration())).SetArgDisplayNames("Optimistic"),
+        ];
     }
-    public class PersistenceConfiguration
-    {
-        public readonly bool UsePessimisticLocking;
 
-        public PersistenceConfiguration(bool usePessimisticLocking)
-        {
-            UsePessimisticLocking = usePessimisticLocking;
-        }
-    }
+    public record PersistenceConfiguration(bool? UsePessimisticLocking = null, bool? UseEventualConsistentReads = null);
 
     public bool SupportsDtc => false;
 
@@ -57,14 +51,25 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
     {
         var configuration = (PersistenceConfiguration)Variant.Values[0];
 
+        var sagaPersistenceConfiguration = new SagaPersistenceConfiguration
+        {
+            Table = SetupFixture.SagaTable,
+            LeaseAcquisitionTimeout = Variant.SessionTimeout ?? TimeSpan.FromSeconds(10)
+        };
+
+        if (configuration.UsePessimisticLocking.HasValue)
+        {
+            sagaPersistenceConfiguration.UsePessimisticLocking = SupportsPessimisticConcurrency = configuration.UsePessimisticLocking.Value;
+        }
+
+        if (configuration.UseEventualConsistentReads.HasValue)
+        {
+            sagaPersistenceConfiguration.UseEventualConsistentReads = configuration.UseEventualConsistentReads.Value;
+        }
+
         SagaStorage = new SagaPersister(
             Client,
-            new SagaPersistenceConfiguration
-            {
-                Table = SetupFixture.SagaTable,
-                UsePessimisticLocking = SupportsPessimisticConcurrency = configuration.UsePessimisticLocking,
-                LeaseAcquisitionTimeout = Variant.SessionTimeout ?? TimeSpan.FromSeconds(10)
-            },
+            sagaPersistenceConfiguration,
             "PersistenceTest");
 
         OutboxStorage = new OutboxPersister(
