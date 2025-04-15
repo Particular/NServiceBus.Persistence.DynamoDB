@@ -34,22 +34,6 @@ public static class Mapper
     }
 
     /// <summary>
-    /// The Default are never directly used to serialize and deserialize otherwise they become immutable
-    /// </summary>
-    static JsonSerializerOptions DefaultsOptions
-    {
-        get
-        {
-            if (defaultOptions is not { } options)
-            {
-                options = GetOrCreateDefaultInstance(ref defaultOptions);
-            }
-
-            return options;
-        }
-    }
-
-    /// <summary>
     /// Maps a given <paramref name="value"/> to a dictionary of <see cref="AttributeValue"/> where the key
     /// represents the property name and the value the mapped property value represented as an attribute value
     /// </summary>
@@ -61,7 +45,7 @@ public static class Mapper
     public static Dictionary<string, AttributeValue> ToMap<TValue>(TValue value, JsonSerializerOptions? options = null)
         where TValue : class
     {
-        options ??= DefaultsOptions;
+        options ??= Default;
         using var trackingState = new ClearTrackingState();
         using var jsonDocument = JsonSerializer.SerializeToDocument(value, options);
         if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
@@ -103,7 +87,7 @@ public static class Mapper
     [RequiresUnreferencedCode(UnreferencedCodeWarning)]
     public static Dictionary<string, AttributeValue> ToMap(object value, Type type, JsonSerializerOptions? options = null)
     {
-        options ??= DefaultsOptions;
+        options ??= Default;
         using var trackingState = new ClearTrackingState();
         using var jsonDocument = JsonSerializer.SerializeToDocument(value, type, options);
         if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
@@ -149,7 +133,7 @@ public static class Mapper
     [RequiresUnreferencedCode(UnreferencedCodeWarning)]
     public static TValue? ToObject<TValue>(Dictionary<string, AttributeValue> attributeValues, JsonSerializerOptions? options = null)
     {
-        options ??= DefaultsOptions;
+        options ??= Default;
         using var trackingState = new ClearTrackingState();
         var jsonObject = ToNodeFromMap(attributeValues, options);
         return jsonObject.Deserialize<TValue>(options);
@@ -182,7 +166,7 @@ public static class Mapper
     [RequiresUnreferencedCode(UnreferencedCodeWarning)]
     public static object? ToObject(Dictionary<string, AttributeValue> attributeValues, Type returnType, JsonSerializerOptions? options = null)
     {
-        options ??= DefaultsOptions;
+        options ??= Default;
         using var trackingState = new ClearTrackingState();
         var jsonObject = ToNodeFromMap(attributeValues, options);
         return jsonObject.Deserialize(returnType, options);
@@ -350,7 +334,6 @@ public static class Mapper
     static readonly AttributeValue TrueAttributeValue = new() { BOOL = true };
     static readonly AttributeValue FalseAttributeValue = new() { BOOL = false };
     static JsonSerializerOptions? @default;
-    static JsonSerializerOptions? defaultOptions;
 
     const string DynamicCodeWarning = "JSON serialization and deserialization might require types that cannot be statically analyzed and might need runtime code generation. Use System.Text.Json source generation for native AOT applications.";
     const string UnreferencedCodeWarning =
