@@ -22,10 +22,10 @@ sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConver
     {
         var converter = (JsonConverter)Activator.CreateInstance(
             typeof(SetConverter<>)
-                .MakeGenericType(new Type[] { typeToConvert }),
+                .MakeGenericType(typeToConvert),
             BindingFlags.Instance | BindingFlags.Public,
             binder: null,
-            args: new[] { options },
+            args: [options],
             culture: null)!;
         return converter;
     }
@@ -63,12 +63,9 @@ sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConver
         return jsonObject;
     }
 
-    sealed class SetConverter<TSet> : JsonConverter<TSet>
+    sealed class SetConverter<TSet>(JsonSerializerOptions options) : JsonConverter<TSet>
         where TSet : ISet<MemoryStream>
     {
-        public SetConverter(JsonSerializerOptions options)
-            => optionsWithoutSetOfMemoryStreamConverter = options.FromWithout<SetOfMemoryStreamConverter>();
-
         public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert,
             JsonSerializerOptions options)
         {
@@ -122,6 +119,6 @@ sealed class SetOfMemoryStreamConverter : JsonConverterFactory, IAttributeConver
             writer.WriteEndObject();
         }
 
-        readonly JsonSerializerOptions optionsWithoutSetOfMemoryStreamConverter;
+        readonly JsonSerializerOptions optionsWithoutSetOfMemoryStreamConverter = options.FromWithout<SetOfMemoryStreamConverter>();
     }
 }

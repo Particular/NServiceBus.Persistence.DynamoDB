@@ -5,12 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using NUnit.Framework;
+using static Serialization.DynamoDBAttributeSupportJsonExtensions;
 
 [TestFixture]
 public class MapperTests
@@ -185,7 +188,7 @@ public class MapperTests
     {
         var classWithMemoryStream = new ClassWithMemoryStream
         {
-            SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World"))
+            SomeStream = new MemoryStream("Hello World"u8.ToArray())
         };
 
         var attributes = Mapper.ToMap(classWithMemoryStream);
@@ -220,7 +223,7 @@ public class MapperTests
     {
         var classWithMemoryStream = new ClassWithMemoryStreamAndUnserializableValue
         {
-            SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")),
+            SomeStream = new MemoryStream("Hello World"u8.ToArray()),
             UnsupportedStream = Stream.Null,
         };
 
@@ -239,7 +242,7 @@ public class MapperTests
     {
         var attributeMap = new Dictionary<string, AttributeValue>
         {
-            { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } },
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } },
             { "UnsupportedStream", new AttributeValue { B = null } },
         };
 
@@ -267,8 +270,8 @@ public class MapperTests
         {
             SomeStreams =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ],
             UnsupportedStream = Stream.Null,
         };
@@ -290,8 +293,8 @@ public class MapperTests
         {
             { "SomeStreams", new AttributeValue { BS =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ] } },
             { "UnsupportedStream", new AttributeValue { B = null } },
         };
@@ -322,13 +325,13 @@ public class MapperTests
         {
             HashSetOfMemoryStreams =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ],
             ImmutableHashSetOfStreams = new HashSet<MemoryStream>
             {
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             }.ToImmutableHashSet()
         };
 
@@ -367,13 +370,13 @@ public class MapperTests
         {
             HashSetOfMemoryStreams =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ],
             ImmutableHashSetOfStreams = new HashSet<MemoryStream>
             {
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             }.ToImmutableHashSet()
         };
 
@@ -452,10 +455,10 @@ public class MapperTests
     {
         var classWithMemoryStream = new ClassWithNestedMemoryStream
         {
-            SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1")),
+            SomeStream = new MemoryStream("Hello World 1"u8.ToArray()),
             Nested = new ClassWithNestedMemoryStream.Subclass
             {
-                SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 2"))
+                SomeStream = new MemoryStream("Hello World 2"u8.ToArray())
             }
         };
 
@@ -1231,7 +1234,7 @@ public class MapperTests
         // using the default options bypasses all custom converters
         var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithMemoryStream
         {
-            SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            SomeStream = new MemoryStream("Hello World 1"u8.ToArray())
         }, JsonSerializerOptions.Default));
         Assert.That(streamException!.Message, Contains.Substring("not supported on this stream."));
 
@@ -1239,8 +1242,8 @@ public class MapperTests
         {
             HashSetOfMemoryStreams =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ]
         }, JsonSerializerOptions.Default));
         Assert.That(hashSetException!.Message, Contains.Substring("not supported on this stream."));
@@ -1282,7 +1285,7 @@ public class MapperTests
         // using the default options bypasses all custom converters
         var streamException = Assert.Throws<InvalidOperationException>(() => Mapper.ToMap(new ClassWithMemoryStream
         {
-            SomeStream = new MemoryStream(Encoding.UTF8.GetBytes("Hello World 1"))
+            SomeStream = new MemoryStream("Hello World 1"u8.ToArray())
         }, MapperTestsSourceContext.Default.ClassWithMemoryStream));
         Assert.That(streamException!.Message, Contains.Substring("not supported on this stream."));
 
@@ -1290,8 +1293,8 @@ public class MapperTests
         {
             HashSetOfMemoryStreams =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ]
         }, MapperTestsSourceContext.Default.ClassWithSetOfMemoryStream));
         Assert.That(hashSetException!.Message, Contains.Substring("not supported on this stream."));
@@ -1331,13 +1334,13 @@ public class MapperTests
         // using the default options bypasses all custom converters
         var streamException1 = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
-            { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } }
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
         }, typeof(ClassWithMemoryStream), JsonSerializerOptions.Default));
         Assert.That(streamException1!.Message, Contains.Substring("no converter to handle 'MemoryStream'"));
 
         var streamException2 = Assert.Throws<SerializationException>(() => Mapper.ToObject<ClassWithMemoryStream>(new Dictionary<string, AttributeValue>
         {
-            { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } }
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
         }, JsonSerializerOptions.Default));
         Assert.That(streamException2!.Message, Contains.Substring("no converter to handle 'MemoryStream'"));
 
@@ -1345,8 +1348,8 @@ public class MapperTests
         {
             { "HashSetOfMemoryStreams", new AttributeValue { BS =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ] } }
         }, typeof(ClassWithSetOfMemoryStream), JsonSerializerOptions.Default));
         Assert.That(setStreamException1!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
@@ -1355,8 +1358,8 @@ public class MapperTests
         {
             { "HashSetOfMemoryStreams", new AttributeValue { BS =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ] } }
         }, JsonSerializerOptions.Default));
         Assert.That(setStreamException2!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
@@ -1416,7 +1419,7 @@ public class MapperTests
         // using the default options bypasses all custom converters
         var streamException = Assert.Throws<SerializationException>(() => Mapper.ToObject(new Dictionary<string, AttributeValue>
         {
-            { "SomeStream", new AttributeValue { B = new MemoryStream(Encoding.UTF8.GetBytes("Hello World")) } }
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
         }, MapperTestsSourceContext.Default.ClassWithMemoryStream));
         Assert.That(streamException!.Message, Contains.Substring("no converter to handle 'MemoryStream'"));
 
@@ -1424,8 +1427,8 @@ public class MapperTests
         {
             { "HashSetOfMemoryStreams", new AttributeValue { BS =
             [
-                new(Encoding.UTF8.GetBytes("Hello World 1")),
-                new(Encoding.UTF8.GetBytes("Hello World 2")),
+                new("Hello World 1"u8.ToArray()),
+                new("Hello World 2"u8.ToArray()),
             ] } }
         }, MapperTestsSourceContext.Default.ClassWithSetOfMemoryStream));
         Assert.That(setStreamException!.Message, Contains.Substring("no converter to handle 'Sets of MemoryStream'"));
@@ -1454,6 +1457,106 @@ public class MapperTests
         }, MapperTestsSourceContext.Default.ClassWithSetOfNumbers));
         Assert.That(setNumberException!.Message, Contains.Substring("no converter to handle 'Sets of Number'"));
     }
+
+    [Test]
+    public void Should_allow_extending_source_context()
+    {
+        var options = new JsonSerializerOptions(Mapper.Default);
+        var mapperContext = new MapperTestsSourceContext(options);
+
+        // Only using the memory stream as an example to demonstrate mapper defaults are preserved
+        // This test is borderline because it tests json extensibility but we want to make sure things are not broken
+        var memorySteamAttributes = new Dictionary<string, AttributeValue>
+        {
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
+        };
+        var classWithMemoryStream = Mapper.ToObject(memorySteamAttributes, mapperContext.ClassWithMemoryStream);
+
+        Assert.That(memorySteamAttributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
+    }
+
+    [Test]
+    public void Should_allow_extending_options()
+    {
+        var options = new JsonSerializerOptions(Mapper.Default)
+        {
+            TypeInfoResolverChain = { MapperTestsSourceContext.Default }
+        };
+
+        // Only using the memory stream as an example to demonstrate mapper defaults are preserved
+        // This test is borderline because it tests json extensibility but we want to make sure things are not broken
+        var memorySteamAttributes = new Dictionary<string, AttributeValue>
+        {
+            { "SomeStream", new AttributeValue { B = new MemoryStream("Hello World"u8.ToArray()) } }
+        };
+        var classWithMemoryStream = Mapper.ToObject<ClassWithMemoryStream>(memorySteamAttributes, options);
+
+        Assert.That(memorySteamAttributes[nameof(ClassWithMemoryStream.SomeStream)].B, Is.EqualTo(classWithMemoryStream.SomeStream));
+    }
+
+    [Test]
+    public void Should_allow_advanced_trickery_like_type_extension()
+    {
+        var options = new JsonSerializerOptions(Mapper.Default)
+        {
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers = { SupportObjectModelAttributes }
+            }
+        };
+
+        var classWithDynamoDBAttributes = new ClassWithDynamoDBAttributes
+        {
+            PartitionKey = "PK",
+            SortKey = "SK",
+            IncludedProperty = "Included",
+            IgnoredProperty2 = "Ignored2"
+        };
+
+        var attributes = Mapper.ToMap(classWithDynamoDBAttributes, options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attributes["PK"].S, Is.EqualTo(classWithDynamoDBAttributes.PartitionKey));
+            Assert.That(attributes["SK"].S, Is.EqualTo(classWithDynamoDBAttributes.SortKey));
+            Assert.That(attributes[nameof(ClassWithDynamoDBAttributes.IncludedProperty)].S, Is.EqualTo(classWithDynamoDBAttributes.IncludedProperty));
+            Assert.That(attributes["STREAMY"].B, Is.EqualTo(classWithDynamoDBAttributes.MemoryStream));
+
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.PartitionKey)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.SortKey)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.IgnoredProperty)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.IgnoredProperty2)));
+            Assert.That(attributes, Does.Not.ContainKey(nameof(ClassWithDynamoDBAttributes.MemoryStream)));
+        });
+    }
+
+    public class ClassWithDynamoDBAttributes
+    {
+        [DynamoDBHashKey("PK")]
+        public string PartitionKey { get; set; }
+
+        [DynamoDBRangeKey("SK")]
+        public string SortKey { get; set; }
+
+        public string IgnoredProperty
+        {
+            get => PartitionKey;
+            set
+            {
+                PartitionKey = value;
+                SortKey = value;
+            }
+        }
+
+        [DynamoDBProperty]
+        public string IncludedProperty { get; set; }
+
+        [DynamoDBIgnore]
+        public string IgnoredProperty2 { get; set; }
+
+        [DynamoDBProperty("STREAMY")]
+        public MemoryStream MemoryStream { get; set; } = new("Hello World"u8.ToArray());
+    }
 }
 
 [JsonSourceGenerationOptions]
@@ -1461,6 +1564,7 @@ public class MapperTests
 [JsonSerializable(typeof(MapperTests.ClassWithSetOfMemoryStream))]
 [JsonSerializable(typeof(MapperTests.ClassWithSetOfString))]
 [JsonSerializable(typeof(MapperTests.ClassWithSetOfNumbers))]
+[JsonSerializable(typeof(MapperTests.ClassWithDynamoDBAttributes))]
 partial class MapperTestsSourceContext : JsonSerializerContext
 {
 }

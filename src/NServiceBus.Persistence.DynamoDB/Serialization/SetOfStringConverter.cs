@@ -21,10 +21,10 @@ sealed class SetOfStringConverter : JsonConverterFactory, IAttributeConverter
     {
         var converter = (JsonConverter)Activator.CreateInstance(
             typeof(SetConverter<>)
-                .MakeGenericType(new Type[] { typeToConvert }),
+                .MakeGenericType(typeToConvert),
             BindingFlags.Instance | BindingFlags.Public,
             binder: null,
-            args: new object[] { options },
+            args: [options],
             culture: null)!;
         return converter;
     }

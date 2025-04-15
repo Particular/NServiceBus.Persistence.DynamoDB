@@ -44,7 +44,7 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
         Type valueType = type.GetGenericArguments()[0];
         var converter = (JsonConverter)Activator.CreateInstance(
             typeof(SetConverter<,>)
-                .MakeGenericType([type, valueType]),
+                .MakeGenericType(type, valueType),
             BindingFlags.Instance | BindingFlags.Public,
             binder: null,
             args: [options],
@@ -84,13 +84,10 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
         return jsonObject;
     }
 
-    sealed class SetConverter<TSet, TValue> : JsonConverter<TSet>
+    sealed class SetConverter<TSet, TValue>(JsonSerializerOptions options) : JsonConverter<TSet>
         where TSet : ISet<TValue>
         where TValue : struct
     {
-        public SetConverter(JsonSerializerOptions options)
-            => optionsWithoutSetOfNumberConverter = options.FromWithout<SetOfNumberConverter>();
-
         public override TSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             // For empty sets stored in L
@@ -142,6 +139,6 @@ sealed class SetOfNumberConverter : JsonConverterFactory, IAttributeConverter
             writer.WriteEndObject();
         }
 
-        readonly JsonSerializerOptions optionsWithoutSetOfNumberConverter;
+        readonly JsonSerializerOptions optionsWithoutSetOfNumberConverter = options.FromWithout<SetOfNumberConverter>();
     }
 }
