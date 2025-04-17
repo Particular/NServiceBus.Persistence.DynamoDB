@@ -24,12 +24,12 @@ public class SagaPersistenceConfiguration
     /// </summary>
     /// <remarks>This setting is mutually exclusive to <see cref="UsePessimisticLocking"/> meaning when opting into eventual
     /// consistent reads pessimistic locking is disabled when previously explicitly enabled and vice versa.</remarks>
-    public bool UseEventualConsistentReads
+    public bool UseEventuallyConsistentReads
     {
-        get => useEventualConsistentReads.GetValueOrDefault(false);
+        get => useEventuallyConsistentReads.GetValueOrDefault(false);
         set
         {
-            useEventualConsistentReads = value;
+            useEventuallyConsistentReads = value;
             if (usePessimisticLocking.HasValue)
             {
                 usePessimisticLocking = !value;
@@ -37,12 +37,12 @@ public class SagaPersistenceConfiguration
         }
     }
 
-    bool? useEventualConsistentReads;
+    bool? useEventuallyConsistentReads;
 
     /// <summary>
     /// Enables pessimistic locking mode to avoid concurrent modifications to the same saga. Enable this mode to reduce retries due to optimistic concurrency control violations.
     /// </summary>
-    /// <remarks>This setting is mutually exclusive to <see cref="UseEventualConsistentReads"/> meaning when opting into pessimistic locking
+    /// <remarks>This setting is mutually exclusive to <see cref="UseEventuallyConsistentReads"/> meaning when opting into pessimistic locking
     /// eventual consistent reads are disabled when previously explicitly enabled and vice versa.</remarks>
     public bool UsePessimisticLocking
     {
@@ -50,9 +50,9 @@ public class SagaPersistenceConfiguration
         set
         {
             usePessimisticLocking = value;
-            if (useEventualConsistentReads.HasValue)
+            if (useEventuallyConsistentReads.HasValue)
             {
-                useEventualConsistentReads = !value;
+                useEventuallyConsistentReads = !value;
             }
         }
     }

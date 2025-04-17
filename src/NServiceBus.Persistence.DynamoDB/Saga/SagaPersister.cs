@@ -38,7 +38,7 @@ class SagaPersister : ISagaPersister
         // Using optimistic concurrency control
         var getItemRequest = new GetItemRequest
         {
-            ConsistentRead = !configuration.UseEventualConsistentReads,
+            ConsistentRead = !configuration.UseEventuallyConsistentReads,
             Key = new Dictionary<string, AttributeValue>(2)
             {
                 { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },

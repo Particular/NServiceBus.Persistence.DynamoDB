@@ -41,7 +41,7 @@ namespace NServiceBus
         public System.TimeSpan LeaseDuration { get; set; }
         public System.Text.Json.JsonSerializerOptions MapperOptions { get; set; }
         public NServiceBus.TableConfiguration Table { get; set; }
-        public bool UseEventualConsistentReads { get; set; }
+        public bool UseEventuallyConsistentReads { get; set; }
         public bool UsePessimisticLocking { get; set; }
     }
     public static class SynchronizedStorageSessionExtensions

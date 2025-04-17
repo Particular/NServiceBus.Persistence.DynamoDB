@@ -17,7 +17,7 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
         SagaVariants =
         [
             new TestFixtureData(new TestVariant(new PersistenceConfiguration())).SetArgDisplayNames("Optimistic"),
-            new TestFixtureData(new TestVariant(new PersistenceConfiguration(UseEventualConsistentReads: true))).SetArgDisplayNames("Optimistic Eventual Consistent"),
+            new TestFixtureData(new TestVariant(new PersistenceConfiguration(UseEventuallyConsistentReads: true))).SetArgDisplayNames("Optimistic Eventual Consistent"),
             new TestFixtureData(new TestVariant(new PersistenceConfiguration(UsePessimisticLocking: true))).SetArgDisplayNames("Pessimistic")
         ];
 
@@ -27,7 +27,7 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
         ];
     }
 
-    public record PersistenceConfiguration(bool? UsePessimisticLocking = null, bool? UseEventualConsistentReads = null);
+    public record PersistenceConfiguration(bool? UsePessimisticLocking = null, bool? UseEventuallyConsistentReads = null);
 
     public bool SupportsDtc => false;
 
@@ -62,9 +62,9 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
             sagaPersistenceConfiguration.UsePessimisticLocking = SupportsPessimisticConcurrency = configuration.UsePessimisticLocking.Value;
         }
 
-        if (configuration.UseEventualConsistentReads.HasValue)
+        if (configuration.UseEventuallyConsistentReads.HasValue)
         {
-            sagaPersistenceConfiguration.UseEventualConsistentReads = configuration.UseEventualConsistentReads.Value;
+            sagaPersistenceConfiguration.UseEventuallyConsistentReads = configuration.UseEventuallyConsistentReads.Value;
         }
 
         SagaStorage = new SagaPersister(

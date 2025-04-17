@@ -21,7 +21,7 @@ public class ConfigureEndpointDynamoDBPersistence : IConfigureEndpointTestExecut
         persistence.UseSharedTable(SetupFixture.TableConfiguration);
 
         var sagas = persistence.Sagas();
-        sagas.UseEventualConsistentReads = true;
+        sagas.UseEventuallyConsistentReads = true;
 
         return Task.CompletedTask;
     }
