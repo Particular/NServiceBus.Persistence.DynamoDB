@@ -26,6 +26,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.Dyn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests", "NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests\NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests.csproj", "{EB66E88B-5B05-4D26-8FEF-739E325A14D6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NServiceBus.Persistence.DynamoDB.EventualConsistent.AcceptanceTests", "NServiceBus.Persistence.DynamoDB.EventualConsistent.AcceptanceTests\NServiceBus.Persistence.DynamoDB.EventualConsistent.AcceptanceTests.csproj", "{5C63649F-25A3-4568-95EC-AF98761992EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB66E88B-5B05-4D26-8FEF-739E325A14D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C63649F-25A3-4568-95EC-AF98761992EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C63649F-25A3-4568-95EC-AF98761992EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C63649F-25A3-4568-95EC-AF98761992EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C63649F-25A3-4568-95EC-AF98761992EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

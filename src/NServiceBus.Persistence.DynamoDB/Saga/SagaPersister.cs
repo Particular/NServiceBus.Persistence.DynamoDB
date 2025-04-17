@@ -38,7 +38,7 @@ class SagaPersister : ISagaPersister
         // Using optimistic concurrency control
         var getItemRequest = new GetItemRequest
         {
-            ConsistentRead = true,
+            ConsistentRead = !configuration.UseEventuallyConsistentReads,
             Key = new Dictionary<string, AttributeValue>(2)
             {
                 { configuration.Table.PartitionKeyName, new AttributeValue { S = SagaPartitionKey(sagaId) } },
@@ -48,7 +48,7 @@ class SagaPersister : ISagaPersister
         };
 
         var response = await dynamoDbClient.GetItemAsync(getItemRequest, cancellationToken).ConfigureAwait(false);
-        return !response.IsItemSet ? default : Deserialize<TSagaData>(response.Item, context);
+        return !response.IsItemSet ? null : Deserialize<TSagaData>(response.Item, context);
     }
 
     async Task<TSagaData?> ReadWithLock<TSagaData>(Guid sagaId, ContextBag context,
@@ -140,7 +140,7 @@ class SagaPersister : ISagaPersister
         var sagaData = Mapper.ToObject<TSagaData>(attributeValues, configuration.MapperOptions);
         if (sagaData is null)
         {
-            return default;
+            return null;
         }
         var currentVersion = int.Parse(attributeValues[Metadata].M[SagaMetadataAttributeNames.Version].N);
         context.Set($"dynamo_version:{sagaData.Id}", currentVersion);
