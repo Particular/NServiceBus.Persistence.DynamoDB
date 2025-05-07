@@ -69,7 +69,7 @@ class OutboxPersister : IOutboxStorage
                 {
                     // In case the metadata is not marked as dispatched we want to know the number of transport operations
                     // in order to pre-populate the lists etc accordingly
-                    if (!potentialHeaderItem[Dispatched].BOOL)
+                    if (!potentialHeaderItem[Dispatched].BOOL.GetValueOrDefault())
                     {
                         numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
                     }
