@@ -66,7 +66,8 @@ class SagaPersister : ISagaPersister
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                DateTimeOffset now = DateTimeOffset.UtcNow.Add(dynamoDbClient.Config.ClockOffset);
+                // TODO Fix clock skew retrieval
+                DateTimeOffset now = DateTimeOffset.UtcNow;
                 //update creates a new item if it doesn't exist
                 var updateItemRequest = new UpdateItemRequest
                 {
