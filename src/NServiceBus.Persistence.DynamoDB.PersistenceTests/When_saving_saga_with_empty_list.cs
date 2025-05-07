@@ -28,7 +28,11 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
     [Test]
     public async Task ShouldUpdate()
     {
-        var memStreams = Enumerable.Range(0, 5)
+        var memStreams1 = Enumerable.Range(0, 5)
+            .Select(i => new MemoryStream(Encoding.UTF8.GetBytes($"Hello world {i}")))
+            .ToArray();
+
+        var memStreams2 = Enumerable.Range(0, 5)
             .Select(i => new MemoryStream(Encoding.UTF8.GetBytes($"Hello world {i}")))
             .ToArray();
 
@@ -55,8 +59,8 @@ public class When_saving_saga_with_empty_list : SagaPersisterTests
             UInts = [2147483647, 4294967295],
             SBytes = [0x0F, 0x10],
             Decimals = [1.234m, 5.678m],
-            HashSetOfMemoryStreams = [.. memStreams],
-            ImmutableHashSetOfStreams = new HashSet<MemoryStream>(memStreams).ToImmutableHashSet(),
+            HashSetOfMemoryStreams = [.. memStreams1],
+            ImmutableHashSetOfStreams = new HashSet<MemoryStream>(memStreams2).ToImmutableHashSet(),
             HashSetOfString = ["a", "b", "c", "d"],
             SortedSetOfString = ["a", "b", "c", "d"],
             ImmutableHashSetOfString = ["a", "b", "c", "d"],
