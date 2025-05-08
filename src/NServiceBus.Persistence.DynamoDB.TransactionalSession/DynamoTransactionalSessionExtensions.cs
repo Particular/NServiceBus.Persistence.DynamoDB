@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.TransactionalSession;
 
+using System;
 using Features;
 using Configuration.AdvancedExtensibility;
 
@@ -12,9 +13,23 @@ public static class DynamoTransactionalSessionExtensions
     /// Enables transactional session for this endpoint.
     /// </summary>
     public static PersistenceExtensions<DynamoPersistence> EnableTransactionalSession(
-        this PersistenceExtensions<DynamoPersistence> persistenceExtensions)
+        this PersistenceExtensions<DynamoPersistence> persistenceExtensions) =>
+        EnableTransactionalSession(persistenceExtensions, new TransactionalSessionOptions());
+
+    /// <summary>
+    /// Enables the transactional session for this endpoint using the specified TransactionalSessionOptions.
+    /// </summary>
+    public static PersistenceExtensions<DynamoPersistence> EnableTransactionalSession(this PersistenceExtensions<DynamoPersistence> persistenceExtensions,
+        TransactionalSessionOptions transactionalSessionOptions)
     {
-        persistenceExtensions.GetSettings().EnableFeatureByDefault<DynamoTransactionalSession>();
+        ArgumentNullException.ThrowIfNull(persistenceExtensions);
+        ArgumentNullException.ThrowIfNull(transactionalSessionOptions);
+
+        var settings = persistenceExtensions.GetSettings();
+
+        settings.Set(transactionalSessionOptions);
+        settings.EnableFeatureByDefault<DynamoTransactionalSession>();
+
         return persistenceExtensions;
     }
 }
