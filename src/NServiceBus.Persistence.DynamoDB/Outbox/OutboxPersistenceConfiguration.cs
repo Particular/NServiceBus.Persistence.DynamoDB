@@ -21,4 +21,9 @@ public class OutboxPersistenceConfiguration
     /// Determines whether the NServiceBus installer should create the Outbox table when enabled.
     /// </summary>
     internal bool CreateTable { get; set; } = true;
+
+    /// <summary>
+    /// Allows the user to set a custom endpoint name used by the outbox
+    /// </summary>
+    internal string? CustomEndpointName { get; set; }
 }
