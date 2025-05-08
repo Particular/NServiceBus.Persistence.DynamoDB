@@ -1,0 +1,12 @@
+namespace NServiceBus.TransactionalSession
+{
+    public class DynamoOpenSessionOptions : NServiceBus.TransactionalSession.OpenSessionOptions
+    {
+        public DynamoOpenSessionOptions() { }
+    }
+    public static class DynamoTransactionalSessionExtensions
+    {
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> EnableTransactionalSession(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }
+        public static NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> EnableTransactionalSession(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions, NServiceBus.TransactionalSession.TransactionalSessionOptions transactionalSessionOptions) { }
+    }
+}
