@@ -55,7 +55,9 @@ public class When_combining_document_with_shared_session_without_mapping : NServ
         {
             public TriggerMessageHandler(Context testContext, IDynamoClientProvider clientProvider)
             {
-                var tableBuilder = new TableBuilder(clientProvider.Client, SetupFixture.TableConfiguration.TableName);
+                var tableBuilder = new TableBuilder(clientProvider.Client, SetupFixture.TableConfiguration.TableName)
+                    .AddHashKey("PK", DynamoDBEntryType.String)
+                    .AddRangeKey("SK", DynamoDBEntryType.String);
                 table = tableBuilder.Build();
                 this.testContext = testContext;
             }
