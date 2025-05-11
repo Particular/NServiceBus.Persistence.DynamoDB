@@ -16,7 +16,10 @@ public class When_combining_document_with_shared_session_without_mapping : NServ
     {
         var customerId = Guid.NewGuid().ToString();
 
-        var table = new TableBuilder(SetupFixture.DynamoDBClient, SetupFixture.TableConfiguration.TableName).Build();
+        var table = new TableBuilder(SetupFixture.DynamoDBClient, SetupFixture.TableConfiguration.TableName)
+            .AddHashKey("PK", DynamoDBEntryType.String)
+            .AddRangeKey("SK", DynamoDBEntryType.String)
+            .Build();
         var customerDocument = new Document
         {
             {"PK", customerId },

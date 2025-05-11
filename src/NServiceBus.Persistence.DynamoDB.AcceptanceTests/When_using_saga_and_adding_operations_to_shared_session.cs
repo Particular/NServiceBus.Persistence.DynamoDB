@@ -96,8 +96,8 @@ public class When_using_saga_and_adding_operations_to_shared_session : NServiceB
 
         Assert.Multiple(() =>
         {
-            Assert.That(items, Is.Empty, "should have rolled back all enlisted database operations");
-            Assert.That(saga.Item, Is.Empty, "should have rolled back all saga database operations");
+            Assert.That(items.Items, Has.Count.Zero, "should have rolled back all enlisted database operations");
+            Assert.That(saga.Item, Is.Null, "should have rolled back all saga database operations");
             Assert.That(context.FailedMessages.Single().Value, Has.Count.EqualTo(1), "the message should have failed");
         });
     }
