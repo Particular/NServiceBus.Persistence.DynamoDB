@@ -154,6 +154,11 @@ class OutboxPersister : IOutboxStorage
     static Dictionary<string, string> DeserializeStringDictionary(AttributeValue attributeValue)
     {
         Dictionary<string, AttributeValue> attributeValues = attributeValue.M;
+        if (attributeValues == null)
+        {
+            return [];
+        }
+
         var dictionary = new Dictionary<string, string>(attributeValues.Count);
         foreach (var pair in attributeValues)
         {
