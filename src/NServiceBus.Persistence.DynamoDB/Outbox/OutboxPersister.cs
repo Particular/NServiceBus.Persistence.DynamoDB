@@ -61,14 +61,16 @@ class OutboxPersister : IOutboxStorage
             queryRequest.ExclusiveStartKey = response?.LastEvaluatedKey;
             response = await dynamoDbClient.QueryAsync(queryRequest, cancellationToken).ConfigureAwait(false);
             bool responseItemsHasOutboxMetadataEntry = false;
-            if (!foundOutboxMetadataEntry && response.Items.Count >= 1)
+            if (!foundOutboxMetadataEntry && response.Items is { Count: >= 1 })
             {
+                // The metadata entry is always the first element within that partition key range
+                // so we can just check the first element
                 var potentialHeaderItem = response.Items[0];
                 // Batch delete of transport operations could leave phantom records and we might be reading those
                 if (potentialHeaderItem[configuration.Table.SortKeyName].S == outboxMetadataSortKey)
                 {
                     // In case the metadata is not marked as dispatched we want to know the number of transport operations
-                    // in order to pre-populate the lists etc accordingly
+                    // to pre-populate the lists etc accordingly
                     if (!potentialHeaderItem[Dispatched].BOOL.GetValueOrDefault())
                     {
                         numberOfTransportOperations = Convert.ToInt32(potentialHeaderItem[OperationsCount].N);
@@ -118,7 +120,7 @@ class OutboxPersister : IOutboxStorage
         contextBag.Set($"dynamo_operations_count:{messageId}", numberOfTransportOperations);
 
         var operations = numberOfTransportOperations == 0
-            ? Array.Empty<TransportOperation>()
+            ? []
             : new TransportOperation[numberOfTransportOperations];
 
         for (int i = 0; i < numberOfTransportOperations; i++)
@@ -348,10 +350,8 @@ class OutboxPersister : IOutboxStorage
     static readonly AttributeValue NullAttributeValue = new AttributeValue { NULL = true };
     static readonly AttributeValue SchemaVersionAttributeValue = new AttributeValue { S = "1.0" };
 
-    sealed class ReturnBuffer
+    sealed class ReturnBuffer(byte[] buffer)
     {
-        public ReturnBuffer(byte[] buffer) => this.buffer = buffer;
-
         ~ReturnBuffer()
         {
             if (buffer != null)
@@ -361,6 +361,6 @@ class OutboxPersister : IOutboxStorage
             }
         }
 
-        byte[]? buffer;
+        byte[]? buffer = buffer;
     }
 }
