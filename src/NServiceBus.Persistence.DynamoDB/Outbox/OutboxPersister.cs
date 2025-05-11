@@ -102,7 +102,7 @@ class OutboxPersister : IOutboxStorage
                 }
                 transportOperationsAttributes.Add(response.Items[i]);
             }
-        } while (transportOperationsAttributes.Count < numberOfTransportOperations && response.LastEvaluatedKey.Count > 0);
+        } while (transportOperationsAttributes.Count < numberOfTransportOperations && response.LastEvaluatedKey is { Count: > 0 });
 
         return DeserializeOutboxMessage(messageId, numberOfTransportOperations, transportOperationsAttributes, context);
     }
