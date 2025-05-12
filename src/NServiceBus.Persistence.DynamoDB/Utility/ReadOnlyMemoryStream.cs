@@ -2,6 +2,7 @@ namespace NServiceBus.Persistence.DynamoDB;
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 sealed class ReadOnlyMemoryStream : MemoryStream
 {
@@ -51,9 +52,10 @@ sealed class ReadOnlyMemoryStream : MemoryStream
 
     public override byte[] ToArray() => memory.ToArray();
 
+    public override bool TryGetBuffer(out ArraySegment<byte> buffer) => MemoryMarshal.TryGetArray(memory, out buffer);
+
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
-    public override bool CanRead => true;
     public override bool CanSeek => false;
     public override bool CanWrite => false;
     public override long Length => memory.Length;

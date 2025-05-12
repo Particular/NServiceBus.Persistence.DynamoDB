@@ -17,7 +17,10 @@ public class When_combining_document_with_shared_session_with_mapping : NService
     {
         var customerId = Guid.NewGuid().ToString();
 
-        var table = Table.LoadTable(SetupFixture.DynamoDBClient, SetupFixture.TableConfiguration.TableName);
+        var table = new TableBuilder(SetupFixture.DynamoDBClient, SetupFixture.TableConfiguration.TableName)
+            .AddHashKey("PK", DynamoDBEntryType.String)
+            .AddRangeKey("SK", DynamoDBEntryType.String)
+            .Build();
         var customerDocument = new Document
         {
             {"PK", customerId },
@@ -53,7 +56,10 @@ public class When_combining_document_with_shared_session_with_mapping : NService
         {
             public TriggerMessageHandler(Context testContext, IDynamoClientProvider clientProvider)
             {
-                table = Table.LoadTable(clientProvider.Client, SetupFixture.TableConfiguration.TableName);
+                var tableBuilder = new TableBuilder(clientProvider.Client, SetupFixture.TableConfiguration.TableName)
+                    .AddHashKey("PK", DynamoDBEntryType.String)
+                    .AddRangeKey("SK", DynamoDBEntryType.String);
+                table = tableBuilder.Build();
                 this.testContext = testContext;
             }
 

@@ -394,8 +394,8 @@ public class MapperTests
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.HashSetOfMemoryStreams));
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.EqualTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
 
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.Null);
 
             Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].L, Has.Count.Zero);
             Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].IsLSet, Is.True);
@@ -429,9 +429,9 @@ public class MapperTests
             Assert.That(deserialized.ImmutableHashSetOfStreams, Is.EquivalentTo(classWithListOfMemoryStream.ImmutableHashSetOfStreams));
 
             // Due to DynamoDB not supporting empty binary sets we need to use the L attribute to represent empty sets
-            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].BS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].IsBSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].BS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.ImmutableHashSetOfStreams)].IsBSSet, Is.False);
 
             Assert.That(attributes[nameof(ClassWithSetOfMemoryStream.HashSetOfMemoryStreams)].L, Has.Count.Zero);
@@ -544,10 +544,10 @@ public class MapperTests
             Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
             Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
 
-            Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
-            Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
-            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
-            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Is.Null);
+            Assert.That(attributes[nameof(ClassWithSetOfString.SortedSetOfString)].L, Is.Null);
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Is.Null);
+            Assert.That(attributes[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Is.Null);
         });
     }
 
@@ -596,19 +596,19 @@ public class MapperTests
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.EqualTo(2));
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.EqualTo(2));
 
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.HashSetOfString)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].IsLSet, Is.False);
 
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].SS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].SS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.SortedSetOfString)].SS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableHashSetOfString)].SS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.ImmutableSortedSetOfString)].SS, Is.Null);
 
             Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.Zero);
             Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
@@ -646,13 +646,13 @@ public class MapperTests
             Assert.That(deserialized.ImmutableSortedSetOfString, Is.EquivalentTo(classWithSetOfString.ImmutableSortedSetOfString));
 
             // Due to DynamoDB not supporting empty string sets we need to use the L attribute to represent empty sets
-            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].SS, Is.Null);
             Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithEmptySetOfString.SortedSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.SortedSetOfString)].SS, Is.Null);
             Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableHashSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableHashSetOfString)].SS, Is.Null);
             Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableSortedSetOfString)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithEmptySetOfString.ImmutableSortedSetOfString)].SS, Is.Null);
             Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].IsSSSet, Is.False);
 
             Assert.That(attributes[nameof(ClassWithEmptySetOfString.HashSetOfString)].L, Has.Count.Zero);
@@ -701,9 +701,9 @@ public class MapperTests
         Assert.Multiple(() =>
         {
             Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].L, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClasWithListOfString.ListStrings)].SS, Is.Null);
             Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].L, Has.Count.EqualTo(2));
-            Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].SS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClasWithListOfString.ArrayStrings)].SS, Is.Null);
         });
     }
 
@@ -865,17 +865,17 @@ public class MapperTests
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
         Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.EqualTo(2));
 
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.UShorts)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].L, Has.Count.Zero);
-        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.UShorts)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].L, Is.Null);
+        Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].L, Is.Null);
     }
 
     [Test]
@@ -967,40 +967,40 @@ public class MapperTests
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.EqualTo(2));
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.EqualTo(2));
 
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Ints)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Doubles)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Doubles)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Doubles)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Floats)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Floats)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Floats)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Bytes)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Bytes)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Bytes)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Shorts)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Shorts)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Shorts)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UShorts)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UShorts)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UShorts)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Longs)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Longs)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Longs)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.ULongs)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.ULongs)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.ULongs)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UInts)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UInts)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.UInts)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.SBytes)].IsLSet, Is.False);
-            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].L, Has.Count.Zero);
+            Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].L, Is.Null);
             Assert.That(attributesBeforeEmpty[nameof(ClassWithSetOfNumbers.Decimals)].IsLSet, Is.False);
 
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UShorts)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.Zero);
-            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.Zero);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Doubles)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Floats)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Bytes)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Shorts)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UShorts)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Longs)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.ULongs)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.UInts)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.SBytes)].NS, Is.Null);
+            Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Decimals)].NS, Is.Null);
 
             Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
             Assert.That(attributesAfterEmpty[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
@@ -1065,25 +1065,25 @@ public class MapperTests
             Assert.That(deserialized.Decimals, Is.EquivalentTo(classWithHashSetOfNumbers.Decimals));
 
             // Due to DynamoDB not supporting empty number sets we need to use the L attribute to represent empty sets
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Doubles)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Floats)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Bytes)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Shorts)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Longs)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.ULongs)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.UInts)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.SBytes)].IsNSSet, Is.False);
-            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Has.Count.Zero);
+            Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].NS, Is.Null);
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Decimals)].IsNSSet, Is.False);
 
             Assert.That(attributes[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.Zero);
@@ -1260,7 +1260,7 @@ public class MapperTests
         {
             // Using the default serializer options, sets are converted to dynamo list types
             Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
-            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.EqualTo(2));
         });
 
         var numberSetAttributes =
@@ -1275,7 +1275,7 @@ public class MapperTests
         {
             // Using the default serializer options, sets are converted to dynamo list types
             Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
-            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.EqualTo(2));
         });
     }
 
@@ -1309,8 +1309,9 @@ public class MapperTests
         Assert.That(stringSetAttributes, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
+            // Using the default serializer options, sets are converted to dynamo list types
             Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].IsLSet, Is.True);
-            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].NS, Is.Empty);
+            Assert.That(stringSetAttributes[nameof(ClassWithSetOfString.HashSetOfString)].L, Has.Count.EqualTo(2));
         });
 
         var numberSetAttributes =
@@ -1323,8 +1324,9 @@ public class MapperTests
         Assert.That(numberSetAttributes, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
+            // Using the default serializer options, sets are converted to dynamo list types
             Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].IsLSet, Is.True);
-            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].NS, Is.Empty);
+            Assert.That(numberSetAttributes[nameof(ClassWithSetOfNumbers.Ints)].L, Has.Count.EqualTo(2));
         });
     }
 
