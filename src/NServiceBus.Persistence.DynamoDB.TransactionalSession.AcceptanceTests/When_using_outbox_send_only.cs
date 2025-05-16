@@ -77,7 +77,7 @@ public class When_using_outbox_send_only : NServiceBusAcceptanceTest
         {
             c.ConfigureTransport().TransportTransactionMode = TransportTransactionMode.ReceiveOnly;
 
-            c.EnableOutbox().EndpointName(Conventions.EndpointNamingConvention.Invoke(typeof(SendOnlyEndpoint)));
+            c.EnableOutbox();
         });
     }
 

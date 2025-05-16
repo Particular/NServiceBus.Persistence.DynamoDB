@@ -24,7 +24,7 @@ class OutboxStorage : Feature
 
         ValidateOutboxSettings(outboxConfiguration);
 
-        var endpointName = string.IsNullOrEmpty(outboxConfiguration.CustomEndpointName) ? context.Settings.EndpointName() : outboxConfiguration.CustomEndpointName;
+        var endpointName = string.IsNullOrEmpty(outboxConfiguration.ProcessorEndpoint) ? context.Settings.EndpointName() : outboxConfiguration.ProcessorEndpoint;
 
         context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IDynamoClientProvider>().Client, outboxConfiguration, endpointName));
     }

@@ -25,5 +25,5 @@ public class OutboxPersistenceConfiguration
     /// <summary>
     /// Allows the user to set a custom endpoint name used by the outbox
     /// </summary>
-    internal string? CustomEndpointName { get; set; }
+    internal string? ProcessorEndpoint { get; set; }
 }

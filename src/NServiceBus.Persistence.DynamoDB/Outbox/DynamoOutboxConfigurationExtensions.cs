@@ -51,7 +51,7 @@ public static class DynamoOutboxConfigurationExtensions
         ArgumentNullException.ThrowIfNull(outboxSettings);
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
 
-        outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CustomEndpointName = endpointName;
+        outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().ProcessorEndpoint = endpointName;
         return outboxSettings;
     }
 }
