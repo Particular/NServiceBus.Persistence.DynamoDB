@@ -9,6 +9,7 @@ namespace NServiceBus
     public static class DynamoOutboxConfigurationExtensions
     {
         public static NServiceBus.Outbox.OutboxSettings CreateTable(this NServiceBus.Outbox.OutboxSettings outboxSettings, bool createTable) { }
+        public static NServiceBus.Outbox.OutboxSettings EndpointName(this NServiceBus.Outbox.OutboxSettings outboxSettings, string endpointName) { }
         public static NServiceBus.Outbox.OutboxSettings SetTimeToKeepDeduplicationData(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.TimeSpan timeToKeepDeduplicationData) { }
         public static NServiceBus.Outbox.OutboxSettings UseTable(this NServiceBus.Outbox.OutboxSettings outboxSettings, NServiceBus.TableConfiguration tableConfiguration) { }
     }
