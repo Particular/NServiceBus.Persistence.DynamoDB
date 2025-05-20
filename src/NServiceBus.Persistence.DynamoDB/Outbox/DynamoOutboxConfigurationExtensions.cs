@@ -42,16 +42,4 @@ public static class DynamoOutboxConfigurationExtensions
         outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().CreateTable = createTable;
         return outboxSettings;
     }
-
-    /// <summary>
-    /// Sets a custom endpoint name for the persister to use when storing and querying for outbox records.
-    /// </summary>
-    public static OutboxSettings EndpointName(this OutboxSettings outboxSettings, string endpointName)
-    {
-        ArgumentNullException.ThrowIfNull(outboxSettings);
-        ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
-
-        outboxSettings.GetSettings().GetOrCreate<OutboxPersistenceConfiguration>().ProcessorEndpoint = endpointName;
-        return outboxSettings;
-    }
 }

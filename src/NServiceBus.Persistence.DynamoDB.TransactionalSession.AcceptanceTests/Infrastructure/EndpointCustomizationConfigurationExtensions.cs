@@ -13,7 +13,7 @@ public static class EndpointCustomizationConfigurationExtensions
     {
         var assemblyScanner = new AssemblyScanner
         {
-            ScanFileSystemAssemblies = false
+            ScanFileSystemAssemblies = true
         };
 
         var assemblies = assemblyScanner.GetScannableAssemblies();
