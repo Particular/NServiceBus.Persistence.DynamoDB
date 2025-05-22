@@ -28,6 +28,11 @@ public static class DynamoTransactionalSessionExtensions
         var settings = persistenceExtensions.GetSettings();
 
         settings.Set(transactionalSessionOptions);
+        if (!string.IsNullOrWhiteSpace(transactionalSessionOptions.ProcessorEndpoint))
+        {
+            settings.GetOrCreate<OutboxPersistenceConfiguration>().ProcessorEndpoint = transactionalSessionOptions.ProcessorEndpoint;
+        }
+
         settings.EnableFeatureByDefault<DynamoTransactionalSession>();
 
         return persistenceExtensions;
