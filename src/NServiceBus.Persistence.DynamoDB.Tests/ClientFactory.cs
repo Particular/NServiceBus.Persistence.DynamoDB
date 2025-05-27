@@ -21,7 +21,7 @@ public static class ClientFactory
         if (noAccessKey)
         {
             config.ServiceURL = Environment.GetEnvironmentVariable("AWS_DYNAMODB_LOCAL_ADDRESS") ??
-                                    "http://localhost:8000";
+                                "http://localhost:8000";
         }
 
         return new AmazonDynamoDBClient(credentials, config);
