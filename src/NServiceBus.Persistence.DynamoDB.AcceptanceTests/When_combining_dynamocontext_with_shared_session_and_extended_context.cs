@@ -20,9 +20,8 @@ public class When_combining_dynamocontext_with_shared_session_and_extended_conte
         var customerId = Guid.NewGuid().ToString();
 
         var customer = new Customer { CustomerId = customerId };
-
-        var dynamoContext = new DynamoDBContextBuilder().WithDynamoDBClient(() => SetupFixture.DynamoDBClient).Build();
-        await dynamoContext.SaveAsync(customer, new SaveConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
+        var dynamoContext = new DynamoDBContext(SetupFixture.DynamoDBClient);
+        await dynamoContext.SaveAsync(customer, new DynamoDBOperationConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
 
         await Scenario.Define<Context>()
             .WithEndpoint<EndpointUsingDynamoContext>(e => e
@@ -34,7 +33,7 @@ public class When_combining_dynamocontext_with_shared_session_and_extended_conte
             .Run();
 
         var modifiedCustomer = await dynamoContext.LoadAsync<Customer>(customerId, customerId,
-            new LoadConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
+            new DynamoDBOperationConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
 
         Assert.Multiple(() =>
         {
@@ -60,7 +59,7 @@ public class When_combining_dynamocontext_with_shared_session_and_extended_conte
                 var session = context.SynchronizedStorageSession.DynamoPersistenceSession();
 
                 var customer = await dynamoContext.LoadAsync<Customer>(message.CustomerId, message.CustomerId,
-                        new LoadConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName },
+                        new DynamoDBOperationConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName },
                         context.CancellationToken)
                     .ConfigureAwait(false);
 
@@ -82,7 +81,7 @@ public class When_combining_dynamocontext_with_shared_session_and_extended_conte
                 testContext.MessageReceived = true;
             }
 
-            readonly DynamoDBContext dynamoContext = new DynamoDBContextBuilder().WithDynamoDBClient(() => clientProvider.Client).Build();
+            readonly DynamoDBContext dynamoContext = new(clientProvider.Client);
 
             // Normally this should never be done on a handler as a field but for this test this is OK.
             readonly JsonSerializerOptions serializerOptions = new(Mapper.Default)

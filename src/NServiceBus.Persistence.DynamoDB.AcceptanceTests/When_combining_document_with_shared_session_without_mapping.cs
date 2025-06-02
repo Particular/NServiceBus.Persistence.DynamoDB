@@ -16,10 +16,7 @@ public class When_combining_document_with_shared_session_without_mapping : NServ
     {
         var customerId = Guid.NewGuid().ToString();
 
-        var table = new TableBuilder(SetupFixture.DynamoDBClient, SetupFixture.TableConfiguration.TableName)
-            .AddHashKey("PK", DynamoDBEntryType.String)
-            .AddRangeKey("SK", DynamoDBEntryType.String)
-            .Build();
+        var table = Table.LoadTable(SetupFixture.DynamoDBClient, SetupFixture.TableConfiguration.TableName);
         var customerDocument = new Document
         {
             {"PK", customerId },
@@ -55,10 +52,7 @@ public class When_combining_document_with_shared_session_without_mapping : NServ
         {
             public TriggerMessageHandler(Context testContext, IDynamoClientProvider clientProvider)
             {
-                var tableBuilder = new TableBuilder(clientProvider.Client, SetupFixture.TableConfiguration.TableName)
-                    .AddHashKey("PK", DynamoDBEntryType.String)
-                    .AddRangeKey("SK", DynamoDBEntryType.String);
-                table = tableBuilder.Build();
+                table = Table.LoadTable(clientProvider.Client, SetupFixture.TableConfiguration.TableName);
                 this.testContext = testContext;
             }
 
