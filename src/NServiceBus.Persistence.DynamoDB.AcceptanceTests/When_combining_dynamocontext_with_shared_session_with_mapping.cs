@@ -18,8 +18,8 @@ public class When_combining_dynamocontext_with_shared_session_with_mapping : NSe
         var customerId = Guid.NewGuid().ToString();
 
         var customer = new Customer { CustomerId = customerId };
-        var dynamoContext = new DynamoDBContextBuilder().WithDynamoDBClient(() => SetupFixture.DynamoDBClient).Build();
-        await dynamoContext.SaveAsync(customer, new SaveConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
+        var dynamoContext = new DynamoDBContext(SetupFixture.DynamoDBClient);
+        await dynamoContext.SaveAsync(customer, new DynamoDBOperationConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
 
         await Scenario.Define<Context>()
             .WithEndpoint<EndpointUsingDynamoContext>(e => e
@@ -31,7 +31,7 @@ public class When_combining_dynamocontext_with_shared_session_with_mapping : NSe
             .Run();
 
         var modifiedCustomer = await dynamoContext.LoadAsync<Customer>(customerId, customerId,
-            new LoadConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
+            new DynamoDBOperationConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName });
         Assert.That(modifiedCustomer.CustomerPreferred, Is.True);
     }
 
@@ -44,15 +44,20 @@ public class When_combining_dynamocontext_with_shared_session_with_mapping : NSe
     {
         public EndpointUsingDynamoContext() => EndpointSetup<DefaultServer>();
 
-        class TriggerMessageHandler(Context testContext, IDynamoClientProvider clientProvider)
-            : IHandleMessages<MakeCustomerPreferred>
+        class TriggerMessageHandler : IHandleMessages<MakeCustomerPreferred>
         {
+            public TriggerMessageHandler(Context testContext, IDynamoClientProvider clientProvider)
+            {
+                dynamoContext = new DynamoDBContext(clientProvider.Client);
+                this.testContext = testContext;
+            }
+
             public async Task Handle(MakeCustomerPreferred message, IMessageHandlerContext context)
             {
                 var session = context.SynchronizedStorageSession.DynamoPersistenceSession();
 
                 var customer = await dynamoContext.LoadAsync<Customer>(message.CustomerId, message.CustomerId,
-                        new LoadConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName },
+                        new DynamoDBOperationConfig { OverrideTableName = SetupFixture.TableConfiguration.TableName },
                         context.CancellationToken)
                     .ConfigureAwait(false);
 
@@ -70,7 +75,8 @@ public class When_combining_dynamocontext_with_shared_session_with_mapping : NSe
                 testContext.MessageReceived = true;
             }
 
-            readonly DynamoDBContext dynamoContext = new DynamoDBContextBuilder().WithDynamoDBClient(() => clientProvider.Client).Build();
+            readonly DynamoDBContext dynamoContext;
+            readonly Context testContext;
         }
     }
 

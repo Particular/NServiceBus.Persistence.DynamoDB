@@ -40,8 +40,9 @@ public class OutboxTests
     {
         ContextBag contextBag = configuration.GetContextBagForOutbox();
 
+        var r = new Random();
         byte[] payload = new byte[500_000]; // 400 KB is the item size limit
-        Random.Shared.NextBytes(payload);
+        r.NextBytes(payload);
 
         var transportOperations = new TransportOperation[]
         {
@@ -61,8 +62,9 @@ public class OutboxTests
     {
         ContextBag contextBag = configuration.GetContextBagForOutbox();
 
+        var r = new Random();
         byte[] payload = new byte[300_000]; // 400 KB is the item size limit
-        Random.Shared.NextBytes(payload);
+        r.NextBytes(payload);
 
         // Generate total transaction payload > 4MB
         var transportOperations = new TransportOperation[15];

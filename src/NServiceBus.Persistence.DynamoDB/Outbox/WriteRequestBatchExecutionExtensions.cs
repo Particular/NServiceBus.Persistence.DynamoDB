@@ -51,11 +51,6 @@ static class WriteRequestBatchExecutionExtensions
                 var response = await dynamoDbClient.WriteBatch(batch, batchNumber, totalBatches, configuration, logger, cancellationToken)
                     .ConfigureAwait(false);
 
-                if (response.UnprocessedItems is not { Count: > 0 })
-                {
-                    return;
-                }
-
                 if (!response.UnprocessedItems.TryGetValue(configuration.Table.TableName, out var unprocessedBatch) ||
                     unprocessedBatch is not { Count: > 0 })
                 {

@@ -212,7 +212,7 @@ public static class Mapper
         foreach (var property in element.EnumerateObject())
         {
             AttributeValue serializeElement = ToAttributeFromElement(property.Value, options);
-            if (serializeElement.NULL.GetValueOrDefault())
+            if (serializeElement.NULL)
             {
                 continue;
             }
