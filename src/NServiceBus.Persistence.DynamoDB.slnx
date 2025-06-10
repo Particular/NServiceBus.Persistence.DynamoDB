@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="../.github/workflows/ci.yml" />
+    <File Path="../.github/workflows/release.yml" />
+    <File Path="Custom.Build.props" />
+  </Folder>
+  <Project Path="NServiceBus.Persistence.DynamoDB.AcceptanceTests/NServiceBus.Persistence.DynamoDB.AcceptanceTests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.EventualConsistent.AcceptanceTests/NServiceBus.Persistence.DynamoDB.EventualConsistent.AcceptanceTests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.PersistenceTests/NServiceBus.Persistence.DynamoDB.PersistenceTests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests/NServiceBus.Persistence.DynamoDB.PessimisticLock.AcceptanceTests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.Tests/NServiceBus.Persistence.DynamoDB.Tests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests/NServiceBus.Persistence.DynamoDB.TransactionalSession.AcceptanceTests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests/NServiceBus.Persistence.DynamoDB.TransactionalSession.Tests.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB.TransactionalSession/NServiceBus.Persistence.DynamoDB.TransactionalSession.csproj" />
+  <Project Path="NServiceBus.Persistence.DynamoDB/NServiceBus.Persistence.DynamoDB.csproj" />
+</Solution>
