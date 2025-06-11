@@ -22,9 +22,7 @@
 
   <ItemGroup>
     <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\ClientFactory.cs" />
-    <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\Serialization\DynamoDBAttributeSupportJsonExtensions.cs">
-      <Link>DynamoDBAttributeSupportJsonExtensions.cs</Link>
-    </Compile>
+    <Compile Include="..\NServiceBus.Persistence.DynamoDB.Tests\Serialization\DynamoDBAttributeSupportJsonExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(PkgNServiceBus_AcceptanceTests_Sources)' != ''">
