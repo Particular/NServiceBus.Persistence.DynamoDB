@@ -24,9 +24,9 @@ public static class Mapper
     {
         get
         {
-            if (@default is not { } options)
+            if (field is not { } options)
             {
-                options = GetOrCreateDefaultInstance(ref @default);
+                options = GetOrCreateDefaultInstance(ref field);
             }
 
             return options;
@@ -333,7 +333,6 @@ public static class Mapper
     static readonly AttributeValue NullAttributeValue = new() { NULL = true };
     static readonly AttributeValue TrueAttributeValue = new() { BOOL = true };
     static readonly AttributeValue FalseAttributeValue = new() { BOOL = false };
-    static JsonSerializerOptions? @default;
 
     const string DynamicCodeWarning = "JSON serialization and deserialization might require types that cannot be statically analyzed and might need runtime code generation. Use System.Text.Json source generation for native AOT applications.";
     const string UnreferencedCodeWarning =
