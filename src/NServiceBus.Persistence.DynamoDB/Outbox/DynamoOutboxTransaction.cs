@@ -18,4 +18,5 @@ class DynamoOutboxTransaction : IOutboxTransaction
     public Task Commit(CancellationToken cancellationToken = default) => StorageSession.Commit(cancellationToken);
 
     public void Dispose() => StorageSession.Dispose();
+    public ValueTask DisposeAsync() => StorageSession.DisposeAsync();
 }

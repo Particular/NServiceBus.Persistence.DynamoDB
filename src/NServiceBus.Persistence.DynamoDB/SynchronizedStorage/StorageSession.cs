@@ -10,7 +10,7 @@ using Amazon.DynamoDBv2.Model;
 using Extensibility;
 using Logging;
 
-class StorageSession : IDynamoStorageSessionInternal
+sealed class StorageSession : IDynamoStorageSessionInternal, IDisposable, IAsyncDisposable
 {
     static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
 
@@ -89,6 +89,12 @@ class StorageSession : IDynamoStorageSessionInternal
         // release lock as fire & forget
         _ = ReleaseLocksAsync(CancellationToken.None);
         disposed = true;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 
     async Task ReleaseLocksAsync(CancellationToken cancellationToken)
