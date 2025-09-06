@@ -10,15 +10,10 @@ using Amazon.DynamoDBv2.Model;
 using Extensibility;
 using Logging;
 
-class StorageSession : IDynamoStorageSessionInternal
+sealed class StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
+    : IDynamoStorageSessionInternal, IDisposable, IAsyncDisposable
 {
     static readonly ILog Logger = LogManager.GetLogger<StorageSession>();
-
-    public StorageSession(IAmazonDynamoDB dynamoDbClient, ContextBag context)
-    {
-        this.dynamoDbClient = dynamoDbClient;
-        CurrentContextBag = context;
-    }
 
     public void Add(TransactWriteItem writeItem)
     {
@@ -91,6 +86,12 @@ class StorageSession : IDynamoStorageSessionInternal
         disposed = true;
     }
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
+    }
+
     async Task ReleaseLocksAsync(CancellationToken cancellationToken)
     {
         if (lockCleanups is null or { Count: 0 })
@@ -132,11 +133,10 @@ class StorageSession : IDynamoStorageSessionInternal
         }
     }
 
-    public ContextBag CurrentContextBag { get; set; }
+    public ContextBag CurrentContextBag { get; set; } = context;
 
     List<TransactWriteItem> batch = [];
     Dictionary<Guid, ILockCleanup>? lockCleanups;
-    readonly IAmazonDynamoDB dynamoDbClient;
     bool disposed;
     bool committed;
 }

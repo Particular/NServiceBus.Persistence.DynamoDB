@@ -6,16 +6,12 @@ using Amazon.DynamoDBv2;
 using Extensibility;
 using Outbox;
 
-class DynamoOutboxTransaction : IOutboxTransaction
+class DynamoOutboxTransaction(IAmazonDynamoDB dynamoDbClient, ContextBag context) : IOutboxTransaction
 {
-    public StorageSession StorageSession { get; }
-
-    public DynamoOutboxTransaction(IAmazonDynamoDB dynamoDbClient, ContextBag context)
-    {
-        StorageSession = new StorageSession(dynamoDbClient, context);
-    }
+    public StorageSession StorageSession { get; } = new(dynamoDbClient, context);
 
     public Task Commit(CancellationToken cancellationToken = default) => StorageSession.Commit(cancellationToken);
 
     public void Dispose() => StorageSession.Dispose();
+    public ValueTask DisposeAsync() => StorageSession.DisposeAsync();
 }
