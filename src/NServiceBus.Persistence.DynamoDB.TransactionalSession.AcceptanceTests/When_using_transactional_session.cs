@@ -158,8 +158,11 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                 { ":pk", new AttributeValue($"OUTBOX#{endpointIdentifier}#{messageId}") }
             }
         });
-        Assert.That(documents.Count, outboxEnabled ? Is.EqualTo(1) : Is.Zero);
-        Assert.That(context.MessageReceived, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(documents.Count, outboxEnabled ? Is.EqualTo(1) : Is.Zero);
+            Assert.That(context.MessageReceived, Is.True);
+        });
     }
 
     [TestCase(true)]
