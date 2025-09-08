@@ -48,7 +48,7 @@ class OutboxPersister : IOutboxStorage
             },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>(1)
             {
-                { ":outboxId", new AttributeValue { S = OutboxPartitionKey(messageId) } }
+                { ":outboxId", new AttributeValue { S = OutboxPartitionKey(endpointIdentifier, messageId) } }
             },
             TableName = configuration.Table.TableName
         };
@@ -185,7 +185,7 @@ class OutboxPersister : IOutboxStorage
                     {
                         {
                             configuration.Table.PartitionKeyName,
-                            new AttributeValue { S = OutboxPartitionKey(outboxMessage.MessageId) }
+                            new AttributeValue { S = OutboxPartitionKey(endpointIdentifier, outboxMessage.MessageId) }
                         },
                         {
                             configuration.Table.SortKeyName,
@@ -220,7 +220,7 @@ class OutboxPersister : IOutboxStorage
                 {
                     Item = new Dictionary<string, AttributeValue>(6)
                     {
-                        {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(outboxMessage.MessageId)}},
+                        {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(endpointIdentifier, outboxMessage.MessageId)}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(outboxMessage.MessageId, n)}},
                         {MessageId, new AttributeValue {S = operation.MessageId}},
                         {
@@ -288,7 +288,7 @@ class OutboxPersister : IOutboxStorage
         {
             Key = new Dictionary<string, AttributeValue>(2)
             {
-                {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(messageId)}},
+                {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(endpointIdentifier, messageId)}},
                 {configuration.Table.SortKeyName, new AttributeValue {S = OutboxMetadataSortKey(messageId)}}
             },
             UpdateExpression = "SET #dispatched = :dispatched, #dispatched_at = :dispatched_at, #ttl = :ttl",
@@ -323,7 +323,7 @@ class OutboxPersister : IOutboxStorage
                 {
                     Key = new Dictionary<string, AttributeValue>(2)
                     {
-                        {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(messageId)}},
+                        {configuration.Table.PartitionKeyName, new AttributeValue {S = OutboxPartitionKey(endpointIdentifier, messageId)}},
                         {configuration.Table.SortKeyName, new AttributeValue {S = OutboxOperationSortKey(messageId, i)}}
                     }
                 }
@@ -341,9 +341,9 @@ class OutboxPersister : IOutboxStorage
             .ConfigureAwait(false);
     }
 
-    string OutboxPartitionKey(string messageId) => $"OUTBOX#{endpointIdentifier}#{messageId}";
-    string OutboxMetadataSortKey(string messageId) => $"OUTBOX#METADATA#{messageId}";
-    string OutboxOperationSortKey(string messageId, int messageNumber) => $"OUTBOX#OPERATION#{messageId}#{messageNumber:D4}";
+    internal static string OutboxPartitionKey(string endpointIdentifier, string messageId) => $"OUTBOX#{endpointIdentifier}#{messageId}";
+    static string OutboxMetadataSortKey(string messageId) => $"OUTBOX#METADATA#{messageId}";
+    static string OutboxOperationSortKey(string messageId, int messageNumber) => $"OUTBOX#OPERATION#{messageId}#{messageNumber:D4}";
 
     readonly IAmazonDynamoDB dynamoDbClient;
     readonly OutboxPersistenceConfiguration configuration;

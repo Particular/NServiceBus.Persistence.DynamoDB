@@ -9,6 +9,7 @@ using AcceptanceTesting;
 using AcceptanceTesting.Customization;
 using Amazon.DynamoDBv2.Model;
 using NUnit.Framework;
+using Persistence.DynamoDB;
 
 public class When_using_transactional_session : NServiceBusAcceptanceTest
 {
@@ -155,7 +156,7 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
                 },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
             {
-                { ":pk", new AttributeValue($"OUTBOX#{endpointIdentifier}#{messageId}") }
+                { ":pk", new AttributeValue(OutboxPersister.OutboxPartitionKey(endpointIdentifier, messageId)) }
             }
         });
         Assert.Multiple(() =>
