@@ -6,8 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AcceptanceTesting;
+using AcceptanceTesting.Customization;
 using Amazon.DynamoDBv2.Model;
 using NUnit.Framework;
+using Persistence.DynamoDB;
 
 public class When_using_transactional_session : NServiceBusAcceptanceTest
 {
@@ -115,6 +117,53 @@ public class When_using_transactional_session : NServiceBusAcceptanceTest
             }
         });
         Assert.That(documents.Count, Is.EqualTo(1));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task Should_send_messages_on_transactional_session_commit_even_when_dynamo_session_not_used(bool outboxEnabled)
+    {
+        var endpointIdentifier = Conventions.EndpointNamingConvention(typeof(AnEndpoint));
+        var messageId = Guid.NewGuid().ToString("N");
+
+        var context = await Scenario.Define<Context>()
+            .WithEndpoint<AnEndpoint>(s => s.When(async (_, ctx) =>
+            {
+                using var scope = ctx.ServiceProvider.CreateScope();
+                using var transactionalSession = scope.ServiceProvider.GetRequiredService<ITransactionalSession>();
+                await transactionalSession.Open(new DynamoOpenSessionOptions());
+
+                var sendOptions = new SendOptions();
+                sendOptions.SetMessageId(messageId);
+                sendOptions.RouteToThisEndpoint();
+
+                await transactionalSession.Send(new SampleMessage(), sendOptions, CancellationToken.None);
+
+                await transactionalSession.Commit(CancellationToken.None).ConfigureAwait(false);
+            }))
+            .Done(c => c.MessageReceived)
+            .Run();
+
+        var documents = await SetupFixture.DynamoDBClient.QueryAsync(new QueryRequest()
+        {
+            TableName = SetupFixture.TableConfiguration.TableName,
+            ConsistentRead = true,
+            KeyConditionExpression = "#pk = :pk",
+            ExpressionAttributeNames =
+                new Dictionary<string, string>()
+                {
+                    { "#pk", SetupFixture.TableConfiguration.PartitionKeyName }
+                },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
+            {
+                { ":pk", new AttributeValue(OutboxPersister.OutboxPartitionKey(endpointIdentifier, messageId)) }
+            }
+        });
+        Assert.Multiple(() =>
+        {
+            Assert.That(documents.Count, outboxEnabled ? Is.EqualTo(1) : Is.Zero);
+            Assert.That(context.MessageReceived, Is.True);
+        });
     }
 
     [TestCase(true)]
