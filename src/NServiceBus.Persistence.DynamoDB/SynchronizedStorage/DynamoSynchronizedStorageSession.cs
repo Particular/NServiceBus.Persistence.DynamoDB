@@ -58,6 +58,18 @@ sealed class DynamoSynchronizedStorageSession : ICompletableSynchronizedStorageS
         disposed = true;
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        if (!commitOnComplete || disposed)
+        {
+            return;
+        }
+
+        await storageSession.DisposeAsync().ConfigureAwait(false);
+
+        disposed = true;
+    }
+
     public ContextBag CurrentContextBag
     {
         get => storageSession.CurrentContextBag;
