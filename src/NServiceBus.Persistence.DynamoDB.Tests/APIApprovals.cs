@@ -13,8 +13,7 @@ public class APIApprovals
     {
         var publicApi = typeof(DynamoPersistence).Assembly.GeneratePublicApi(new ApiGeneratorOptions
         {
-            ExcludeAttributes = ["System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute"
-            ]
+            ExcludeAttributes = ["System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute"]
         });
         Approver.Verify(publicApi);
     }

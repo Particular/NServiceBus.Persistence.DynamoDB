@@ -13,7 +13,7 @@ namespace NServiceBus
         public static NServiceBus.Outbox.OutboxSettings SetTimeToKeepDeduplicationData(this NServiceBus.Outbox.OutboxSettings outboxSettings, System.TimeSpan timeToKeepDeduplicationData) { }
         public static NServiceBus.Outbox.OutboxSettings UseTable(this NServiceBus.Outbox.OutboxSettings outboxSettings, NServiceBus.TableConfiguration tableConfiguration) { }
     }
-    public class DynamoPersistence : NServiceBus.Persistence.PersistenceDefinition { }
+    public class DynamoPersistence : NServiceBus.Persistence.PersistenceDefinition, NServiceBus.Persistence.IPersistenceDefinitionFactory<NServiceBus.DynamoPersistence> { }
     public static class DynamoPersistenceConfigExtensions
     {
         public static void DisableTablesCreation(this NServiceBus.PersistenceExtensions<NServiceBus.DynamoPersistence> persistenceExtensions) { }

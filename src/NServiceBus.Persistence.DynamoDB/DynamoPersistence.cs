@@ -7,9 +7,9 @@ using Persistence.DynamoDB;
 /// <summary>
 /// Used to configure NServiceBus to use DynamoDB persistence.
 /// </summary>
-public class DynamoPersistence : PersistenceDefinition
+public class DynamoPersistence : PersistenceDefinition, IPersistenceDefinitionFactory<DynamoPersistence>
 {
-    internal DynamoPersistence()
+    DynamoPersistence()
     {
         Defaults(s =>
         {
@@ -19,7 +19,9 @@ public class DynamoPersistence : PersistenceDefinition
             s.EnableFeatureByDefault<InstallerFeature>();
         });
 
-        Supports<StorageType.Sagas>(s => s.EnableFeatureByDefault<SagaStorage>());
-        Supports<StorageType.Outbox>(s => s.EnableFeatureByDefault<OutboxStorage>());
+        Supports<StorageType.Sagas, SagaStorage>();
+        Supports<StorageType.Outbox, OutboxStorage>();
     }
+
+    static DynamoPersistence IPersistenceDefinitionFactory<DynamoPersistence>.Create() => new();
 }
