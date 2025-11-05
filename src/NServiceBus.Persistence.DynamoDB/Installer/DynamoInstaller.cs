@@ -23,7 +23,7 @@ class DynamoInstaller : INeedToInstallSomething
     public async Task Install(string identity, CancellationToken cancellationToken = default)
     {
         TableConfiguration? outboxTableConfiguration = null;
-        if (settings.IsFeatureActive(typeof(OutboxStorage))
+        if (settings.IsFeatureActive<OutboxStorage>()
             && settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
             && outboxConfig.CreateTable)
         {
@@ -31,7 +31,7 @@ class DynamoInstaller : INeedToInstallSomething
             await installer.CreateTable(outboxTableConfiguration, cancellationToken).ConfigureAwait(false);
         }
 
-        if (settings.IsFeatureActive(typeof(SagaStorage))
+        if (settings.IsFeatureActive<SagaStorage>()
             && settings.TryGet(out SagaPersistenceConfiguration sagaConfig)
             && sagaConfig.CreateTable
             && outboxTableConfiguration?.TableName != sagaConfig.Table.TableName)

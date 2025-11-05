@@ -12,9 +12,9 @@ class SagaStorage : Feature
         {
             s.SetDefault<ISagaIdGenerator>(new SagaIdGenerator());
             s.SetDefault(new SagaPersistenceConfiguration());
-            s.EnableFeatureByDefault<SynchronizedStorage>();
         });
 
+        EnableByDefault<SynchronizedStorage>();
         DependsOn<Sagas>();
         DependsOn<SynchronizedStorage>();
     }
