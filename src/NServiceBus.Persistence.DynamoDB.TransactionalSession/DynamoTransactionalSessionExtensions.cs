@@ -33,7 +33,7 @@ public static class DynamoTransactionalSessionExtensions
             settings.GetOrCreate<OutboxPersistenceConfiguration>().ProcessorEndpoint = transactionalSessionOptions.ProcessorEndpoint;
         }
 
-        settings.EnableFeatureByDefault<DynamoTransactionalSession>();
+        settings.EnableFeature<DynamoTransactionalSession>();
 
         return persistenceExtensions;
     }

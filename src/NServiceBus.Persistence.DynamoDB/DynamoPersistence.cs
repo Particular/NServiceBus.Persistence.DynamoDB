@@ -16,7 +16,7 @@ public class DynamoPersistence : PersistenceDefinition, IPersistenceDefinitionFa
             s.SetDefault(new OutboxPersistenceConfiguration());
             s.SetDefault(new SagaPersistenceConfiguration());
             s.SetDefault<IDynamoClientProvider>(new DefaultDynamoClientProviderProvider());
-            s.EnableFeatureByDefault<InstallerFeature>();
+            s.EnableFeature<InstallerFeature>();
         });
 
         Supports<StorageType.Sagas, SagaStorage>();
