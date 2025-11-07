@@ -5,11 +5,12 @@ using Features;
 using Microsoft.Extensions.DependencyInjection;
 using Outbox;
 
-class OutboxStorage : Feature
+sealed class OutboxStorage : Feature
 {
-    OutboxStorage()
+    public OutboxStorage()
     {
-        EnableByDefault<SynchronizedStorage>();
+        Enable<SynchronizedStorage>();
+
         DependsOn<Outbox>();
         DependsOn<SynchronizedStorage>();
     }

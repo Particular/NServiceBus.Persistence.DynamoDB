@@ -4,9 +4,9 @@ using Features;
 using Microsoft.Extensions.DependencyInjection;
 using Sagas;
 
-class SagaStorage : Feature
+sealed class SagaStorage : Feature
 {
-    internal SagaStorage()
+    public SagaStorage()
     {
         Defaults(s =>
         {
@@ -14,7 +14,8 @@ class SagaStorage : Feature
             s.SetDefault(new SagaPersistenceConfiguration());
         });
 
-        EnableByDefault<SynchronizedStorage>();
+        Enable<SynchronizedStorage>();
+
         DependsOn<Sagas>();
         DependsOn<SynchronizedStorage>();
     }
