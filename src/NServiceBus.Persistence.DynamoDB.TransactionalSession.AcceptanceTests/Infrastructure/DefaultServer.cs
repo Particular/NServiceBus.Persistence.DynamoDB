@@ -24,7 +24,7 @@ public class DefaultServer : IEndpointSetupTemplate
             .Immediate(immediate => immediate.NumberOfRetries(1));
 
         // scan types at the end so that all types used by the configuration have been loaded into the AppDomain
-        endpointConfiguration.TypesToIncludeInScan(endpointCustomization.GetTypesScopedByTestClass());
+        endpointConfiguration.ScanTypesForTest(endpointCustomization);
 
         var persistence = endpointConfiguration.UsePersistence<DynamoPersistence>();
         persistence.DynamoClient(SetupFixture.DynamoDBClient);
