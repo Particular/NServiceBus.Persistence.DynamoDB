@@ -32,7 +32,7 @@ public class SetupFixture
             SortKeyName = Guid.NewGuid().ToString("N") + "SK",
         };
 
-        var installer = new Installer(DynamoDBClient);
+        var installer = new Installer(new DynamoClientProvidedByConfigurationProvider(DynamoDBClient));
 
         await installer.CreateTable(OutboxTable, CancellationToken.None).ConfigureAwait(false);
         await installer.CreateTable(SagaTable, CancellationToken.None).ConfigureAwait(false);

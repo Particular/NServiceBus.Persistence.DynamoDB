@@ -21,7 +21,7 @@ public class SetupFixture
 
         DynamoDBClient = ClientFactory.CreateDynamoDBClient();
 
-        var installer = new Installer(DynamoDBClient);
+        var installer = new Installer(new DynamoClientProvidedByConfigurationProvider(DynamoDBClient));
 
         await installer.CreateTable(TableConfiguration);
     }

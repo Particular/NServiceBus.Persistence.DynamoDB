@@ -21,6 +21,8 @@ sealed class OutboxStorage : Feature
 
         ValidateOutboxSettings(outboxConfiguration);
 
+        context.AddInstaller<OutboxInstaller>();
+
         var endpointName = string.IsNullOrEmpty(outboxConfiguration.ProcessorEndpoint) ? context.Settings.EndpointName() : outboxConfiguration.ProcessorEndpoint;
 
         context.Services.AddSingleton<IOutboxStorage>(provider => new OutboxPersister(provider.GetRequiredService<IDynamoClientProvider>().Client, outboxConfiguration, endpointName));

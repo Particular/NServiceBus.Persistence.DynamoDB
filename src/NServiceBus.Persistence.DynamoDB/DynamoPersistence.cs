@@ -1,6 +1,5 @@
 ﻿namespace NServiceBus;
 
-using Features;
 using Persistence;
 using Persistence.DynamoDB;
 
@@ -16,7 +15,6 @@ public class DynamoPersistence : PersistenceDefinition, IPersistenceDefinitionFa
             s.SetDefault(new OutboxPersistenceConfiguration());
             s.SetDefault(new SagaPersistenceConfiguration());
             s.SetDefault<IDynamoClientProvider>(new DefaultDynamoClientProviderProvider());
-            s.EnableFeature<InstallerFeature>();
         });
 
         Supports<StorageType.Sagas, SagaStorage>();

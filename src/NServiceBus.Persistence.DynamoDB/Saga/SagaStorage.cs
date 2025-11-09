@@ -25,6 +25,8 @@ sealed class SagaStorage : Feature
         // By default, use the endpoint name for the saga table name to store all sagas
         var sagaConfiguration = context.Settings.Get<SagaPersistenceConfiguration>();
 
+        context.AddInstaller<SagaInstaller>();
+
         context.Services.AddSingleton<ISagaPersister>(provider => new SagaPersister(
             provider.GetRequiredService<IDynamoClientProvider>().Client,
             sagaConfiguration,
