@@ -9,14 +9,7 @@ sealed class SagaInstaller(IReadOnlySettings settings, Installer installer) : IN
 {
     public async Task Install(string identity, CancellationToken cancellationToken = default)
     {
-        settings.TryGet(out OutboxPersistenceConfiguration outboxConfig);
-        var outboxTableConfiguration = outboxConfig?.Table;
-
-        if (settings.TryGet(out SagaPersistenceConfiguration sagaConfig)
-            && sagaConfig.CreateTable
-            && outboxTableConfiguration?.TableName != sagaConfig.Table.TableName)
-        {
-            await installer.CreateTable(sagaConfig.Table, cancellationToken).ConfigureAwait(false);
-        }
+        var sagaConfiguration = settings.Get<SagaPersistenceConfiguration>();
+        await installer.CreateTable(sagaConfiguration.Table, cancellationToken).ConfigureAwait(false);
     }
 }

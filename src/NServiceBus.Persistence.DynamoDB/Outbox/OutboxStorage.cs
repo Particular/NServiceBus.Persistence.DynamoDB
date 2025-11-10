@@ -17,11 +17,14 @@ sealed class OutboxStorage : Feature
 
     protected override void Setup(FeatureConfigurationContext context)
     {
-        OutboxPersistenceConfiguration outboxConfiguration = context.Settings.Get<OutboxPersistenceConfiguration>();
+        var outboxConfiguration = context.Settings.Get<OutboxPersistenceConfiguration>();
 
         ValidateOutboxSettings(outboxConfiguration);
 
-        context.AddInstaller<OutboxInstaller>();
+        if (outboxConfiguration.CreateTable)
+        {
+            context.AddInstaller<OutboxInstaller>();
+        }
 
         var endpointName = string.IsNullOrEmpty(outboxConfiguration.ProcessorEndpoint) ? context.Settings.EndpointName() : outboxConfiguration.ProcessorEndpoint;
 

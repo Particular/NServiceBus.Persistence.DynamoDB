@@ -9,10 +9,7 @@ sealed class OutboxInstaller(IReadOnlySettings settings, Installer installer) : 
 {
     public async Task Install(string identity, CancellationToken cancellationToken = default)
     {
-        if (settings.TryGet(out OutboxPersistenceConfiguration outboxConfig)
-            && outboxConfig.CreateTable)
-        {
-            await installer.CreateTable(outboxConfig.Table, cancellationToken).ConfigureAwait(false);
-        }
+        var outboxConfiguration = settings.Get<OutboxPersistenceConfiguration>();
+        await installer.CreateTable(outboxConfiguration.Table, cancellationToken).ConfigureAwait(false);
     }
 }
