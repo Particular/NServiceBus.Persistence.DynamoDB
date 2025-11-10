@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 
-class Installer
+class Installer(IDynamoClientProvider clientProvider)
 {
-    public Installer(IAmazonDynamoDB client) => this.client = client;
-
     public virtual async Task CreateTable(TableConfiguration tableConfiguration,
         CancellationToken cancellationToken = default)
     {
@@ -48,7 +46,7 @@ class Installer
 
     async Task ConfigureTimeToLive(string tableName, string ttlAttributeName, CancellationToken cancellationToken)
     {
-        var ttlDescription = await client.DescribeTimeToLiveAsync(tableName, cancellationToken).ConfigureAwait(false);
+        var ttlDescription = await clientProvider.Client.DescribeTimeToLiveAsync(tableName, cancellationToken).ConfigureAwait(false);
 
         if (ttlDescription.TimeToLiveDescription.AttributeName != null)
         {
@@ -62,7 +60,7 @@ class Installer
                 $"The table '{tableName}' has attribute '{ttlDescription.TimeToLiveDescription.AttributeName}' configured for the time to live. The outbox configuration is configured to use '{ttlAttributeName}' which does not match. Adjust the outbox configuration to match the existing time to live column name or remove the existing time to live configuration on the table.");
         }
 
-        await client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
+        await clientProvider.Client.UpdateTimeToLiveAsync(new UpdateTimeToLiveRequest
         {
             TableName = tableName,
             TimeToLiveSpecification = new TimeToLiveSpecification
@@ -78,7 +76,7 @@ class Installer
     {
         try
         {
-            await client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
+            await clientProvider.Client.CreateTableAsync(createTableRequest, cancellationToken).ConfigureAwait(false);
         }
         catch (ResourceInUseException)
         {
@@ -97,10 +95,8 @@ class Installer
             await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
             var describeTableResponse =
-                await client.DescribeTableAsync(request, cancellationToken).ConfigureAwait(false);
+                await clientProvider.Client.DescribeTableAsync(request, cancellationToken).ConfigureAwait(false);
             status = describeTableResponse.Table.TableStatus;
         } while (status != TableStatus.ACTIVE);
     }
-
-    readonly IAmazonDynamoDB client;
 }

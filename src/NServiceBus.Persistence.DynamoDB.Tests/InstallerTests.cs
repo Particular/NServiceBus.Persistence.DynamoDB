@@ -25,7 +25,7 @@ public class InstallerTests
             PartitionKeyName = Guid.NewGuid().ToString("N"),
             SortKeyName = Guid.NewGuid().ToString("N")
         };
-        installer = new Installer(dynamoClient);
+        installer = new Installer(new DynamoClientProvidedByConfigurationProvider(dynamoClient));
     }
 
     [TearDown]
