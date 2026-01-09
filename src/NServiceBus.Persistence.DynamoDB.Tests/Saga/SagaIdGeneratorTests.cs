@@ -1,7 +1,7 @@
 ﻿namespace NServiceBus.Persistence.DynamoDB.Tests;
 
 using System;
-using System.Reflection;
+using System.Threading.Tasks;
 using Extensibility;
 using NUnit.Framework;
 using Sagas;
@@ -13,7 +13,7 @@ public class SagaIdGeneratorTests
     public void Should_generate_deterministic_id()
     {
         var generator = new SagaIdGenerator();
-        var sagaMetadata = CreateSagaMetadata<SagaTypeA, SagaDataTypeA>();
+        var sagaMetadata = SagaMetadata.Create<SagaTypeA>();
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("correlation property name", "correlation property value"),
@@ -29,7 +29,7 @@ public class SagaIdGeneratorTests
     public void Should_generate_different_ids_for_correlation_property_values()
     {
         var generator = new SagaIdGenerator();
-        var sagaMetadata = CreateSagaMetadata<SagaTypeA, SagaDataTypeA>();
+        var sagaMetadata = SagaMetadata.Create<SagaTypeA>();
 
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
@@ -49,10 +49,10 @@ public class SagaIdGeneratorTests
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("correlation property name", "A"),
-            CreateSagaMetadata<SagaTypeA, SagaDataTypeA>(), new ContextBag()));
+            SagaMetadata.Create<SagaTypeA>(), new ContextBag()));
         var id2 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("correlation property name", "A"),
-            CreateSagaMetadata<SagaTypeB, SagaDataTypeA>(), new ContextBag()));
+            SagaMetadata.Create<SagaTypeA>(), new ContextBag()));
 
         Assert.That(id2, Is.EqualTo(id1), "a different saga types should not result in a different id");
     }
@@ -63,11 +63,9 @@ public class SagaIdGeneratorTests
         var generator = new SagaIdGenerator();
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
-            new SagaCorrelationProperty("correlation property name", "A"),
-            CreateSagaMetadata<SagaTypeA, SagaDataTypeA>(), new ContextBag()));
+            new SagaCorrelationProperty("correlation property name", "A"), SagaMetadata.Create<SagaTypeA>(), new ContextBag()));
         var id2 = generator.Generate(new SagaIdGeneratorContext(
-            new SagaCorrelationProperty("correlation property name", "A"),
-            CreateSagaMetadata<SagaTypeA, SagaDataTypeB>(), new ContextBag()));
+            new SagaCorrelationProperty("correlation property name", "A"), SagaMetadata.Create<SagaTypeB>(), new ContextBag()));
 
         Assert.That(id2, Is.Not.EqualTo(id1), "a different saga data types value should result in a different id");
     }
@@ -76,7 +74,7 @@ public class SagaIdGeneratorTests
     public void Should_generate_different_ids_for_correlation_property_name()
     {
         var generator = new SagaIdGenerator();
-        var sagaMetadata = CreateSagaMetadata<SagaTypeA, SagaDataTypeA>();
+        var sagaMetadata = SagaMetadata.Create<SagaTypeA>();
 
         var id1 = generator.Generate(new SagaIdGeneratorContext(
             new SagaCorrelationProperty("property A", "correlation property value"),
@@ -88,23 +86,35 @@ public class SagaIdGeneratorTests
         Assert.That(id2, Is.Not.EqualTo(id1), "a different correlation property should result in a different id");
     }
 
-    static SagaMetadata CreateSagaMetadata<TSagaType, TSagaDataType>()
+    class SagaTypeA : Saga<SagaDataTypeA>, IAmStartedByMessages<MyMessage>
     {
-        var sagaType = typeof(TSagaType);
-        var sagaDataType = typeof(TSagaDataType);
-        return new SagaMetadata(sagaType.FullName, sagaType, sagaDataType.FullName, sagaDataType,
-            null,
-            new[]
-            {
-                (SagaMessage)Activator.CreateInstance(typeof(SagaMessage),
-                    BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { typeof(string), true },
-                    null)
-            },
-            Array.Empty<SagaFinderDefinition>());
+        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<SagaDataTypeA> mapper) => mapper.MapSaga(s => s.CorrelationId)
+            .ToMessage<MyMessage>(m => m.CorrelationId);
+
+        public Task Handle(MyMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
     }
 
-    class SagaTypeA { }
-    class SagaTypeB { }
-    class SagaDataTypeA { }
-    class SagaDataTypeB { }
+    class SagaTypeB : Saga<SagaDataTypeB>, IAmStartedByMessages<MyMessage>
+    {
+        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<SagaDataTypeB> mapper) => mapper.MapSaga(s => s.CorrelationId)
+            .ToMessage<MyMessage>(m => m.CorrelationId);
+
+        public Task Handle(MyMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
+    }
+
+    class SagaDataTypeA : ContainSagaData
+    {
+        public string CorrelationId { get; set; }
+    }
+
+    class SagaDataTypeB : ContainSagaData
+    {
+        public string CorrelationId { get; set; }
+    }
+
+
+    class MyMessage
+    {
+        public string CorrelationId { get; set; }
+    }
 }
