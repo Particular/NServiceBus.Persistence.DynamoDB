@@ -97,7 +97,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
         public class SomeSaga : Saga<SomeSaga.SomeSagaData>, IAmStartedByMessages<SomeSaga.SagaStartMessage>
         {
             protected override void ConfigureHowToFindSaga(SagaPropertyMapper<SomeSagaData> mapper) => mapper
-                .MapSaga(s=>s.SomeProperty).ToMessage<SagaStartMessage>(m => m.SomeProperty);
+                .MapSaga(s => s.SomeProperty).ToMessage<SagaStartMessage>(m => m.SomeProperty);
 
             public Task Handle(SagaStartMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
 
