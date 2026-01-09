@@ -96,9 +96,17 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
     [Test]
     public async Task Should_update_existing_sagas_when_committed()
     {
-        var saga1 = new Saga1.Saga1Data { CorrelationId = Guid.NewGuid().ToString(), SomeSaga1Data = "saga 1 before update" };
+        var saga1 = new Saga1.Saga1Data
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            SomeSaga1Data = "saga 1 before update"
+        };
         await SaveSaga(saga1);
-        var saga2 = new Saga2.Saga2Data { CorrelationId = Guid.NewGuid().ToString(), SomeSaga2Data = "saga 2 before update" };
+        var saga2 = new Saga2.Saga2Data
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            SomeSaga2Data = "saga 2 before update"
+        };
         await SaveSaga(saga2);
 
         var context = configuration.GetContextBagForOutbox();
@@ -142,9 +150,17 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
     [Test]
     public async Task Should_not_update_existing_sagas_when_not_committed()
     {
-        var saga1 = new Saga1.Saga1Data { CorrelationId = Guid.NewGuid().ToString(), SomeSaga1Data = "saga 1 before update" };
+        var saga1 = new Saga1.Saga1Data
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            SomeSaga1Data = "saga 1 before update"
+        };
         await SaveSaga(saga1);
-        var saga2 = new Saga2.Saga2Data { CorrelationId = Guid.NewGuid().ToString(), SomeSaga2Data = "saga 2 before update" };
+        var saga2 = new Saga2.Saga2Data
+        {
+            CorrelationId = Guid.NewGuid().ToString(),
+            SomeSaga2Data = "saga 2 before update"
+        };
         await SaveSaga(saga2);
 
         var context = configuration.GetContextBagForOutbox();
@@ -187,7 +203,8 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
 
     public class Saga1 : Saga<Saga1.Saga1Data>, IAmStartedByMessages<StartTestSagaMessage>
     {
-        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<Saga1Data> mapper) => mapper.ConfigureMapping<StartTestSagaMessage>(m => m.CorrelationProperty).ToSaga(s => s.CorrelationId);
+        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<Saga1Data> mapper) =>
+            mapper.MapSaga(s => s.CorrelationId).ToMessage<StartTestSagaMessage>(m => m.CorrelationProperty);
 
         public Task Handle(StartTestSagaMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
 
@@ -200,7 +217,8 @@ public class When_multiple_sagas_in_outbox_transaction : SagaPersisterTests
 
     public class Saga2 : Saga<Saga2.Saga2Data>, IAmStartedByMessages<StartTestSagaMessage>
     {
-        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<Saga2Data> mapper) => mapper.ConfigureMapping<StartTestSagaMessage>(m => m.CorrelationProperty).ToSaga(s => s.CorrelationId);
+        protected override void ConfigureHowToFindSaga(SagaPropertyMapper<Saga2Data> mapper) =>
+            mapper.MapSaga(s => s.CorrelationId).ToMessage<StartTestSagaMessage>(m => m.CorrelationProperty);
 
         public Task Handle(StartTestSagaMessage message, IMessageHandlerContext context) => throw new NotImplementedException();
 

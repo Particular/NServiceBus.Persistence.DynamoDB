@@ -52,7 +52,7 @@ public class When_custom_provider_registered : NServiceBusAcceptanceTest
             }
 
             protected override void ConfigureHowToFindSaga(SagaPropertyMapper<JustASagaData> mapper)
-                => mapper.ConfigureMapping<StartSaga>(m => m.DataId).ToSaga(s => s.DataId);
+                => mapper.MapSaga(s => s.DataId).ToMessage<StartSaga>(m => m.DataId);
 
             readonly Context testContext;
         }
