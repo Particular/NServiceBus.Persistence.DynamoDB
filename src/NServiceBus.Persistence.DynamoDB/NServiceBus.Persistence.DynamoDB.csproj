@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup Label="Public dependencies">
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.1.1" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.7" />
     <PackageReference Include="NServiceBus" Version="9.2.8" />
   </ItemGroup>
 
