@@ -2,6 +2,7 @@
 
 using Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Sagas;
 
 sealed class SagaStorage : Feature
@@ -27,6 +28,7 @@ sealed class SagaStorage : Feature
 
         if (sagaConfiguration.CreateTable)
         {
+            context.Services.TryAddSingleton<Installer>();
             context.AddInstaller<SagaInstaller>();
         }
 
