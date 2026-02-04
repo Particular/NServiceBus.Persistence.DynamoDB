@@ -3,6 +3,7 @@
 using System;
 using Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Outbox;
 
 sealed class OutboxStorage : Feature
@@ -23,6 +24,7 @@ sealed class OutboxStorage : Feature
 
         if (outboxConfiguration.CreateTable)
         {
+            context.Services.TryAddSingleton<Installer>();
             context.AddInstaller<OutboxInstaller>();
         }
 
