@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using AcceptanceTesting;
 using Amazon.DynamoDBv2;
 using EndpointTemplates;
+using Features;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Persistence.DynamoDB;
+using SynchronizedStorage = Persistence.DynamoDB.SynchronizedStorage;
 
 public class When_custom_provider_registered : NServiceBusAcceptanceTest
 {
@@ -32,11 +34,16 @@ public class When_custom_provider_registered : NServiceBusAcceptanceTest
     public class EndpointWithCustomProvider : EndpointConfigurationBuilder
     {
         public EndpointWithCustomProvider() =>
-            EndpointSetup<DefaultServer>(config =>
-            {
-                config.RegisterComponents(c =>
-                    c.AddSingleton<IDynamoClientProvider>(b => new CustomProvider(b.GetService<Context>())));
-            });
+            EndpointSetup<DefaultServer>(c => c.EnableFeature<CustomProviderReplacementFeature>());
+
+        public class CustomProviderReplacementFeature : Feature
+        {
+            // So that fake service is registered after built-in feature
+            public CustomProviderReplacementFeature() => DependsOn<SynchronizedStorage>();
+
+            protected override void Setup(FeatureConfigurationContext context) =>
+                context.Services.AddSingleton<IDynamoClientProvider>(b => new CustomProvider(b.GetService<Context>()));
+        }
 
         public class JustASaga : Saga<JustASagaData>, IAmStartedByMessages<StartSaga>
         {
