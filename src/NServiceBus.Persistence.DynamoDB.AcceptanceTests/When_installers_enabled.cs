@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AcceptanceTesting;
 using EndpointTemplates;
+using Features;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Persistence.DynamoDB;
@@ -21,7 +22,7 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.That(context.Installer.TablesCreated, Is.Empty);
+        Assert.That(context.TablesCreated, Is.Empty);
     }
 
     [Test]
@@ -32,8 +33,8 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.That(context.Installer.TablesCreated, Does.Contain(context.SagaTableName));
-        Assert.That(context.Installer.TablesCreated, Has.Count.EqualTo(1), "should only create saga table");
+        Assert.That(context.TablesCreated, Does.Contain(context.SagaTableName));
+        Assert.That(context.TablesCreated, Has.Count.EqualTo(1), "should only create saga table");
     }
 
     [Test]
@@ -50,8 +51,8 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.That(context.Installer.TablesCreated, Does.Contain(context.OutboxTableName));
-        Assert.That(context.Installer.TablesCreated, Has.Count.EqualTo(1), "should only create outbox table");
+        Assert.That(context.TablesCreated, Does.Contain(context.OutboxTableName));
+        Assert.That(context.TablesCreated, Has.Count.EqualTo(1), "should only create outbox table");
     }
 
     [Test]
@@ -69,14 +70,14 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
             .Done(c => c.EndpointsStarted)
             .Run();
 
-        Assert.That(context.Installer.TablesCreated, Is.Empty);
+        Assert.That(context.TablesCreated, Is.Empty);
     }
 
     class Context : ScenarioContext
     {
         public string OutboxTableName { get; } = Guid.NewGuid().ToString();
         public string SagaTableName { get; } = Guid.NewGuid().ToString();
-        public FakeInstaller Installer { get; } = new FakeInstaller();
+        public List<string> TablesCreated { get; } = [];
     }
 
     class EndpointWithInstallers : EndpointConfigurationBuilder
@@ -91,7 +92,8 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
                 persistence.Sagas().Table.TableName = testContext.SagaTableName;
 
                 c.EnableInstallers();
-                c.RegisterComponents(sc => sc.AddSingleton<Installer>(testContext.Installer));
+
+                c.EnableFeature<ReplaceInstallerWithFakeFeature>();
             });
 
         public class SomeSaga : Saga<SomeSaga.SomeSagaData>, IAmStartedByMessages<SomeSaga.SagaStartMessage>
@@ -113,17 +115,23 @@ public class When_installers_enabled : NServiceBusAcceptanceTest
         }
     }
 
-    class FakeInstaller : Installer
+    public class ReplaceInstallerWithFakeFeature : Feature
     {
-        public List<string> TablesCreated { get; } = [];
+        // So that fake service is registered *after* storage features put in the default
+        public ReplaceInstallerWithFakeFeature() => DependsOnAtLeastOne(typeof(OutboxStorage), typeof(SagaStorage));
 
-        public FakeInstaller() : base(null)
+        protected override void Setup(FeatureConfigurationContext context)
         {
+            // Effectively replace the built-in Installer service
+            context.Services.AddSingleton<Installer, FakeInstaller>();
         }
+    }
 
+    class FakeInstaller(Context testContext) : Installer(null)
+    {
         public override Task CreateTable(TableConfiguration tableConfiguration, CancellationToken cancellationToken = default)
         {
-            TablesCreated.Add(tableConfiguration.TableName);
+            testContext.TablesCreated.Add(tableConfiguration.TableName);
             return Task.CompletedTask;
         }
     }
