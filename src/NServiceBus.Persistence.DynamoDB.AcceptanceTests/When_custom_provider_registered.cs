@@ -5,11 +5,9 @@ using System.Threading.Tasks;
 using AcceptanceTesting;
 using Amazon.DynamoDBv2;
 using EndpointTemplates;
-using Features;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Persistence.DynamoDB;
-using SynchronizedStorage = Persistence.DynamoDB.SynchronizedStorage;
 
 public class When_custom_provider_registered : NServiceBusAcceptanceTest
 {
@@ -17,8 +15,12 @@ public class When_custom_provider_registered : NServiceBusAcceptanceTest
     public async Task Should_be_used()
     {
         var context = await Scenario.Define<Context>()
-            .WithEndpoint<EndpointWithCustomProvider>(b =>
-                b.When(session => session.SendLocal(new StartSaga { DataId = Guid.NewGuid() })))
+            .WithEndpoint<EndpointWithCustomProvider>(
+                b =>
+                {
+                    b.Services(services => services.AddSingleton<IDynamoClientProvider>(provider => new CustomProvider(provider.GetService<Context>())), afterStart: true);
+                    b.When(session => session.SendLocal(new StartSaga { DataId = Guid.NewGuid() }));
+                })
             .Done(c => c.SagaReceivedMessage)
             .Run();
 
@@ -33,17 +35,7 @@ public class When_custom_provider_registered : NServiceBusAcceptanceTest
 
     public class EndpointWithCustomProvider : EndpointConfigurationBuilder
     {
-        public EndpointWithCustomProvider() =>
-            EndpointSetup<DefaultServer>(c => c.EnableFeature<CustomProviderReplacementFeature>());
-
-        public class CustomProviderReplacementFeature : Feature
-        {
-            // So that fake service is registered after built-in feature
-            public CustomProviderReplacementFeature() => DependsOn<SynchronizedStorage>();
-
-            protected override void Setup(FeatureConfigurationContext context) =>
-                context.Services.AddSingleton<IDynamoClientProvider>(b => new CustomProvider(b.GetService<Context>()));
-        }
+        public EndpointWithCustomProvider() => EndpointSetup<DefaultServer>();
 
         public class JustASaga : Saga<JustASagaData>, IAmStartedByMessages<StartSaga>
         {
@@ -64,26 +56,21 @@ public class When_custom_provider_registered : NServiceBusAcceptanceTest
             readonly Context testContext;
         }
 
-        public class CustomProvider : IDynamoClientProvider
-        {
-            public CustomProvider(Context testContext)
-                => this.testContext = testContext;
-
-            public IAmazonDynamoDB Client
-            {
-                get
-                {
-                    testContext.ProviderWasCalled = true;
-                    return SetupFixture.DynamoDBClient;
-                }
-            }
-
-            readonly Context testContext;
-        }
-
         public class JustASagaData : ContainSagaData
         {
             public virtual Guid DataId { get; set; }
+        }
+    }
+
+    public class CustomProvider(Context testContext) : IDynamoClientProvider
+    {
+        public IAmazonDynamoDB Client
+        {
+            get
+            {
+                testContext.ProviderWasCalled = true;
+                return SetupFixture.DynamoDBClient;
+            }
         }
     }
 
