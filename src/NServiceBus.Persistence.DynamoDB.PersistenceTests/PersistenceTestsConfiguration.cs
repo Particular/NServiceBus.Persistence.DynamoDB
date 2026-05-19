@@ -37,6 +37,8 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
 
     public bool SupportsPessimisticConcurrency { get; private set; }
 
+    public bool UseEventuallyConsistentReads { get; private set; }
+
     public ISagaIdGenerator SagaIdGenerator { get; } = new SagaIdGenerator();
 
     public ISagaPersister SagaStorage { get; private set; }
@@ -64,7 +66,7 @@ public partial class PersistenceTestsConfiguration : IDynamoClientProvider
 
         if (configuration.UseEventuallyConsistentReads.HasValue)
         {
-            sagaPersistenceConfiguration.UseEventuallyConsistentReads = configuration.UseEventuallyConsistentReads.Value;
+            sagaPersistenceConfiguration.UseEventuallyConsistentReads = UseEventuallyConsistentReads = configuration.UseEventuallyConsistentReads.Value;
         }
 
         SagaStorage = new SagaPersister(

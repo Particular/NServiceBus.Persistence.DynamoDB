@@ -11,6 +11,8 @@ public class When_updating_saga_in_outbox_transaction : SagaPersisterTests
     public async Task Should_save_saga_only_when_outbox_tx_committed()
     {
         configuration.RequiresOptimisticConcurrencySupport();
+        Assume.That(!((PersistenceTestsConfiguration)configuration).UseEventuallyConsistentReads,
+            "Post-commit visibility cannot be asserted with eventually consistent reads.");
 
         var contextBag = configuration.GetContextBagForOutbox();
 
