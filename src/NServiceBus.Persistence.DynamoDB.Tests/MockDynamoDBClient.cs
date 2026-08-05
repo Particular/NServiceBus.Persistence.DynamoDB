@@ -260,6 +260,7 @@ public sealed class MockDynamoDBClient : IAmazonDynamoDB
         throw new System.NotImplementedException();
 
     public Task<ScanResponse> ScanAsync(ScanRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
+    public Task<SearchVectorsResponse> SearchVectorsAsync(SearchVectorsRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new NotImplementedException();
 
     public Task<TagResourceResponse> TagResourceAsync(TagResourceRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
 
