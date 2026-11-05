@@ -81,6 +81,10 @@ public sealed class MockDynamoDBClient : IAmazonDynamoDB
         CancellationToken cancellationToken = default) =>
         throw new System.NotImplementedException();
 
+    public Task<CancelBulkOperationResponse> CancelBulkOperationAsync(CancelBulkOperationRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
+
     public Task<BatchGetItemResponse> BatchGetItemAsync(Dictionary<string, KeysAndAttributes> requestItems, ReturnConsumedCapacity returnConsumedCapacity,
         CancellationToken cancellationToken = default) =>
         throw new System.NotImplementedException();
@@ -118,6 +122,10 @@ public sealed class MockDynamoDBClient : IAmazonDynamoDB
     public Task<DeleteTableResponse> DeleteTableAsync(string tableName, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
 
     public Task<DeleteTableResponse> DeleteTableAsync(DeleteTableRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
+
+    public Task<DescribeBulkOperationResponse> DescribeBulkOperationAsync(DescribeBulkOperationRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
 
     public Task<DescribeBackupResponse> DescribeBackupAsync(DescribeBackupRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
 
@@ -201,6 +209,10 @@ public sealed class MockDynamoDBClient : IAmazonDynamoDB
 
     public Task<ListBackupsResponse> ListBackupsAsync(ListBackupsRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
 
+    public Task<ListBulkOperationsResponse> ListBulkOperationsAsync(ListBulkOperationsRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
+
     public Task<ListContributorInsightsResponse> ListContributorInsightsAsync(ListContributorInsightsRequest request,
         CancellationToken cancellationToken = default) =>
         throw new System.NotImplementedException();
@@ -261,6 +273,10 @@ public sealed class MockDynamoDBClient : IAmazonDynamoDB
 
     public Task<ScanResponse> ScanAsync(ScanRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
     public Task<SearchVectorsResponse> SearchVectorsAsync(SearchVectorsRequest request, CancellationToken cancellationToken = new CancellationToken()) => throw new NotImplementedException();
+
+    public Task<StartBulkPutItemsResponse> StartBulkPutItemsAsync(StartBulkPutItemsRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
 
     public Task<TagResourceResponse> TagResourceAsync(TagResourceRequest request, CancellationToken cancellationToken = default) => throw new System.NotImplementedException();
 
